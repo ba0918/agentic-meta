@@ -105,6 +105,23 @@ class TestVerify:
         assert kinds == {"drift"}
 
 
+class TestConfigurationErrors:
+    def test_a_malformed_declaration_makes_the_cli_exit_with_code_2(
+        self, copy_tree, capsys
+    ):
+        tree = copy_tree("contracts-basic/good")
+        skill_md = tree / "skills/report-writer/SKILL.md"
+        skill_md.write_text(
+            skill_md.read_text(encoding="utf-8").replace("digest:", "checksum:"),
+            encoding="utf-8",
+        )
+        exit_code = vendor.main(["verify", "--root", str(tree)])
+        captured = capsys.readouterr()
+        assert exit_code == 2
+        assert captured.err.startswith("error:")
+        assert captured.out == ""
+
+
 class TestConformanceDiscovery:
     def test_contract_conformance_tests_are_discovered_and_run_by_pytest(
         self, fixtures_dir

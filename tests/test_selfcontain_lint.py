@@ -31,6 +31,21 @@ class TestSelfContainLint:
             line.startswith("parent-escape:") and "notes.md" in line for line in lines
         )
 
+    def test_a_windows_style_parent_directory_reference_is_detected(
+        self, copy_tree, capsys
+    ):
+        tree = copy_tree("contracts-basic/good")
+        offender = tree / "skills/note-taker/notes.md"
+        offender.write_text(
+            "Copy the template from ..\\shared\\template.md first.\n",
+            encoding="utf-8",
+        )
+        exit_code, lines = lint(tree, capsys)
+        assert exit_code == 1
+        assert any(
+            line.startswith("parent-escape:") and "notes.md" in line for line in lines
+        )
+
     def test_an_absolute_path_reference_is_detected(self, copy_tree, capsys):
         tree = copy_tree("contracts-basic/good")
         offender = tree / "skills/note-taker/notes.md"
