@@ -91,6 +91,13 @@ with exactly the keys `id` and `digest`, where `digest` matches
 pins the exact contract content the skill was written against — implicitly
 tracking "latest" is forbidden by construction.
 
+As a fail-loud backstop, a frontmatter that contains a `contracts:` key
+anywhere — at any indentation, including inside a block-scalar prose field such
+as a multi-line `description` — but yields no recognized declaration is
+rejected as a configuration error. A pin mistyped into an unrecognized shape
+thus cannot be silently dropped; the cost is a false positive on frontmatter
+prose that happens to start a line with `contracts:`.
+
 ## Generated vendor copies
 
 `vendor.py gen` expands each declared contract into
@@ -109,8 +116,9 @@ Generation is deterministic: the same inputs produce byte-identical output. The
 header carries no source path and no timestamp — provenance that would break
 reproducibility or self-containment lives in the manifest instead.
 
-`gen` refuses to generate when a declared digest does not match the canonical
-contract (the skill must be updated deliberately, never silently).
+`gen` refuses to generate — exit 1, with nothing written — when a declared
+digest does not match the canonical contract or a declared contract has no
+canonical file (the skill must be updated deliberately, never silently).
 
 `gen` and `verify` also refuse — as a configuration error, exit 2 — any
 symlink on a path they manage: a `skills/<name>` entry that is a symlink, a
@@ -118,6 +126,14 @@ symlinked `references/vendor/` directory, or a symlink among its entries.
 Following one would redirect writes and deletes outside the tree, so before
 every write or delete the resolved real path is re-validated to stay inside
 the tree root.
+
+Writes are crash-safe: each file is written to a same-directory `.tmp` file
+and atomically renamed into place, and `gen` writes everything before deleting
+anything, so an interruption leaves either the old bytes or the new bytes at
+every path, never a torn file. A leftover `.tmp` inside a vendor directory is
+reported by `verify` as `extra` and overwritten by the next `gen`. A leftover
+`vendor-manifest.json.tmp` at the tree root is *not* flagged by `verify` — it
+is inert and is overwritten by the next `gen`.
 
 ## Manifest
 
@@ -154,7 +170,13 @@ mismatch, one line per violation, prefixed with its kind:
 `skills/<name>/` directory is self-contained. It scans every file of every
 skill, with no allowlist; files that are not valid UTF-8 are scanned too (the
 content is examined via a lossless byte-to-character mapping — the violation
-patterns are pure ASCII, so no reference can hide behind an encoding):
+patterns are pure ASCII, so a reference cannot hide behind invalid UTF-8
+bytes; a non-ASCII-compatible encoding such as UTF-16, whose interleaved NULs
+break the patterns' contiguity, remains outside their reach). Only `skills/`
+is scanned: the `contracts/` directory itself is outside the lint's scope, so
+a contract body that violates self-containment is flagged only through its
+generated vendor copies inside each dependent skill, never at its canonical
+source:
 
 | Kind | Meaning |
 |---|---|
@@ -162,10 +184,22 @@ patterns are pure ASCII, so no reference can hide behind an encoding):
 | `absolute-path` | The file references an absolute filesystem path (`/two/segments`, `~/...`, or a Windows drive path) |
 | `symlink-escape` | A symlink inside the skill directory resolves to a target outside it |
 
-Two syntactic forms are not path references and are therefore excluded: the
-interpreter token of a line-leading shebang (`#!/usr/bin/env` — but any later
-absolute path on the shebang line is still reported) and URLs (tokens
-containing `://`).
+Two syntactic forms are excluded from **absolute-path** detection only: the
+interpreter token of a shebang on a file's first line (`#!/usr/bin/env` — but
+any later absolute path on the shebang line is still reported) and URLs
+(tokens containing `://`). The `parent-escape` check has no exemptions —
+`../` inside a URL or a shebang is still reported. The asymmetry is
+deliberate: an exemption there could hide a real escape, so the check errs
+toward false positives.
+
+Two detection thresholds are accepted trade-offs. A single-segment token such
+as `/help` is not reported — one segment is indistinguishable from prose like
+a slash command, so an absolute path is only recognized from two segments
+(`/two/segments`). And because `:` is not a reference boundary (URL exclusion
+depends on that), an absolute path butted directly against a colon —
+`path:/etc/app/config.yaml` — is not detected; written with a space after the
+colon it is. Revisit the colon trade-off if real `scheme:/path` references
+appear in actual skills or the lint is repurposed as an adversarial gate.
 
 ## Exit codes
 
