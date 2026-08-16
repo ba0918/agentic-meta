@@ -409,6 +409,20 @@ class TestGen:
         vendor.main(["gen", "--root", str(tree)])
         assert not stale.exists()
 
+    def test_gen_refuses_a_pre_planted_symlink_at_the_manifest_temp_path(
+        self, copy_tree, tmp_path, capsys
+    ):
+        # The atomic-write temp path is written through like any managed
+        # path; a symlink planted there must be refused, not followed.
+        tree = copy_tree(GOOD_TREE)
+        external_file = tmp_path / "external-target.txt"
+        external_file.write_text("external content\n", encoding="utf-8")
+        (tree / "vendor-manifest.json.tmp").symlink_to(external_file)
+        exit_code = vendor.main(["gen", "--root", str(tree)])
+        assert exit_code == 2
+        assert capsys.readouterr().err.startswith("error:")
+        assert external_file.read_text(encoding="utf-8") == "external content\n"
+
     def test_an_interrupted_gen_loses_no_pre_existing_file(
         self, copy_tree, monkeypatch, capsys
     ):

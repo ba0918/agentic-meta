@@ -459,10 +459,16 @@ def _write_atomic(path: Path, content: str) -> None:
     """Write via a same-directory temp file and an atomic rename.
 
     An interrupted gen thus leaves either the old bytes or the new bytes at
-    every path, never a torn file; a leftover .tmp file is reported by verify
-    as extra and replaced by the next gen.
+    every path, never a torn file; a leftover .tmp file is overwritten by the
+    next gen (and, inside a vendor directory, reported by verify as extra).
     """
     temp = path.with_name(path.name + ".tmp")
+    # The temp path is written through like any managed path: a symlink
+    # planted there would redirect the write outside the tree.
+    if temp.is_symlink():
+        raise ConfigError(
+            f"{temp}: symlink where the temp file goes; refusing to follow it"
+        )
     temp.write_text(content, encoding="utf-8")
     os.replace(temp, path)
 
