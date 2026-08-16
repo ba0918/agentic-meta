@@ -11,7 +11,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · 🔁 recurring gate
 | # | Wave | Goal | Status |
 |---|------|------|--------|
 | 0 | Scaffolding | Repository skeleton, agent instructions, artifact store, design spec | ✅ |
-| 1 | Foundation | Declaration-driven vendor machinery, verification, synthetic fixtures, CI | 🚧 |
+| 1 | Foundation | Declaration-driven vendor machinery, verification, synthetic fixtures, CI | ✅ |
 | 2 | Contrast pilots | Port `skill-reviewer` and `skill-interface-audit` through the machinery | ⬜ |
 | G | Gate | Re-evaluate remaining ports with pilot measurements | 🔁 |
 | 3 | Harnesses | Port `trigger-eval`, `empirical-prompt-tuning`, `skill-regression` | ⬜ |
@@ -27,16 +27,16 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · 🔁 recurring gate
 - [x] LICENSE (MIT), README, CHANGELOG skeleton
 - [x] Design spec: `docs/spec/repository-design.md`
 
-### Wave 1 — Foundation 🚧
+### Wave 1 — Foundation ✅
 
 Machinery only — no skill content is ported in this wave.
 
-- [ ] Contract format spec (`contracts/README.md`: id, version, conformance convention)
-- [ ] `scripts/vendor.py` — `gen` (materialize `references/vendor/` + manifest)
-- [ ] `scripts/vendor.py` — `verify` (drift / surplus / closure / manifest / version mismatch)
-- [ ] `scripts/vendor.py` — `lint-selfcontain` (no references escaping a skill directory)
-- [ ] Synthetic fixtures: `contracts-basic`, `skillset-alpha`, `skillset-beta`
-- [ ] CI workflow (pytest + verify + lint, green)
+- [x] Contract format spec (`contracts/README.md`: id, version, conformance convention)
+- [x] `scripts/vendor.py` — `gen` (materialize `references/vendor/` + manifest; atomic, symlink-guarded)
+- [x] `scripts/vendor.py` — `verify` (drift / surplus / closure / manifest / version mismatch / conformance mismatch)
+- [x] `scripts/vendor.py` — `lint-selfcontain` (no references escaping a skill directory)
+- [x] Synthetic fixtures: `contracts-basic`, `skillset-alpha`, `skillset-beta`
+- [x] CI workflow (pytest + verify + lint, green)
 
 ### Wave 2 — Contrast pilots ⬜
 
