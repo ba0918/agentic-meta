@@ -5,3 +5,7 @@
 # Agent runtime and scratch (machine-local per the artifact-store contract)
 /.agents/runtime/
 /.agents/tmp/
+
+# Python byproducts (running tests or the tool must not dirty the tree)
+__pycache__/
+.pytest_cache/
