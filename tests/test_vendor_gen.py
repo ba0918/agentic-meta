@@ -311,6 +311,22 @@ class TestGen:
         assert vendor.main(["gen", "--root", str(tree)]) == 1
         assert tree_snapshot(tree) == before
 
+    def test_gen_exits_with_code_2_when_a_vendor_target_cannot_be_written(
+        self, copy_tree, capsys
+    ):
+        # A directory sitting where a vendor copy must be written raises
+        # OSError; that must surface as a loud configuration error naming the
+        # path, not a crash.
+        tree = copy_tree(GOOD_TREE)
+        target = tree / "skills/report-writer/references/vendor/report-format.md"
+        target.unlink()
+        target.mkdir()
+        exit_code = vendor.main(["gen", "--root", str(tree)])
+        captured = capsys.readouterr()
+        assert exit_code == 2
+        assert captured.err.startswith("error:")
+        assert "report-format.md" in captured.err
+
     def test_gen_removes_vendor_files_no_declaration_accounts_for(self, copy_tree):
         tree = copy_tree(GOOD_TREE)
         stale = tree / "skills/note-taker/references/vendor/stale.md"

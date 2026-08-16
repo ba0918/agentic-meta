@@ -162,4 +162,4 @@ All subcommands share one scheme:
 |---|---|
 | 0 | Clean — no violations |
 | 1 | Violations found (each reported as `<kind>: ...` on stdout) |
-| 2 | Configuration or usage error (invalid contract id, malformed declaration, unreadable tree) |
+| 2 | Configuration or usage error (invalid contract id, malformed declaration, or a file the tool cannot read or write — unreadable files fail loud with the offending path, never a silent skip) |

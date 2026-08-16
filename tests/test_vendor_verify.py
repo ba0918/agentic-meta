@@ -203,6 +203,19 @@ class TestConfigurationErrors:
         assert captured.err.startswith("error:")
         assert captured.out == ""
 
+    def test_an_unreadable_contract_file_makes_the_cli_exit_with_code_2(
+        self, copy_tree, capsys
+    ):
+        # A directory where a contract file is expected raises OSError on
+        # read; that must surface as a loud configuration error, not a crash.
+        tree = copy_tree("contracts-basic/good")
+        (tree / "contracts/weird.md").mkdir()
+        exit_code = vendor.main(["verify", "--root", str(tree)])
+        captured = capsys.readouterr()
+        assert exit_code == 2
+        assert captured.err.startswith("error:")
+        assert "weird.md" in captured.err
+
 
 class TestConformanceDiscovery:
     def test_contract_conformance_tests_are_discovered_and_run_by_pytest(

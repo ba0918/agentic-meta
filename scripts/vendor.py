@@ -615,7 +615,8 @@ def main(argv=None) -> int:
         description=(
             "Generate, verify, and lint vendored contract copies. "
             "Exit codes: 0 clean, 1 violations (reported as '<kind>: ...'), "
-            "2 configuration or usage error. See contracts/README.md."
+            "2 configuration or usage error, including a file that cannot be "
+            "read or written. See contracts/README.md."
         ),
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -638,7 +639,10 @@ def main(argv=None) -> int:
         if arguments.command == "verify":
             return run_verify(arguments.root)
         return run_lint_selfcontain(arguments.root)
-    except ConfigError as error:
+    except (ConfigError, OSError) as error:
+        # An unreadable or unwritable path (permissions, a directory where a
+        # file is expected) is a configuration error, never a silent skip:
+        # str(OSError) names the offending path.
         print(f"error: {error}", file=sys.stderr)
         return 2
 
