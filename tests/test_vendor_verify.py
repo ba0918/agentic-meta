@@ -33,6 +33,36 @@ class TestVerify:
         assert exit_code == 1
         assert kinds == {"extra"}
 
+    def test_an_orphan_vendor_copy_under_a_skill_without_skill_md_is_extra(
+        self, copy_tree, capsys
+    ):
+        tree = copy_tree("contracts-basic/good")
+        orphan = tree / "skills/removed-skill/references/vendor/report-format.md"
+        orphan.parent.mkdir(parents=True)
+        orphan.write_text("left over after a skill removal\n", encoding="utf-8")
+        exit_code, kinds = verify_kinds(tree, capsys)
+        assert exit_code == 1
+        assert kinds == {"extra"}
+
+    def test_a_non_markdown_file_inside_the_vendor_directory_is_extra(
+        self, copy_tree, capsys
+    ):
+        tree = copy_tree("contracts-basic/good")
+        stray = tree / "skills/report-writer/references/vendor/notes.txt"
+        stray.write_text("stray\n", encoding="utf-8")
+        exit_code, kinds = verify_kinds(tree, capsys)
+        assert exit_code == 1
+        assert kinds == {"extra"}
+
+    def test_a_subdirectory_inside_the_vendor_directory_is_extra(
+        self, copy_tree, capsys
+    ):
+        tree = copy_tree("contracts-basic/good")
+        (tree / "skills/report-writer/references/vendor/cache").mkdir()
+        exit_code, kinds = verify_kinds(tree, capsys)
+        assert exit_code == 1
+        assert kinds == {"extra"}
+
     def test_a_declared_contract_without_a_canonical_file_is_a_closure_error(
         self, copy_tree, capsys
     ):

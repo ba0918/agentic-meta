@@ -10,6 +10,7 @@ import argparse
 import hashlib
 import json
 import re
+import shutil
 import sys
 from pathlib import Path
 from typing import Dict, List, NamedTuple, Tuple
@@ -334,12 +335,22 @@ def render_manifest(manifest: dict) -> str:
     return json.dumps(manifest, indent=2, sort_keys=True) + "\n"
 
 
-def _existing_vendor_files(root: Path, skills: List[SkillDeclarations]) -> List[Path]:
+def _existing_vendor_files(root: Path) -> List[Path]:
+    """Every entry directly under any skill's vendor directory.
+
+    Scans all directories under skills/ — not just the ones with a SKILL.md —
+    so leftovers of a removed or renamed skill are still found, and lists
+    every entry (non-.md files and subdirectories included), because nothing
+    but generated vendor copies belongs there.
+    """
     found = []
-    for skill in skills:
-        vendor_dir = root / SKILLS_DIR / skill.name / VENDOR_SUBDIR
+    skills_dir = root / SKILLS_DIR
+    if not skills_dir.is_dir():
+        return found
+    for directory in sorted(skills_dir.iterdir()):
+        vendor_dir = directory / VENDOR_SUBDIR
         if vendor_dir.is_dir():
-            found.extend(sorted(vendor_dir.glob("*.md")))
+            found.extend(sorted(vendor_dir.iterdir()))
     return found
 
 
@@ -353,9 +364,12 @@ def run_gen(root: Path) -> int:
         return 1
     expected = expected_vendor_files(skills, contracts)
     expected_paths = {root / path for path in expected}
-    for stale in _existing_vendor_files(root, skills):
+    for stale in _existing_vendor_files(root):
         if stale not in expected_paths:
-            stale.unlink()
+            if stale.is_dir():
+                shutil.rmtree(stale)
+            else:
+                stale.unlink()
     for relative, content in expected.items():
         target = root / relative
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -385,7 +399,7 @@ def run_verify(root: Path) -> int:
         for skill in skills
         for declaration in skill.declarations
     }
-    for actual in _existing_vendor_files(root, skills):
+    for actual in _existing_vendor_files(root):
         if actual not in declared_paths:
             violations.append(
                 f"extra: {actual.relative_to(root)} is not declared by any skill"

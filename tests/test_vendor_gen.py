@@ -250,3 +250,21 @@ class TestGen:
         stale.write_text("left over\n", encoding="utf-8")
         vendor.main(["gen", "--root", str(tree)])
         assert not stale.exists()
+
+    def test_gen_removes_orphan_vendor_artifacts_so_verify_passes_afterwards(
+        self, copy_tree
+    ):
+        tree = copy_tree(GOOD_TREE)
+        orphan = tree / "skills/removed-skill/references/vendor/old.md"
+        orphan.parent.mkdir(parents=True)
+        orphan.write_text("left over after a skill removal\n", encoding="utf-8")
+        stray = tree / "skills/report-writer/references/vendor/notes.txt"
+        stray.write_text("stray\n", encoding="utf-8")
+        subdir = tree / "skills/report-writer/references/vendor/cache"
+        subdir.mkdir()
+        (subdir / "cached.md").write_text("cached\n", encoding="utf-8")
+        assert vendor.main(["gen", "--root", str(tree)]) == 0
+        assert not orphan.exists()
+        assert not stray.exists()
+        assert not subdir.exists()
+        assert vendor.main(["verify", "--root", str(tree)]) == 0
