@@ -456,9 +456,13 @@ def lint_lines(relative_path: str, lines: List[str]) -> List[str]:
                 f"parent-escape: {site}: reference above the skill directory"
             )
         # A shebang names an interpreter for the OS, not a file the skill
-        # reads, so it cannot break self-containment of the skill's content.
+        # reads, so the interpreter token cannot break self-containment.
+        # Only that token is exempt — any later absolute path on the same
+        # line is a real reference. Blanking the token with spaces keeps
+        # column positions and leaves a whitespace boundary before the rest.
         if number == 1 and line.startswith("#!"):
-            continue
+            interpreter = re.match(r"#!\s*\S*", line)
+            line = " " * interpreter.end() + line[interpreter.end() :]
         # URLs need no special case: their slashes are never preceded by a
         # reference boundary, so the pattern cannot match inside them.
         for match in ABSOLUTE_PATH_PATTERN.finditer(line):

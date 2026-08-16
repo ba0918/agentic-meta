@@ -86,6 +86,23 @@ class TestSelfContainLint:
         assert exit_code == 0
         assert lines == []
 
+    def test_an_absolute_path_after_the_shebang_interpreter_is_detected(
+        self, copy_tree, capsys
+    ):
+        tree = copy_tree("contracts-basic/good")
+        script = tree / "skills/note-taker/scripts/run.py"
+        script.parent.mkdir(parents=True)
+        script.write_text(
+            '#!/usr/bin/env python3 /opt/tools/wrapper.py\nprint("x")\n',
+            encoding="utf-8",
+        )
+        exit_code, lines = lint(tree, capsys)
+        assert exit_code == 1
+        assert any(
+            line.startswith("absolute-path:") and "/opt/tools/wrapper.py" in line
+            for line in lines
+        )
+
     def test_a_url_is_not_treated_as_a_path_reference(self, copy_tree, capsys):
         tree = copy_tree("contracts-basic/good")
         offender = tree / "skills/note-taker/notes.md"

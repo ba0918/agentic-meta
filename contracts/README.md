@@ -134,8 +134,10 @@ skill, with no allowlist:
 | `absolute-path` | The file references an absolute filesystem path (`/two/segments`, `~/...`, or a Windows drive path) |
 | `symlink-escape` | A symlink inside the skill directory resolves to a target outside it |
 
-Two syntactic forms are not path references and are therefore excluded:
-line-leading shebangs (`#!...`) and URLs (tokens containing `://`).
+Two syntactic forms are not path references and are therefore excluded: the
+interpreter token of a line-leading shebang (`#!/usr/bin/env` — but any later
+absolute path on the shebang line is still reported) and URLs (tokens
+containing `://`).
 
 ## Exit codes
 
