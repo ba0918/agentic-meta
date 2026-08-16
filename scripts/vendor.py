@@ -437,11 +437,13 @@ def run_verify(root: Path) -> int:
 
 PARENT_ESCAPE_TOKENS = ("../", "..\\")
 # A token counts as an absolute path when it starts at a reference boundary
-# (start of line, whitespace, quotes, '=', '(' or '[') and is rooted outside
-# the skill: '/' with at least two segments (so prose like '/help' is not a
-# path), '~/', or a Windows drive.
+# (start of line, whitespace, quotes, '=', '(', '[', ',' or ';') and is rooted
+# outside the skill: '/' with at least two segments (so prose like '/help' is
+# not a path), '~/', or a Windows drive. ':' is deliberately not a boundary:
+# it precedes '//' in URLs, and URL safety relies on no boundary appearing
+# before a URL's slashes.
 ABSOLUTE_PATH_PATTERN = re.compile(
-    r"""(?:^|(?<=[\s"'`=(\[]))"""
+    r"""(?:^|(?<=[\s"'`=(\[,;]))"""
     r"""(?:/[^\s"'`)\]/]+/[^\s"'`)\]]+|~/[^\s"'`)\]]*|[A-Za-z]:[\\/][^\s"'`)\]]+)"""
 )
 

@@ -59,6 +59,35 @@ class TestSelfContainLint:
             line.startswith("absolute-path:") and "notes.md" in line for line in lines
         )
 
+    def test_an_absolute_path_directly_after_a_comma_is_detected(
+        self, copy_tree, capsys
+    ):
+        tree = copy_tree("contracts-basic/good")
+        offender = tree / "skills/note-taker/notes.md"
+        offender.write_text(
+            "Watch the app log,/etc/app/config.yaml for changes.\n",
+            encoding="utf-8",
+        )
+        exit_code, lines = lint(tree, capsys)
+        assert exit_code == 1
+        assert any(
+            line.startswith("absolute-path:") and "/etc/app/config.yaml" in line
+            for line in lines
+        )
+
+    def test_an_absolute_path_directly_after_a_semicolon_is_detected(
+        self, copy_tree, capsys
+    ):
+        tree = copy_tree("contracts-basic/good")
+        offender = tree / "skills/note-taker/notes.md"
+        offender.write_text("Run the cleanup;/opt/app/reset.sh next.\n", encoding="utf-8")
+        exit_code, lines = lint(tree, capsys)
+        assert exit_code == 1
+        assert any(
+            line.startswith("absolute-path:") and "/opt/app/reset.sh" in line
+            for line in lines
+        )
+
     def test_a_home_directory_reference_is_detected(self, copy_tree, capsys):
         tree = copy_tree("contracts-basic/good")
         offender = tree / "skills/note-taker/notes.md"
