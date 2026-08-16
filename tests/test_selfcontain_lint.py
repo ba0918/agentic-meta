@@ -156,6 +156,22 @@ class TestSelfContainLint:
             line.startswith("symlink-escape:") and "notes.md" in line for line in lines
         )
 
+    def test_a_skill_directory_that_is_itself_an_outward_symlink_is_detected(
+        self, copy_tree, tmp_path, capsys
+    ):
+        # Resolving the skill directory itself must not hide the escape: the
+        # entry's target would trivially be "inside" its own resolution.
+        tree = copy_tree("contracts-basic/good")
+        external = tmp_path / "external-skill"
+        external.mkdir()
+        (external / "SKILL.md").write_text("---\nname: evil\n---\nBody\n", encoding="utf-8")
+        (tree / "skills/escapee").symlink_to(external, target_is_directory=True)
+        exit_code, lines = lint(tree, capsys)
+        assert exit_code == 1
+        assert any(
+            line.startswith("symlink-escape:") and "escapee" in line for line in lines
+        )
+
     def test_a_symlink_resolving_inside_the_same_skill_directory_passes(
         self, copy_tree, capsys
     ):

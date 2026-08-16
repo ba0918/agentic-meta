@@ -256,12 +256,35 @@ def load_contracts(root: Path) -> Dict[str, Contract]:
     return contracts
 
 
+def _guard_managed_path(root: Path, path: Path) -> None:
+    """Refuse a managed path that involves a symlink or escapes the tree.
+
+    gen overwrites and deletes everything under skills/<name>/references/
+    vendor/; a symlink anywhere along such a path would redirect those writes
+    and deletes outside the tree, so a symlink is refused as a configuration
+    error (exit 2), never followed.
+    """
+    probe = root
+    for part in path.relative_to(root).parts:
+        probe = probe / part
+        if probe.is_symlink():
+            raise ConfigError(
+                f"{probe}: symlink on a managed path; refusing to follow it"
+            )
+    if not path.resolve().is_relative_to(root.resolve()):
+        raise ConfigError(f"{path}: resolves outside {root}; refusing to touch it")
+
+
 def load_skills(root: Path) -> List[SkillDeclarations]:
     skills_dir = root / SKILLS_DIR
     if not skills_dir.is_dir():
         raise ConfigError(f"{root}: no {SKILLS_DIR}/ directory to process")
     skills = []
     for directory in sorted(skills_dir.iterdir()):
+        if directory.is_symlink():
+            raise ConfigError(
+                f"{directory}: a {SKILLS_DIR}/ entry must not be a symlink"
+            )
         skill_md = directory / "SKILL.md"
         if not skill_md.is_file():
             continue
@@ -407,7 +430,11 @@ def _existing_vendor_files(root: Path) -> List[Path]:
     for directory in sorted(skills_dir.iterdir()):
         vendor_dir = directory / VENDOR_SUBDIR
         if vendor_dir.is_dir():
-            found.extend(sorted(vendor_dir.iterdir()))
+            _guard_managed_path(root, vendor_dir)
+            entries = sorted(vendor_dir.iterdir())
+            for entry in entries:
+                _guard_managed_path(root, entry)
+            found.extend(entries)
     return found
 
 
@@ -423,15 +450,18 @@ def run_gen(root: Path) -> int:
     expected_paths = {root / path for path in expected}
     for stale in _existing_vendor_files(root):
         if stale not in expected_paths:
+            _guard_managed_path(root, stale)
             if stale.is_dir():
                 shutil.rmtree(stale)
             else:
                 stale.unlink()
     for relative, content in expected.items():
         target = root / relative
+        _guard_managed_path(root, target)
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(content, encoding="utf-8")
     manifest_path = root / MANIFEST_NAME
+    _guard_managed_path(root, manifest_path)
     manifest_path.write_text(
         render_manifest(build_manifest(skills, contracts)), encoding="utf-8"
     )
@@ -584,7 +614,11 @@ def run_lint_selfcontain(root: Path) -> int:
         # even though no path string appears in any file.
         if path.is_symlink():
             skill_dir = skills_dir / path.relative_to(skills_dir).parts[0]
-            if not path.resolve().is_relative_to(skill_dir.resolve()):
+            # Resolve the parents but never the entry itself: a skills/<name>
+            # entry that is itself a symlink would otherwise resolve to its
+            # target first and trivially count as "inside itself".
+            boundary = skill_dir.parent.resolve() / skill_dir.name
+            if not path.resolve().is_relative_to(boundary):
                 violations.append(
                     f"symlink-escape: {path.relative_to(root)}: "
                     "symlink resolves outside the skill directory"

@@ -106,6 +106,13 @@ reproducibility or self-containment lives in the manifest instead.
 `gen` refuses to generate when a declared digest does not match the canonical
 contract (the skill must be updated deliberately, never silently).
 
+`gen` and `verify` also refuse — as a configuration error, exit 2 — any
+symlink on a path they manage: a `skills/<name>` entry that is a symlink, a
+symlinked `references/vendor/` directory, or a symlink among its entries.
+Following one would redirect writes and deletes outside the tree, so before
+every write or delete the resolved real path is re-validated to stay inside
+the tree root.
+
 ## Manifest
 
 `gen` also writes a single `vendor-manifest.json` at the tree root, derived

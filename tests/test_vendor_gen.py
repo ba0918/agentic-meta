@@ -327,6 +327,66 @@ class TestGen:
         assert captured.err.startswith("error:")
         assert "report-format.md" in captured.err
 
+    def test_gen_refuses_a_vendor_dir_symlinked_to_an_external_directory(
+        self, copy_tree, tmp_path, capsys
+    ):
+        # Reproduced escape: following the symlink would delete the external
+        # directory's files; gen must refuse instead and leave them intact.
+        tree = copy_tree(GOOD_TREE)
+        external = tmp_path / "external"
+        external.mkdir()
+        precious = external / "precious.md"
+        precious.write_text("do not delete\n", encoding="utf-8")
+        vendor_dir = tree / "skills/note-taker/references/vendor"
+        vendor_dir.parent.mkdir(parents=True)
+        vendor_dir.symlink_to(external, target_is_directory=True)
+        exit_code = vendor.main(["gen", "--root", str(tree)])
+        captured = capsys.readouterr()
+        assert exit_code == 2
+        assert captured.err.startswith("error:")
+        assert precious.exists()
+        assert precious.read_text(encoding="utf-8") == "do not delete\n"
+
+    def test_gen_refuses_a_vendor_dir_symlinked_to_an_empty_external_directory(
+        self, copy_tree, tmp_path, capsys
+    ):
+        # An empty target yields no per-entry checks, so the vendor directory
+        # itself must be refused, not only its entries.
+        tree = copy_tree(GOOD_TREE)
+        external = tmp_path / "external-empty"
+        external.mkdir()
+        vendor_dir = tree / "skills/note-taker/references/vendor"
+        vendor_dir.parent.mkdir(parents=True)
+        vendor_dir.symlink_to(external, target_is_directory=True)
+        exit_code = vendor.main(["gen", "--root", str(tree)])
+        assert exit_code == 2
+        assert capsys.readouterr().err.startswith("error:")
+
+    def test_gen_refuses_a_skill_directory_that_is_a_symlink(
+        self, copy_tree, tmp_path, capsys
+    ):
+        tree = copy_tree(GOOD_TREE)
+        external = tmp_path / "external-skill"
+        external.mkdir()
+        (external / "SKILL.md").write_text("---\nname: evil\n---\nBody\n", encoding="utf-8")
+        (tree / "skills/linked").symlink_to(external, target_is_directory=True)
+        exit_code = vendor.main(["gen", "--root", str(tree)])
+        assert exit_code == 2
+        assert capsys.readouterr().err.startswith("error:")
+
+    def test_gen_refuses_a_stale_vendor_entry_that_is_a_symlink(
+        self, copy_tree, tmp_path, capsys
+    ):
+        tree = copy_tree(GOOD_TREE)
+        external_file = tmp_path / "external-note.md"
+        external_file.write_text("external content\n", encoding="utf-8")
+        link = tree / "skills/report-writer/references/vendor/stray-link.md"
+        link.symlink_to(external_file)
+        exit_code = vendor.main(["gen", "--root", str(tree)])
+        assert exit_code == 2
+        assert capsys.readouterr().err.startswith("error:")
+        assert external_file.read_text(encoding="utf-8") == "external content\n"
+
     def test_gen_removes_vendor_files_no_declaration_accounts_for(self, copy_tree):
         tree = copy_tree(GOOD_TREE)
         stale = tree / "skills/note-taker/references/vendor/stale.md"

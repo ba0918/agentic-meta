@@ -203,6 +203,23 @@ class TestConfigurationErrors:
         assert captured.err.startswith("error:")
         assert captured.out == ""
 
+    def test_a_vendor_dir_symlinked_outside_the_tree_makes_verify_exit_with_code_2(
+        self, copy_tree, tmp_path, capsys
+    ):
+        # verify shares the vendor scan with gen; a symlinked vendor
+        # directory is refused as a configuration error, never followed.
+        tree = copy_tree("contracts-basic/good")
+        external = tmp_path / "external"
+        external.mkdir()
+        (external / "note.md").write_text("external\n", encoding="utf-8")
+        vendor_dir = tree / "skills/note-taker/references/vendor"
+        vendor_dir.parent.mkdir(parents=True)
+        vendor_dir.symlink_to(external, target_is_directory=True)
+        exit_code = vendor.main(["verify", "--root", str(tree)])
+        captured = capsys.readouterr()
+        assert exit_code == 2
+        assert captured.err.startswith("error:")
+
     def test_an_unreadable_contract_file_makes_the_cli_exit_with_code_2(
         self, copy_tree, capsys
     ):
