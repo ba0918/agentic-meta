@@ -89,6 +89,7 @@ def parse_declarations(skill_md_text: str) -> List[Declaration]:
     frontmatter, _ = split_frontmatter(skill_md_text)
     entries = _contract_entry_lines(frontmatter)
     declarations = []
+    seen_ids = set()
     for entry in entries:
         keys = dict(entry)
         if set(keys) != {"id", "digest"}:
@@ -103,6 +104,9 @@ def parse_declarations(skill_md_text: str) -> List[Declaration]:
             raise DeclarationError(
                 f"digest for {contract_id!r} must match 'sha256:<64 hex>', got: {digest!r}"
             )
+        if contract_id in seen_ids:
+            raise DeclarationError(f"contract {contract_id!r} is declared twice")
+        seen_ids.add(contract_id)
         declarations.append(Declaration(id=contract_id, digest=digest))
     return declarations
 

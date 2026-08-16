@@ -122,6 +122,15 @@ class TestDeclarationParsing:
         with pytest.raises(vendor.DeclarationError):
             vendor.parse_declarations(text)
 
+    def test_declaring_the_same_contract_id_twice_is_a_configuration_error(self):
+        entry = (
+            "    - id: report-format\n"
+            "      digest: sha256:" + "0" * 64 + "\n"
+        )
+        text = "---\nname: broken\nmetadata:\n  contracts:\n" + entry + entry + "---\n"
+        with pytest.raises(vendor.DeclarationError):
+            vendor.parse_declarations(text)
+
     def test_a_flow_style_contracts_list_is_a_configuration_error(self):
         text = (
             "---\n"
