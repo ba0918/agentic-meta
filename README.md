@@ -11,5 +11,10 @@ collection by responsibility:
 - agentic-workflow — how work is carried out
 - **agentic-meta** (this repository) — building and evaluating agent capability itself
 
-Skills arrive here as the split of `claude-skills` proceeds. Until then this repository
-holds the scaffolding only.
+Skills arrive here as the split of `claude-skills` proceeds. No skills are ported yet;
+what exists today is the foundation they will stand on: an output-contract protocol
+(`contracts/README.md`) and `scripts/vendor.py`, the single CLI that generates and
+verifies per-skill vendored contract copies (`gen` / `verify`) and lints every skill
+directory for self-containment (`lint-selfcontain`) — exercised in CI by a pytest
+suite against synthetic fixture trees under `fixtures/`. See `PROJECT.md` for
+commands and layout, and `ROADMAP.md` for progress.

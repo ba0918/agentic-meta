@@ -20,6 +20,8 @@ Python 3.12, standard library only, tested with pytest (the same shape as agenti
 | `tests/` | pytest suite for the vendor machinery |
 | `fixtures/` | Synthetic skill trees the machinery is tested against; `fixtures/contracts-basic/bad-*` are deliberately broken |
 | `docs/spec/` | Design decisions (Japanese) |
+| `.github/workflows/ci.yml` | CI: test suite, then `verify` + `lint-selfcontain` on the good fixture trees, then the fixture contract's conformance tests |
+| `lefthook.yml` | Local pre-push gates mirroring CI (activated per clone with `lefthook install`) |
 
 ## Commands
 
@@ -29,6 +31,7 @@ Python 3.12, standard library only, tested with pytest (the same shape as agenti
 | Verify vendored copies | `python3 scripts/vendor.py verify --root <tree>` |
 | Regenerate vendored copies | `python3 scripts/vendor.py gen --root <tree>` |
 | Self-containment lint | `python3 scripts/vendor.py lint-selfcontain --root <tree>` |
+| Enable pre-push hooks (once per clone) | `lefthook install` |
 
 ## Conventions specific to this project
 

@@ -33,10 +33,11 @@ Machinery only — no skill content is ported in this wave.
 
 - [x] Contract format spec (`contracts/README.md`: id, version, conformance convention)
 - [x] `scripts/vendor.py` — `gen` (materialize `references/vendor/` + manifest; atomic, symlink-guarded)
-- [x] `scripts/vendor.py` — `verify` (drift / surplus / closure / manifest / version mismatch / conformance mismatch)
+- [x] `scripts/vendor.py` — `verify` (drift / extra / closure / manifest / digest mismatch / conformance mismatch)
 - [x] `scripts/vendor.py` — `lint-selfcontain` (no references escaping a skill directory)
 - [x] Synthetic fixtures: `contracts-basic`, `skillset-alpha`, `skillset-beta`
 - [x] CI workflow (pytest + verify + lint, green)
+- [x] Local pre-push gate (lefthook: pytest + verify + lint) and repo hygiene (.gitattributes LF, .gitignore)
 
 ### Wave 2 — Contrast pilots ⬜
 
