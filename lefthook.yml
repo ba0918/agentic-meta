@@ -1,0 +1,21 @@
+# Local quality gates, mirroring CI ahead of push. Activate once per clone:
+#   lefthook install
+# CI remains the authority; commands guard on file existence so the hooks are
+# inert until the corresponding tooling lands on the branch being pushed.
+pre-push:
+  commands:
+    tests:
+      run: |
+        if [ -d tests ]; then
+          uv run --with pytest -- pytest tests/ -q
+        else
+          echo "lefthook: no tests/ yet - skipping"
+        fi
+    vendor-verify:
+      run: |
+        if [ -f scripts/vendor.py ]; then
+          python3 scripts/vendor.py verify
+          python3 scripts/vendor.py lint-selfcontain
+        else
+          echo "lefthook: no scripts/vendor.py yet - skipping"
+        fi
