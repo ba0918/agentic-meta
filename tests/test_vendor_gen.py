@@ -122,6 +122,32 @@ class TestDeclarationParsing:
         with pytest.raises(vendor.DeclarationError):
             vendor.parse_declarations(text)
 
+    def test_a_flow_style_contracts_list_is_a_configuration_error(self):
+        text = (
+            "---\n"
+            "name: broken\n"
+            "metadata:\n"
+            "  contracts: [{id: report-format, digest: sha256:" + "0" * 64 + "}]\n"
+            "---\n"
+        )
+        with pytest.raises(vendor.DeclarationError):
+            vendor.parse_declarations(text)
+
+    def test_a_contracts_item_at_the_contracts_key_indent_is_a_configuration_error(
+        self,
+    ):
+        text = (
+            "---\n"
+            "name: broken\n"
+            "metadata:\n"
+            "  contracts:\n"
+            "  - id: report-format\n"
+            "    digest: sha256:" + "0" * 64 + "\n"
+            "---\n"
+        )
+        with pytest.raises(vendor.DeclarationError):
+            vendor.parse_declarations(text)
+
     def test_an_invalid_contract_id_in_a_declaration_is_a_configuration_error(self):
         text = (
             "---\n"

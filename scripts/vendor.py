@@ -122,7 +122,19 @@ def _contract_entry_lines(frontmatter_lines: List[str]) -> List[List[tuple]]:
             in_contracts = False
             continue
         if in_metadata and indent == 2:
-            in_contracts = line == "contracts:"
+            if in_contracts and line.startswith("- "):
+                raise DeclarationError(
+                    f"contracts entries must be indented under the contracts key: {raw!r}"
+                )
+            key, separator, value = line.partition(":")
+            if separator and key.strip() == "contracts":
+                if value.strip():
+                    raise DeclarationError(
+                        f"contracts must be a block-style list, not an inline value: {raw!r}"
+                    )
+                in_contracts = True
+            else:
+                in_contracts = False
             continue
         if not in_contracts:
             continue
