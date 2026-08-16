@@ -131,6 +131,20 @@ class TestDeclarationParsing:
         with pytest.raises(vendor.DeclarationError):
             vendor.parse_declarations(text)
 
+    def test_a_duplicate_key_within_one_entry_is_a_configuration_error(self):
+        text = (
+            "---\n"
+            "name: broken\n"
+            "metadata:\n"
+            "  contracts:\n"
+            "    - id: report-format\n"
+            "      digest: sha256:" + "0" * 64 + "\n"
+            "      digest: sha256:" + "1" * 64 + "\n"
+            "---\n"
+        )
+        with pytest.raises(vendor.DeclarationError):
+            vendor.parse_declarations(text)
+
     def test_a_flow_style_contracts_list_is_a_configuration_error(self):
         text = (
             "---\n"

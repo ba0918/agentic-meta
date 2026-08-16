@@ -92,6 +92,11 @@ def parse_declarations(skill_md_text: str) -> List[Declaration]:
     declarations = []
     seen_ids = set()
     for entry in entries:
+        if len(entry) != len({key for key, _ in entry}):
+            raise DeclarationError(
+                "a contracts entry repeats a key, so one value would silently "
+                f"override the other: {[key for key, _ in entry]}"
+            )
         keys = dict(entry)
         if set(keys) != {"id", "digest"}:
             raise DeclarationError(
