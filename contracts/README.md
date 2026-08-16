@@ -128,7 +128,7 @@ mismatch, one line per violation, prefixed with its kind:
 
 | Kind | Meaning |
 |---|---|
-| `drift` | A vendor copy differs byte-for-byte from its regenerated content |
+| `drift` | A vendor copy is missing or differs byte-for-byte from its regenerated content |
 | `extra` | A vendor file exists that no declaration accounts for |
 | `closure` | A declared contract has no canonical file under `contracts/` |
 | `digest-mismatch` | A declared digest does not match the canonical contract |
