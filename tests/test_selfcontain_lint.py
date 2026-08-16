@@ -82,6 +82,30 @@ class TestSelfContainLint:
         assert exit_code == 0
         assert lines == []
 
+    def test_a_symlink_resolving_outside_the_skill_directory_is_detected(
+        self, copy_tree, capsys
+    ):
+        tree = copy_tree("contracts-basic/good")
+        outside = tree / "shared-notes.md"
+        outside.write_text("central notes\n", encoding="utf-8")
+        (tree / "skills/note-taker/notes.md").symlink_to(outside)
+        exit_code, lines = lint(tree, capsys)
+        assert exit_code == 1
+        assert any(
+            line.startswith("symlink-escape:") and "notes.md" in line for line in lines
+        )
+
+    def test_a_symlink_resolving_inside_the_same_skill_directory_passes(
+        self, copy_tree, capsys
+    ):
+        tree = copy_tree("contracts-basic/good")
+        real = tree / "skills/note-taker/notes.md"
+        real.write_text("notes\n", encoding="utf-8")
+        (tree / "skills/note-taker/alias.md").symlink_to(real)
+        exit_code, lines = lint(tree, capsys)
+        assert exit_code == 0
+        assert lines == []
+
     def test_files_outside_skill_directories_are_not_linted(self, copy_tree, capsys):
         tree = copy_tree("contracts-basic/good")
         outside = tree / "notes-outside-skills.md"

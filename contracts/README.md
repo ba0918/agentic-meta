@@ -132,6 +132,7 @@ skill, with no allowlist:
 |---|---|
 | `parent-escape` | The file contains `../` or `..\` (a reference above the skill directory) |
 | `absolute-path` | The file references an absolute filesystem path (`/two/segments`, `~/...`, or a Windows drive path) |
+| `symlink-escape` | A symlink inside the skill directory resolves to a target outside it |
 
 Two syntactic forms are not path references and are therefore excluded:
 line-leading shebangs (`#!...`) and URLs (tokens containing `://`).

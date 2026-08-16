@@ -456,6 +456,17 @@ def run_lint_selfcontain(root: Path) -> int:
         raise ConfigError(f"{root}: no {SKILLS_DIR}/ directory to lint")
     violations = []
     for path in sorted(skills_dir.rglob("*")):
+        # A symlink is checked by where it resolves, not by its text content:
+        # a link whose target lies outside the skill directory is an escape
+        # even though no path string appears in any file.
+        if path.is_symlink():
+            skill_dir = skills_dir / path.relative_to(skills_dir).parts[0]
+            if not path.resolve().is_relative_to(skill_dir.resolve()):
+                violations.append(
+                    f"symlink-escape: {path.relative_to(root)}: "
+                    "symlink resolves outside the skill directory"
+                )
+            continue
         if not path.is_file():
             continue
         try:
