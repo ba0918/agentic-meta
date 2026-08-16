@@ -387,6 +387,59 @@ def run_verify(root: Path) -> int:
     return 1 if violations else 0
 
 
+PARENT_ESCAPE_TOKENS = ("../", "..\\")
+# A token counts as an absolute path when it starts at a reference boundary
+# (start of line, whitespace, quotes, '=', '(' or '[') and is rooted outside
+# the skill: '/' with at least two segments (so prose like '/help' is not a
+# path), '~/', or a Windows drive.
+ABSOLUTE_PATH_PATTERN = re.compile(
+    r"""(?:^|(?<=[\s"'`=(\[]))"""
+    r"""(?:/[^\s"'`)\]/]+/[^\s"'`)\]]+|~/[^\s"'`)\]]*|[A-Za-z]:[\\/][^\s"'`)\]]+)"""
+)
+
+
+def lint_lines(relative_path: str, lines: List[str]) -> List[str]:
+    """Self-containment violations of one file, as '<kind>: <site>: <detail>'."""
+    violations = []
+    for number, line in enumerate(lines, start=1):
+        site = f"{relative_path}:{number}"
+        if any(token in line for token in PARENT_ESCAPE_TOKENS):
+            violations.append(
+                f"parent-escape: {site}: reference above the skill directory"
+            )
+        # A shebang names an interpreter for the OS, not a file the skill
+        # reads, so it cannot break self-containment of the skill's content.
+        if number == 1 and line.startswith("#!"):
+            continue
+        # URLs need no special case: their slashes are never preceded by a
+        # reference boundary, so the pattern cannot match inside them.
+        for match in ABSOLUTE_PATH_PATTERN.finditer(line):
+            violations.append(
+                f"absolute-path: {site}: absolute reference {match.group(0)!r}"
+            )
+    return violations
+
+
+def run_lint_selfcontain(root: Path) -> int:
+    skills_dir = root / SKILLS_DIR
+    if not skills_dir.is_dir():
+        raise ConfigError(f"{root}: no {SKILLS_DIR}/ directory to lint")
+    violations = []
+    for path in sorted(skills_dir.rglob("*")):
+        if not path.is_file():
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        violations.extend(
+            lint_lines(str(path.relative_to(root)), text.split("\n"))
+        )
+    for violation in violations:
+        print(violation)
+    return 1 if violations else 0
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         prog=GENERATOR_NAME,
@@ -415,7 +468,7 @@ def main(argv=None) -> int:
             return run_gen(arguments.root)
         if arguments.command == "verify":
             return run_verify(arguments.root)
-        raise ConfigError(f"not implemented yet: {arguments.command}")
+        return run_lint_selfcontain(arguments.root)
     except ConfigError as error:
         print(f"error: {error}", file=sys.stderr)
         return 2
