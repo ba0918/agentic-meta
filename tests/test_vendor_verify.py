@@ -123,9 +123,14 @@ class TestConformanceLock:
             test_file.read_text(encoding="utf-8") + "\n# weakened\n",
             encoding="utf-8",
         )
-        exit_code, kinds = verify_kinds(tree, capsys)
+        exit_code = vendor.main(["verify", "--root", str(tree)])
+        output = capsys.readouterr().out
         assert exit_code == 1
-        assert kinds == {"conformance-mismatch"}
+        lines = [line for line in output.splitlines() if line]
+        assert {line.split(":", 1)[0] for line in lines} == {"conformance-mismatch"}
+        # The divergence may come from either side (tests edited, or the lock
+        # diverged), so the message must not claim the content changed.
+        assert any("do not match the locked digest" in line for line in lines)
 
     def test_adding_a_conformance_test_file_is_reported_as_conformance_mismatch(
         self, copy_tree, capsys

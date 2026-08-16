@@ -591,7 +591,9 @@ def _conformance_violations(
                 f"{CONTRACTS_DIR}/{contract_id}/{CONFORMANCE_SUBDIR}/"
             )
         else:
-            detail = "conformance content differs from the locked digest"
+            # Neutral on the cause: the tests may have changed, or the lock
+            # itself may have diverged — the digest comparison cannot tell.
+            detail = "conformance tests do not match the locked digest"
         violations.append(f"conformance-mismatch: {contract_id}: {detail}")
     return violations
 
