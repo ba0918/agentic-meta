@@ -263,7 +263,12 @@ def expected_vendor_files(
     files = {}
     for skill in skills:
         for declaration in skill.declarations:
-            contract = contracts[declaration.id]
+            contract = contracts.get(declaration.id)
+            # An unresolvable declaration is already reported as a closure
+            # violation; skipping it here keeps regeneration total on broken
+            # trees so the remaining checks still run.
+            if contract is None:
+                continue
             path = f"{SKILLS_DIR}/{skill.name}/{VENDOR_SUBDIR}/{contract.id}.md"
             files[path] = render_vendor_file(contract)
     return files
@@ -277,15 +282,25 @@ def build_manifest(
     for skill in skills:
         if not skill.declarations:
             continue
-        lock_skills[skill.name] = [
+        # The lock records the canonical digest (what the vendor copy was
+        # generated from); gen refuses when a declaration pins anything else,
+        # so a digest drift in a declaration cannot leak into the lock.
+        entries = [
             {
                 "id": declaration.id,
                 "version": contracts[declaration.id].version,
-                "digest": declaration.digest,
+                "digest": contracts[declaration.id].digest,
             }
             for declaration in skill.declarations
+            if declaration.id in contracts
         ]
-        used_ids.update(declaration.id for declaration in skill.declarations)
+        if entries:
+            lock_skills[skill.name] = entries
+        used_ids.update(
+            declaration.id
+            for declaration in skill.declarations
+            if declaration.id in contracts
+        )
     return {
         "lock": {"skills": lock_skills},
         "provenance": {
@@ -336,6 +351,42 @@ def run_gen(root: Path) -> int:
     return 0
 
 
+def run_verify(root: Path) -> int:
+    contracts = load_contracts(root)
+    skills = load_skills(root)
+    violations = check_declarations(skills, contracts)
+
+    expected = expected_vendor_files(skills, contracts)
+    for relative, content in expected.items():
+        path = root / relative
+        if not path.is_file():
+            violations.append(f"drift: {relative} is missing; run gen to restore it")
+        elif path.read_bytes() != content.encode("utf-8"):
+            violations.append(f"drift: {relative} differs from its regenerated content")
+
+    declared_paths = {
+        root / SKILLS_DIR / skill.name / VENDOR_SUBDIR / f"{declaration.id}.md"
+        for skill in skills
+        for declaration in skill.declarations
+    }
+    for actual in _existing_vendor_files(root, skills):
+        if actual not in declared_paths:
+            violations.append(
+                f"extra: {actual.relative_to(root)} is not declared by any skill"
+            )
+
+    expected_manifest = render_manifest(build_manifest(skills, contracts))
+    manifest_path = root / MANIFEST_NAME
+    if not manifest_path.is_file():
+        violations.append(f"manifest: {MANIFEST_NAME} is missing; run gen to create it")
+    elif manifest_path.read_bytes() != expected_manifest.encode("utf-8"):
+        violations.append(f"manifest: {MANIFEST_NAME} differs from regeneration")
+
+    for violation in violations:
+        print(violation)
+    return 1 if violations else 0
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         prog=GENERATOR_NAME,
@@ -362,6 +413,8 @@ def main(argv=None) -> int:
     try:
         if arguments.command == "gen":
             return run_gen(arguments.root)
+        if arguments.command == "verify":
+            return run_verify(arguments.root)
         raise ConfigError(f"not implemented yet: {arguments.command}")
     except ConfigError as error:
         print(f"error: {error}", file=sys.stderr)
