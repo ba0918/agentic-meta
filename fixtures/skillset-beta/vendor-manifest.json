@@ -1,0 +1,22 @@
+{
+  "lock": {
+    "skills": {
+      "pipeline_runner": [
+        {
+          "digest": "sha256:671830a6d82ecf4bb96a4c196b3457f7a046d19cd773df4db0e075215892ea71",
+          "id": "trace-log",
+          "version": "0.9.0"
+        }
+      ]
+    }
+  },
+  "provenance": {
+    "contracts": {
+      "trace-log": {
+        "source": "contracts/trace-log.md"
+      }
+    },
+    "generator": "vendor.py",
+    "generator_version": "1.0.0"
+  }
+}

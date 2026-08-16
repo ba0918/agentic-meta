@@ -89,3 +89,15 @@ class TestConformanceDiscovery:
         )
         assert completed.returncode == 0
         assert "3 passed" in completed.stdout
+
+
+class TestSkillsetFixturesVerifyClean:
+    def test_the_standard_layout_skillset_verifies_clean(self, copy_tree, capsys):
+        exit_code, kinds = verify_kinds(copy_tree("skillset-alpha"), capsys)
+        assert exit_code == 0
+        assert kinds == set()
+
+    def test_the_heterogeneous_skillset_verifies_clean(self, copy_tree, capsys):
+        exit_code, kinds = verify_kinds(copy_tree("skillset-beta"), capsys)
+        assert exit_code == 0
+        assert kinds == set()

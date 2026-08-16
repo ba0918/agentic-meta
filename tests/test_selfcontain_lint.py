@@ -89,3 +89,19 @@ class TestSelfContainLint:
         exit_code, lines = lint(tree, capsys)
         assert exit_code == 0
         assert lines == []
+
+
+class TestSkillsetFixturesAreSelfContained:
+    def test_the_standard_layout_skillset_passes_with_zero_violations(
+        self, copy_tree, capsys
+    ):
+        exit_code, lines = lint(copy_tree("skillset-alpha"), capsys)
+        assert exit_code == 0
+        assert lines == []
+
+    def test_the_heterogeneous_skillset_with_a_bundled_script_passes_too(
+        self, copy_tree, capsys
+    ):
+        exit_code, lines = lint(copy_tree("skillset-beta"), capsys)
+        assert exit_code == 0
+        assert lines == []
