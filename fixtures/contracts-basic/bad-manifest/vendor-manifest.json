@@ -1,0 +1,33 @@
+{
+  "lock": {
+    "conformance": {
+      "report-format": "sha256:2398215e524a6e06d5e17d108e7552b9f53a03fa83022860cd71fe7ce49b2c9c"
+    },
+    "skills": {
+      "report-writer": [
+        {
+          "digest": "sha256:017156e79c2eb67bef20f8615994b02a1c78ce97d4d10f6ec51ca398a0d6f111",
+          "id": "report-format",
+          "version": "1.2.0"
+        },
+        {
+          "digest": "sha256:50c256ff60e9960bc01d4fe385bcb7c31604fbf1585394c5be22ae610f122c70",
+          "id": "changelog-entry",
+          "version": "0.3.1"
+        }
+      ]
+    }
+  },
+  "provenance": {
+    "contracts": {
+      "changelog-entry": {
+        "source": "contracts/changelog-entry.md"
+      },
+      "report-format": {
+        "source": "contracts/report-format.md"
+      }
+    },
+    "generator": "vendor.py",
+    "generator_version": "9.9.9"
+  }
+}

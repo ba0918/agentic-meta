@@ -1,0 +1,23 @@
+{
+  "lock": {
+    "conformance": {},
+    "skills": {
+      "acme-review": [
+        {
+          "digest": "sha256:9b59eb583dc0724d03c8aec63649bff2b465e9f78497867b74e3ccf906eeadfc",
+          "id": "handoff-note",
+          "version": "2.0.0"
+        }
+      ]
+    }
+  },
+  "provenance": {
+    "contracts": {
+      "handoff-note": {
+        "source": "contracts/handoff-note.md"
+      }
+    },
+    "generator": "vendor.py",
+    "generator_version": "1.0.0"
+  }
+}

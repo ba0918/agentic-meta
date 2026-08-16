@@ -11,18 +11,24 @@ the separation policy and serves as the reference for structure and conventions.
 
 ## Stack and layout
 
-Not yet decided — the repository is empty. Record the languages, frameworks and significant
-directories here once they exist.
+Python 3.12, standard library only, tested with pytest (the same shape as agentic-rules).
+
+| Path | What it holds |
+|---|---|
+| `contracts/` | Canonical output contracts and the protocol spec (`contracts/README.md`) |
+| `scripts/vendor.py` | The single CLI: `gen` / `verify` / `lint-selfcontain` |
+| `tests/` | pytest suite for the vendor machinery |
+| `fixtures/` | Synthetic skill trees the machinery is tested against; `fixtures/contracts-basic/bad-*` are deliberately broken |
+| `docs/spec/` | Design decisions (Japanese) |
 
 ## Commands
 
 | Purpose | Command |
 |---|---|
-| Install | |
-| Build | |
-| Test | |
-| Lint | |
-| Run locally | |
+| Test | `uv run --with pytest -- pytest tests/ -q` |
+| Verify vendored copies | `python3 scripts/vendor.py verify --root <tree>` |
+| Regenerate vendored copies | `python3 scripts/vendor.py gen --root <tree>` |
+| Self-containment lint | `python3 scripts/vendor.py lint-selfcontain --root <tree>` |
 
 ## Conventions specific to this project
 

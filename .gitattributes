@@ -1,0 +1,3 @@
+# Contract digests and vendor verification compare bytes; a CRLF checkout
+# (core.autocrlf=true) must not be able to change what git hands out.
+* text=auto eol=lf
