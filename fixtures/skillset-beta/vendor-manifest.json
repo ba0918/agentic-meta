@@ -1,5 +1,6 @@
 {
   "lock": {
+    "conformance": {},
     "skills": {
       "pipeline_runner": [
         {

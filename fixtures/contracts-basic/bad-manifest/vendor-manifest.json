@@ -1,5 +1,8 @@
 {
   "lock": {
+    "conformance": {
+      "report-format": "sha256:2398215e524a6e06d5e17d108e7552b9f53a03fa83022860cd71fe7ce49b2c9c"
+    },
     "skills": {
       "report-writer": [
         {

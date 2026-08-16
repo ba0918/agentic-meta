@@ -2,6 +2,7 @@
 declarations, canonical contracts, and the manifest mutually consistent —
 plus the discovery of contract conformance tests."""
 
+import shutil
 import subprocess
 import sys
 
@@ -103,6 +104,87 @@ class TestVerify:
         exit_code, kinds = verify_kinds(tree, capsys)
         assert exit_code == 1
         assert kinds == {"drift"}
+
+
+class TestConformanceLock:
+    """Conformance tests are pinned by the manifest lock: any divergence
+    between the locked digest and the current conformance content is its own
+    violation kind, distinct from a hand-edited manifest."""
+
+    def test_editing_a_conformance_test_is_reported_as_conformance_mismatch(
+        self, copy_tree, capsys
+    ):
+        tree = copy_tree("contracts-basic/good")
+        test_file = (
+            tree
+            / "contracts/report-format/conformance/test_report_format_conformance.py"
+        )
+        test_file.write_text(
+            test_file.read_text(encoding="utf-8") + "\n# weakened\n",
+            encoding="utf-8",
+        )
+        exit_code, kinds = verify_kinds(tree, capsys)
+        assert exit_code == 1
+        assert kinds == {"conformance-mismatch"}
+
+    def test_adding_a_conformance_test_file_is_reported_as_conformance_mismatch(
+        self, copy_tree, capsys
+    ):
+        tree = copy_tree("contracts-basic/good")
+        added = tree / "contracts/report-format/conformance/test_added.py"
+        added.write_text("def test_added():\n    assert True\n", encoding="utf-8")
+        exit_code, kinds = verify_kinds(tree, capsys)
+        assert exit_code == 1
+        assert kinds == {"conformance-mismatch"}
+
+    def test_deleting_a_conformance_test_file_is_reported_as_conformance_mismatch(
+        self, copy_tree, capsys
+    ):
+        tree = copy_tree("contracts-basic/good")
+        (
+            tree
+            / "contracts/report-format/conformance/test_report_format_conformance.py"
+        ).unlink()
+        exit_code, kinds = verify_kinds(tree, capsys)
+        assert exit_code == 1
+        assert kinds == {"conformance-mismatch"}
+
+    def test_removing_the_whole_conformance_directory_is_reported(
+        self, copy_tree, capsys
+    ):
+        tree = copy_tree("contracts-basic/good")
+        shutil.rmtree(tree / "contracts/report-format/conformance")
+        exit_code, kinds = verify_kinds(tree, capsys)
+        assert exit_code == 1
+        assert kinds == {"conformance-mismatch"}
+
+    def test_a_contract_gaining_unlocked_conformance_tests_is_reported(
+        self, copy_tree, capsys
+    ):
+        tree = copy_tree("contracts-basic/good")
+        conformance_dir = tree / "contracts/changelog-entry/conformance"
+        conformance_dir.mkdir(parents=True)
+        (conformance_dir / "test_new.py").write_text(
+            "def test_new():\n    assert True\n", encoding="utf-8"
+        )
+        exit_code, kinds = verify_kinds(tree, capsys)
+        assert exit_code == 1
+        assert kinds == {"conformance-mismatch"}
+
+    def test_bytecode_caches_do_not_affect_conformance_verification(
+        self, copy_tree, capsys
+    ):
+        # Running the conformance tests drops __pycache__ next to them; that
+        # byproduct must not count as a conformance change.
+        tree = copy_tree("contracts-basic/good")
+        cache = tree / "contracts/report-format/conformance/__pycache__"
+        cache.mkdir(exist_ok=True)
+        (cache / "test_report_format_conformance.cpython-312.pyc").write_bytes(
+            b"\x00fake bytecode"
+        )
+        exit_code, kinds = verify_kinds(tree, capsys)
+        assert exit_code == 0
+        assert kinds == set()
 
 
 class TestConfigurationErrors:

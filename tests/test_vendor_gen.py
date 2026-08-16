@@ -259,6 +259,18 @@ class TestGen:
         )
         assert "generator_version" in provenance
 
+    def test_manifest_locks_a_conformance_digest_for_contracts_shipping_tests(
+        self, copy_tree
+    ):
+        tree = copy_tree(GOOD_TREE)
+        vendor.main(["gen", "--root", str(tree)])
+        manifest = json.loads((tree / "vendor-manifest.json").read_text(encoding="utf-8"))
+        conformance = manifest["lock"]["conformance"]
+        # report-format ships conformance tests; changelog-entry does not and
+        # is therefore omitted from the map.
+        assert set(conformance) == {"report-format"}
+        assert conformance["report-format"].startswith("sha256:")
+
     def test_manifest_records_no_wall_clock_timestamp(self, copy_tree):
         # Reproducibility is the property the manifest guarantees; a
         # generated_at field would make regeneration differ by run time.

@@ -13,7 +13,7 @@ import re
 import shutil
 import sys
 from pathlib import Path
-from typing import Dict, List, NamedTuple, Tuple
+from typing import Dict, List, NamedTuple, Optional, Tuple
 
 GENERATOR_NAME = "vendor.py"
 GENERATOR_VERSION = "1.0.0"
@@ -26,6 +26,8 @@ DIGEST_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
 CONTRACT_ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
 CONTRACT_ID_LIMIT = 64
 FRONTMATTER_DELIMITER = "---"
+CONFORMANCE_SUBDIR = "conformance"
+BYTECODE_CACHE_DIR = "__pycache__"
 
 
 class DeclarationError(ValueError):
@@ -191,6 +193,7 @@ class Contract(NamedTuple):
     digest: str
     body: str
     source: str
+    conformance_digest: Optional[str]
 
 
 class SkillDeclarations(NamedTuple):
@@ -198,6 +201,31 @@ class SkillDeclarations(NamedTuple):
 
     name: str
     declarations: List[Declaration]
+
+
+def conformance_digest(root: Path, contract_id: str) -> Optional[str]:
+    """Digest pinning contracts/<id>/conformance/**, or None without that dir.
+
+    Deterministic: files are fed sorted by path, each framed as
+    'relative-posix-path NUL size NUL content' so file boundaries cannot be
+    confused. Contents are hashed as raw bytes, not canonicalized text,
+    because conformance tests execute byte-exactly. __pycache__ is excluded:
+    merely running the tests would otherwise change the digest.
+    """
+    conformance_dir = root / CONTRACTS_DIR / contract_id / CONFORMANCE_SUBDIR
+    if not conformance_dir.is_dir():
+        return None
+    hasher = hashlib.sha256()
+    for path in sorted(conformance_dir.rglob("*")):
+        relative = path.relative_to(conformance_dir)
+        if BYTECODE_CACHE_DIR in relative.parts:
+            continue
+        if not path.is_file():
+            continue
+        content = path.read_bytes()
+        hasher.update(f"{relative.as_posix()}\0{len(content)}\0".encode("utf-8"))
+        hasher.update(content)
+    return DIGEST_PREFIX + hasher.hexdigest()
 
 
 def load_contracts(root: Path) -> Dict[str, Contract]:
@@ -223,6 +251,7 @@ def load_contracts(root: Path) -> Dict[str, Contract]:
             digest=contract_digest(text),
             body=canonical_body(text),
             source=f"{CONTRACTS_DIR}/{path.name}",
+            conformance_digest=conformance_digest(root, contract_id),
         )
     return contracts
 
@@ -337,7 +366,17 @@ def build_manifest(
             if declaration.id in contracts
         )
     return {
-        "lock": {"skills": lock_skills},
+        "lock": {
+            # Conformance is pinned per contract, not per skill: the tests
+            # belong to the contract, so one digest covers every dependent.
+            # A contract without a conformance directory is omitted.
+            "conformance": {
+                contract_id: contracts[contract_id].conformance_digest
+                for contract_id in sorted(used_ids)
+                if contracts[contract_id].conformance_digest is not None
+            },
+            "skills": lock_skills,
+        },
         "provenance": {
             "contracts": {
                 contract_id: {"source": contracts[contract_id].source}
@@ -423,16 +462,76 @@ def run_verify(root: Path) -> int:
                 f"extra: {actual.relative_to(root)} is not declared by any skill"
             )
 
-    expected_manifest = render_manifest(build_manifest(skills, contracts))
+    expected_manifest = build_manifest(skills, contracts)
     manifest_path = root / MANIFEST_NAME
     if not manifest_path.is_file():
         violations.append(f"manifest: {MANIFEST_NAME} is missing; run gen to create it")
-    elif manifest_path.read_bytes() != expected_manifest.encode("utf-8"):
-        violations.append(f"manifest: {MANIFEST_NAME} differs from regeneration")
+    else:
+        disk_bytes = manifest_path.read_bytes()
+        locked = _locked_conformance(disk_bytes)
+        comparison = expected_manifest
+        if locked is not None:
+            violations.extend(
+                _conformance_violations(locked, expected_manifest["lock"]["conformance"])
+            )
+            # The byte comparison runs against the locked conformance map, so
+            # a divergence already reported above is not double-reported as a
+            # manifest violation on top.
+            comparison = {
+                **expected_manifest,
+                "lock": {**expected_manifest["lock"], "conformance": locked},
+            }
+        if disk_bytes != render_manifest(comparison).encode("utf-8"):
+            violations.append(f"manifest: {MANIFEST_NAME} differs from regeneration")
 
     for violation in violations:
         print(violation)
     return 1 if violations else 0
+
+
+def _locked_conformance(manifest_bytes: bytes) -> Optional[Dict[str, str]]:
+    """The lock.conformance map of an on-disk manifest.
+
+    None when the manifest does not parse into that shape — the byte
+    comparison against regeneration then reports it as a manifest violation.
+    """
+    try:
+        manifest = json.loads(manifest_bytes)
+    except ValueError:
+        return None
+    lock = manifest.get("lock") if isinstance(manifest, dict) else None
+    conformance = lock.get("conformance") if isinstance(lock, dict) else None
+    if not isinstance(conformance, dict):
+        return None
+    if not all(
+        isinstance(key, str) and isinstance(value, str)
+        for key, value in conformance.items()
+    ):
+        return None
+    return conformance
+
+
+def _conformance_violations(
+    locked: Dict[str, str], current: Dict[str, str]
+) -> List[str]:
+    """Divergence between locked and current conformance digests, per contract."""
+    violations = []
+    for contract_id in sorted(set(locked) | set(current)):
+        locked_digest = locked.get(contract_id)
+        current_digest = current.get(contract_id)
+        if locked_digest == current_digest:
+            continue
+        if locked_digest is None:
+            detail = "conformance tests exist but are not locked; run gen to lock them"
+        elif current_digest is None:
+            detail = (
+                "locked conformance tests are missing from "
+                f"{CONTRACTS_DIR}/{contract_id}/{CONFORMANCE_SUBDIR}/"
+            )
+        else:
+            detail = "conformance content differs from the locked digest"
+        violations.append(f"conformance-mismatch: {contract_id}: {detail}")
+    return violations
 
 
 PARENT_ESCAPE_TOKENS = ("../", "..\\")

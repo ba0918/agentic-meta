@@ -48,9 +48,20 @@ per-line whitespace trimming) is applied.
 A contract may ship executable conformance tests in
 `contracts/<id>/conformance/test_*.py`. They are plain pytest files and are
 discovered by pointing pytest at that directory. A skill that claims to satisfy
-a contract is expected to pass that contract's conformance tests; the tests are
-versioned together with the contract body, so a digest change also pins the
-matching tests.
+a contract is expected to pass that contract's conformance tests.
+
+Conformance content is pinned by its own digest, separate from the contract
+body's: `sha256:` followed by the SHA-256 over every file under
+`contracts/<id>/conformance/`, fed sorted by path and framed as the file's
+relative POSIX path, its size, and its raw bytes (no text canonicalization —
+tests execute byte-exactly). `__pycache__` is excluded so that merely running
+the tests does not change the digest. `gen` records the digest in the
+manifest's `lock.conformance` map; a contract without a conformance directory
+is omitted from that map. `verify` reports any divergence between the locked
+digest and the current conformance content as `conformance-mismatch` —
+editing, adding, or deleting a test file counts, as does a conformance
+directory appearing or disappearing. A deliberate conformance change is
+re-locked by re-running `gen`.
 
 ## Declaring a dependency
 
@@ -101,8 +112,9 @@ contract (the skill must be updated deliberately, never silently).
 entirely from the declarations (no hand-maintained mapping exists). It is
 logically split into two sections:
 
-- `lock` — per-skill list of `{id, version, digest}`: the immutable basis for
-  offline verification.
+- `lock` — per-skill list of `{id, version, digest}`, plus a per-contract
+  `conformance` map pinning each used contract's conformance-test digest: the
+  immutable basis for offline verification.
 - `provenance` — where each contract came from (`source` path relative to the
   tree root) and which generator wrote the manifest (`generator`,
   `generator_version`). No `generated_at` timestamp is recorded: wall-clock
@@ -120,7 +132,8 @@ mismatch, one line per violation, prefixed with its kind:
 | `extra` | A vendor file exists that no declaration accounts for |
 | `closure` | A declared contract has no canonical file under `contracts/` |
 | `digest-mismatch` | A declared digest does not match the canonical contract |
-| `manifest` | `vendor-manifest.json` is missing or differs from regeneration |
+| `conformance-mismatch` | A contract's `conformance/` content diverges from the digest locked in the manifest |
+| `manifest` | `vendor-manifest.json` is missing or differs from regeneration (a divergence already reported as `conformance-mismatch` is not double-reported here) |
 
 ## Self-containment lint
 
