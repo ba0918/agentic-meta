@@ -22,11 +22,12 @@ jobs:
         with:
           python-version: "3.12"
 
+      - uses: astral-sh/setup-uv@v5
+
+      # The same command PROJECT.md documents for local runs, so CI and the
+      # documentation cannot drift apart.
       - name: Run the vendor tool's own tests
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install pytest
-          python -m pytest tests/ -q
+        run: uv run --with pytest -- pytest tests/ -q
 
       # The bad-* trees under fixtures/contracts-basic/ are deliberately
       # broken (the pytest suite proves they fail); direct invocations below
@@ -44,4 +45,4 @@ jobs:
           python scripts/vendor.py lint-selfcontain --root fixtures/skillset-beta
 
       - name: Run the fixture contract's conformance tests
-        run: python -m pytest fixtures/contracts-basic/good/contracts/report-format/conformance -q
+        run: uv run --with pytest -- pytest fixtures/contracts-basic/good/contracts/report-format/conformance -q
