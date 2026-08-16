@@ -283,6 +283,22 @@ class TestGen:
         assert vendor.main(["gen", "--root", str(tree)]) == 1
         assert "digest-mismatch" in capsys.readouterr().out
 
+    def test_gen_leaves_the_tree_byte_untouched_when_it_rejects_a_digest_mismatch(
+        self, copy_tree
+    ):
+        tree = copy_tree(GOOD_TREE)
+        skill_md = tree / "skills/report-writer/SKILL.md"
+        skill_md.write_text(
+            skill_md.read_text(encoding="utf-8").replace(
+                "sha256:017156e79c2eb67bef20f8615994b02a1c78ce97d4d10f6ec51ca398a0d6f111",
+                "sha256:" + "0" * 64,
+            ),
+            encoding="utf-8",
+        )
+        before = tree_snapshot(tree)
+        assert vendor.main(["gen", "--root", str(tree)]) == 1
+        assert tree_snapshot(tree) == before
+
     def test_gen_removes_vendor_files_no_declaration_accounts_for(self, copy_tree):
         tree = copy_tree(GOOD_TREE)
         stale = tree / "skills/note-taker/references/vendor/stale.md"
