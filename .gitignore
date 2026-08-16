@@ -1,0 +1,7 @@
+
+# Agent Artifact Store
+/.agents/artifacts/
+
+# Agent runtime and scratch (machine-local per the artifact-store contract)
+/.agents/runtime/
+/.agents/tmp/
