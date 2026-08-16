@@ -203,6 +203,36 @@ class TestConfigurationErrors:
         assert captured.err.startswith("error:")
         assert captured.out == ""
 
+    def test_a_skill_md_with_unclosed_frontmatter_makes_the_cli_exit_with_code_2(
+        self, copy_tree, capsys
+    ):
+        tree = copy_tree("contracts-basic/good")
+        skill_md = tree / "skills/report-writer/SKILL.md"
+        skill_md.write_text(
+            skill_md.read_text(encoding="utf-8").replace("---\n\n#", "\n#", 1),
+            encoding="utf-8",
+        )
+        exit_code = vendor.main(["verify", "--root", str(tree)])
+        captured = capsys.readouterr()
+        assert exit_code == 2
+        assert captured.err.startswith("error:")
+        assert "SKILL.md" in captured.err
+
+    def test_a_contract_with_unclosed_frontmatter_makes_the_cli_exit_with_code_2(
+        self, copy_tree, capsys
+    ):
+        tree = copy_tree("contracts-basic/good")
+        contract = tree / "contracts/changelog-entry.md"
+        contract.write_text(
+            contract.read_text(encoding="utf-8").replace("---\n\n#", "\n#", 1),
+            encoding="utf-8",
+        )
+        exit_code = vendor.main(["verify", "--root", str(tree)])
+        captured = capsys.readouterr()
+        assert exit_code == 2
+        assert captured.err.startswith("error:")
+        assert "changelog-entry.md" in captured.err
+
     def test_a_vendor_dir_symlinked_outside_the_tree_makes_verify_exit_with_code_2(
         self, copy_tree, tmp_path, capsys
     ):

@@ -56,7 +56,9 @@ def split_frontmatter(text: str) -> Tuple[List[str], str]:
 
     The frontmatter block is the leading '---' line through the closing '---'
     line; blank lines immediately after it belong to the separator, not the
-    body. A document without frontmatter is all body.
+    body. A document without frontmatter is all body. An opening '---' without
+    a closing one raises DeclarationError: treating the document as all body
+    would silently drop every pin declared in the unterminated block.
     """
     normalized = text.replace("\r\n", "\n")
     lines = normalized.split("\n")
@@ -68,7 +70,9 @@ def split_frontmatter(text: str) -> Tuple[List[str], str]:
             while body_lines and body_lines[0] == "":
                 body_lines = body_lines[1:]
             return lines[1:index], "\n".join(body_lines)
-    return [], normalized
+    raise DeclarationError(
+        "frontmatter opens with '---' but the closing '---' line is missing"
+    )
 
 
 def canonical_body(text: str) -> str:
@@ -238,7 +242,12 @@ def load_contracts(root: Path) -> Dict[str, Contract]:
         if path.name == "README.md":
             continue
         text = path.read_text(encoding="utf-8")
-        fields = _frontmatter_fields(text)
+        try:
+            fields = _frontmatter_fields(text)
+            digest = contract_digest(text)
+            body = canonical_body(text)
+        except DeclarationError as error:
+            raise ConfigError(f"{path}: {error}") from error
         contract_id, version = fields.get("id"), fields.get("version")
         if contract_id != path.stem or not is_valid_contract_id(path.stem):
             raise ConfigError(
@@ -249,8 +258,8 @@ def load_contracts(root: Path) -> Dict[str, Contract]:
         contracts[contract_id] = Contract(
             id=contract_id,
             version=version,
-            digest=contract_digest(text),
-            body=canonical_body(text),
+            digest=digest,
+            body=body,
             source=f"{CONTRACTS_DIR}/{path.name}",
             conformance_digest=conformance_digest(root, contract_id),
         )

@@ -197,6 +197,20 @@ class TestDeclarationParsing:
         with pytest.raises(vendor.DeclarationError):
             vendor.parse_declarations(text)
 
+    def test_frontmatter_opened_but_never_closed_is_a_configuration_error(self):
+        # Without the closing '---' the whole document would otherwise count
+        # as body, silently dropping every declared pin.
+        text = (
+            "---\n"
+            "name: broken\n"
+            "metadata:\n"
+            "  contracts:\n"
+            "    - id: report-format\n"
+            "      digest: sha256:" + "0" * 64 + "\n"
+        )
+        with pytest.raises(vendor.DeclarationError):
+            vendor.parse_declarations(text)
+
     def test_an_invalid_contract_id_in_a_declaration_is_a_configuration_error(self):
         text = (
             "---\n"

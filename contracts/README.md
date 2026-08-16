@@ -39,6 +39,10 @@ The *canonical body* of a contract is derived deterministically from the file:
 2. Convert CRLF line endings to LF.
 3. Trim trailing newlines to exactly one.
 
+A frontmatter block that opens with `---` but never closes is a configuration
+error (exit 2) — in contract files and `SKILL.md` alike, treating the document
+as all body would silently drop everything the block declares.
+
 The *digest* is `sha256:` followed by the lowercase hex SHA-256 of the
 canonical body encoded as UTF-8. No other transformation (in particular, no
 per-line whitespace trimming) is applied.
