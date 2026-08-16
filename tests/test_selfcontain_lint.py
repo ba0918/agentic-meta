@@ -167,6 +167,25 @@ class TestSelfContainLint:
         assert exit_code == 0
         assert lines == []
 
+    def test_a_non_utf8_file_is_still_scanned_for_violations(self, copy_tree, capsys):
+        tree = copy_tree("contracts-basic/good")
+        offender = tree / "skills/note-taker/notes.bin"
+        offender.write_bytes(
+            b"\xff\xfe invalid utf-8 lead-in\n"
+            b"See ../shared/rules.md for details.\n"
+            b"Credentials live in /etc/app/config.yaml on the host.\n"
+        )
+        exit_code, lines = lint(tree, capsys)
+        assert exit_code == 1
+        assert any(
+            line.startswith("parent-escape:") and "notes.bin:2" in line
+            for line in lines
+        )
+        assert any(
+            line.startswith("absolute-path:") and "notes.bin:3" in line
+            for line in lines
+        )
+
     def test_files_outside_skill_directories_are_not_linted(self, copy_tree, capsys):
         tree = copy_tree("contracts-basic/good")
         outside = tree / "notes-outside-skills.md"

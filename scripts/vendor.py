@@ -592,10 +592,15 @@ def run_lint_selfcontain(root: Path) -> int:
             continue
         if not path.is_file():
             continue
+        data = path.read_bytes()
         try:
-            text = path.read_text(encoding="utf-8")
+            text = data.decode("utf-8")
         except UnicodeDecodeError:
-            continue
+            # The violation patterns are pure ASCII, and latin-1 maps every
+            # byte to a character, so this fallback scans the whole file
+            # instead of silently skipping non-UTF-8 content. UTF-8 is tried
+            # first only so that reported snippets stay readable.
+            text = data.decode("latin-1")
         violations.extend(
             lint_lines(str(path.relative_to(root)), text.split("\n"))
         )

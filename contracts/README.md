@@ -139,7 +139,9 @@ mismatch, one line per violation, prefixed with its kind:
 
 `vendor.py lint-selfcontain` enforces the repository invariant that every
 `skills/<name>/` directory is self-contained. It scans every file of every
-skill, with no allowlist:
+skill, with no allowlist; files that are not valid UTF-8 are scanned too (the
+content is examined via a lossless byte-to-character mapping — the violation
+patterns are pure ASCII, so no reference can hide behind an encoding):
 
 | Kind | Meaning |
 |---|---|
