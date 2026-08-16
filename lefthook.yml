@@ -13,9 +13,11 @@ pre-push:
         fi
     vendor-verify:
       run: |
-        if [ -f scripts/vendor.py ]; then
+        # Guard on skills/ (the tool's real precondition), not on vendor.py:
+        # verify/lint exit 2 when no skills/ directory exists to process.
+        if [ -d skills ]; then
           python3 scripts/vendor.py verify
           python3 scripts/vendor.py lint-selfcontain
         else
-          echo "lefthook: no scripts/vendor.py yet - skipping"
+          echo "lefthook: no skills/ yet - skipping vendor checks"
         fi
