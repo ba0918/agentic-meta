@@ -9,6 +9,7 @@ exit-code scheme — is specified in contracts/README.md.
 import argparse
 import hashlib
 import json
+import os
 import re
 import shutil
 import sys
@@ -438,6 +439,18 @@ def _existing_vendor_files(root: Path) -> List[Path]:
     return found
 
 
+def _write_atomic(path: Path, content: str) -> None:
+    """Write via a same-directory temp file and an atomic rename.
+
+    An interrupted gen thus leaves either the old bytes or the new bytes at
+    every path, never a torn file; a leftover .tmp file is reported by verify
+    as extra and replaced by the next gen.
+    """
+    temp = path.with_name(path.name + ".tmp")
+    temp.write_text(content, encoding="utf-8")
+    os.replace(temp, path)
+
+
 def run_gen(root: Path) -> int:
     contracts = load_contracts(root)
     skills = load_skills(root)
@@ -448,23 +461,26 @@ def run_gen(root: Path) -> int:
         return 1
     expected = expected_vendor_files(skills, contracts)
     expected_paths = {root / path for path in expected}
-    for stale in _existing_vendor_files(root):
-        if stale not in expected_paths:
-            _guard_managed_path(root, stale)
-            if stale.is_dir():
-                shutil.rmtree(stale)
-            else:
-                stale.unlink()
+    stale_entries = [
+        stale for stale in _existing_vendor_files(root) if stale not in expected_paths
+    ]
+    # Writes come first and deletions last: a failure at any point then loses
+    # no pre-existing file, and the interrupted state (updated vendor copies
+    # without a matching manifest, or leftover extras) is one verify flags.
     for relative, content in expected.items():
         target = root / relative
         _guard_managed_path(root, target)
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(content, encoding="utf-8")
+        _write_atomic(target, content)
     manifest_path = root / MANIFEST_NAME
     _guard_managed_path(root, manifest_path)
-    manifest_path.write_text(
-        render_manifest(build_manifest(skills, contracts)), encoding="utf-8"
-    )
+    _write_atomic(manifest_path, render_manifest(build_manifest(skills, contracts)))
+    for stale in stale_entries:
+        _guard_managed_path(root, stale)
+        if stale.is_dir():
+            shutil.rmtree(stale)
+        else:
+            stale.unlink()
     return 0
 
 

@@ -395,6 +395,61 @@ class TestGen:
         vendor.main(["gen", "--root", str(tree)])
         assert not stale.exists()
 
+    def test_an_interrupted_gen_loses_no_pre_existing_file(
+        self, copy_tree, monkeypatch, capsys
+    ):
+        # Deletions must come last and writes must be atomic: a failure on the
+        # very first write leaves every pre-existing file in place, including
+        # a stale vendor copy that a completed run would have removed.
+        tree = copy_tree(GOOD_TREE)
+        stale = tree / "skills/note-taker/references/vendor/stale.md"
+        stale.parent.mkdir(parents=True)
+        stale.write_text("left over\n", encoding="utf-8")
+        before = tree_snapshot(tree)
+
+        def failing_write(path, content):
+            raise OSError(f"simulated mid-write failure at {path}")
+
+        monkeypatch.setattr(vendor, "_write_atomic", failing_write)
+        assert vendor.main(["gen", "--root", str(tree)]) == 2
+        assert capsys.readouterr().err.startswith("error:")
+        assert stale.read_text(encoding="utf-8") == "left over\n"
+        assert tree_snapshot(tree) == before
+
+    def test_verify_flags_the_state_left_by_a_mid_write_failure(
+        self, copy_tree, monkeypatch, capsys
+    ):
+        # A gen interrupted between vendor writes and the manifest write must
+        # leave a state verify reports, never a silently half-updated tree.
+        tree = copy_tree(GOOD_TREE)
+        contract = tree / "contracts/report-format.md"
+        contract.write_text(
+            contract.read_text(encoding="utf-8") + "\nA new requirement.\n",
+            encoding="utf-8",
+        )
+        new_digest = vendor.contract_digest(contract.read_text(encoding="utf-8"))
+        skill_md = tree / "skills/report-writer/SKILL.md"
+        skill_md.write_text(
+            skill_md.read_text(encoding="utf-8").replace(
+                "sha256:017156e79c2eb67bef20f8615994b02a1c78ce97d4d10f6ec51ca398a0d6f111",
+                new_digest,
+            ),
+            encoding="utf-8",
+        )
+        real_write = vendor._write_atomic
+        calls = []
+
+        def flaky_write(path, content):
+            calls.append(path)
+            if len(calls) == 2:
+                raise OSError(f"simulated mid-write failure at {path}")
+            real_write(path, content)
+
+        monkeypatch.setattr(vendor, "_write_atomic", flaky_write)
+        assert vendor.main(["gen", "--root", str(tree)]) == 2
+        capsys.readouterr()
+        assert vendor.main(["verify", "--root", str(tree)]) == 1
+
     def test_gen_removes_orphan_vendor_artifacts_so_verify_passes_afterwards(
         self, copy_tree
     ):
