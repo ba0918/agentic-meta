@@ -622,7 +622,11 @@ def main(argv=None) -> int:
     subparsers = parser.add_subparsers(dest="command", required=True)
     for name, help_text in (
         ("gen", "expand declared contracts into skills and write the manifest"),
-        ("verify", "check drift, extra files, closure, digests, and the manifest"),
+        (
+            "verify",
+            "check drift, extra files, closure, digests, conformance locks, "
+            "and the manifest",
+        ),
         ("lint-selfcontain", "check that every skill directory is self-contained"),
     ):
         subparser = subparsers.add_parser(name, help=help_text)

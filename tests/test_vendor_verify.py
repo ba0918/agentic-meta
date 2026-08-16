@@ -1,6 +1,6 @@
-"""Tests for vendor.py verify: the five checks that keep vendored copies,
-declarations, canonical contracts, and the manifest mutually consistent —
-plus the discovery of contract conformance tests."""
+"""Tests for vendor.py verify: the six checks that keep vendored copies,
+declarations, canonical contracts, conformance tests, and the manifest
+mutually consistent — plus the discovery of contract conformance tests."""
 
 import shutil
 import subprocess
