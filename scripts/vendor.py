@@ -117,11 +117,15 @@ def _contract_entry_lines(frontmatter_lines: List[str]) -> List[List[tuple]]:
     entries: List[List[tuple]] = []
     in_metadata = False
     in_contracts = False
+    saw_contracts_key = False
     for raw in frontmatter_lines:
         indent = len(raw) - len(raw.lstrip(" "))
         line = raw.strip()
         if not line:
             continue
+        key, separator, _ = line.partition(":")
+        if separator and key.strip() == "contracts":
+            saw_contracts_key = True
         if indent == 0:
             in_metadata = line == "metadata:"
             in_contracts = False
@@ -152,6 +156,15 @@ def _contract_entry_lines(frontmatter_lines: List[str]) -> List[List[tuple]]:
         if not separator:
             raise DeclarationError(f"expected 'key: value' under contracts: {raw!r}")
         entries[-1].append((key.strip(), _unquote(value.strip())))
+    # Fail-loud backstop: an unrecognized-but-valid-YAML shape (for example
+    # 4-space indentation under metadata, or a trailing comment on the
+    # metadata: line) must not silently drop every pin.
+    if saw_contracts_key and not entries:
+        raise DeclarationError(
+            "frontmatter contains a 'contracts:' key but no declaration was "
+            "recognized; contracts must be a block-style list under "
+            "'metadata:' with 2-space indentation"
+        )
     return entries
 
 

@@ -157,6 +157,32 @@ class TestDeclarationParsing:
         with pytest.raises(vendor.DeclarationError):
             vendor.parse_declarations(text)
 
+    def test_metadata_children_indented_four_spaces_do_not_silently_drop_pins(self):
+        text = (
+            "---\n"
+            "name: broken\n"
+            "metadata:\n"
+            "    contracts:\n"
+            "        - id: report-format\n"
+            "          digest: sha256:" + "0" * 64 + "\n"
+            "---\n"
+        )
+        with pytest.raises(vendor.DeclarationError):
+            vendor.parse_declarations(text)
+
+    def test_a_trailing_comment_on_metadata_does_not_silently_drop_pins(self):
+        text = (
+            "---\n"
+            "name: broken\n"
+            "metadata: # pinned dependencies\n"
+            "  contracts:\n"
+            "    - id: report-format\n"
+            "      digest: sha256:" + "0" * 64 + "\n"
+            "---\n"
+        )
+        with pytest.raises(vendor.DeclarationError):
+            vendor.parse_declarations(text)
+
     def test_an_invalid_contract_id_in_a_declaration_is_a_configuration_error(self):
         text = (
             "---\n"
