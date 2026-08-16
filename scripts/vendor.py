@@ -215,18 +215,25 @@ def conformance_digest(root: Path, contract_id: str) -> Optional[str]:
     'relative-posix-path NUL size NUL content' so file boundaries cannot be
     confused. Contents are hashed as raw bytes, not canonicalized text,
     because conformance tests execute byte-exactly. __pycache__ is excluded:
-    merely running the tests would otherwise change the digest.
+    merely running the tests would otherwise change the digest. A directory
+    with no files left after that exclusion also digests as absent — git
+    cannot store an empty directory, so a fresh checkout drops it and a
+    locked digest would falsely mismatch.
     """
     conformance_dir = root / CONTRACTS_DIR / contract_id / CONFORMANCE_SUBDIR
     if not conformance_dir.is_dir():
         return None
+    files = [
+        path
+        for path in sorted(conformance_dir.rglob("*"))
+        if path.is_file()
+        and BYTECODE_CACHE_DIR not in path.relative_to(conformance_dir).parts
+    ]
+    if not files:
+        return None
     hasher = hashlib.sha256()
-    for path in sorted(conformance_dir.rglob("*")):
+    for path in files:
         relative = path.relative_to(conformance_dir)
-        if BYTECODE_CACHE_DIR in relative.parts:
-            continue
-        if not path.is_file():
-            continue
         content = path.read_bytes()
         hasher.update(f"{relative.as_posix()}\0{len(content)}\0".encode("utf-8"))
         hasher.update(content)

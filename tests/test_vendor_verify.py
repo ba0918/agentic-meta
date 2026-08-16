@@ -171,6 +171,32 @@ class TestConformanceLock:
         assert exit_code == 1
         assert kinds == {"conformance-mismatch"}
 
+    def test_an_empty_conformance_directory_counts_as_no_conformance_tests(
+        self, copy_tree, capsys
+    ):
+        # git cannot store an empty directory, so a fresh checkout drops it;
+        # locking a digest for one would make that checkout falsely mismatch.
+        tree = copy_tree("contracts-basic/good")
+        empty = tree / "contracts/changelog-entry/conformance"
+        empty.mkdir(parents=True)
+        assert vendor.main(["gen", "--root", str(tree)]) == 0
+        capsys.readouterr()
+        exit_code, kinds = verify_kinds(tree, capsys)
+        assert (exit_code, kinds) == (0, set())
+        empty.rmdir()
+        exit_code, kinds = verify_kinds(tree, capsys)
+        assert (exit_code, kinds) == (0, set())
+
+    def test_a_conformance_directory_holding_only_bytecode_counts_as_absent(
+        self, copy_tree, capsys
+    ):
+        tree = copy_tree("contracts-basic/good")
+        cache = tree / "contracts/changelog-entry/conformance/__pycache__"
+        cache.mkdir(parents=True)
+        (cache / "test_old.cpython-312.pyc").write_bytes(b"\x00fake bytecode")
+        exit_code, kinds = verify_kinds(tree, capsys)
+        assert (exit_code, kinds) == (0, set())
+
     def test_bytecode_caches_do_not_affect_conformance_verification(
         self, copy_tree, capsys
     ):

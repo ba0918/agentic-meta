@@ -61,7 +61,9 @@ relative POSIX path, its size, and its raw bytes (no text canonicalization —
 tests execute byte-exactly). `__pycache__` is excluded so that merely running
 the tests does not change the digest. `gen` records the digest in the
 manifest's `lock.conformance` map; a contract without a conformance directory
-is omitted from that map. `verify` reports any divergence between the locked
+is omitted from that map, and a directory with no files left after the
+`__pycache__` exclusion counts as absent (git cannot store an empty
+directory, so a fresh checkout would otherwise falsely mismatch). `verify` reports any divergence between the locked
 digest and the current conformance content as `conformance-mismatch` —
 editing, adding, or deleting a test file counts, as does a conformance
 directory appearing or disappearing. A deliberate conformance change is
