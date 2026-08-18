@@ -11,26 +11,28 @@ the separation policy and serves as the reference for structure and conventions.
 
 ## Stack and layout
 
-Python 3.12, standard library only, tested with pytest (the same shape as agentic-rules).
+No application code lives here. The vendoring machinery is an external tool,
+`@ba0918-dev/agentic-skill-vendor`, held as a dev dependency and pinned by the integrity
+hash in `bun.lock`. Bun is therefore the only toolchain the repository needs.
 
 | Path | What it holds |
 |---|---|
-| `contracts/` | Canonical output contracts and the protocol spec (`contracts/README.md`) |
-| `scripts/vendor.py` | The single CLI: `gen` / `verify` / `lint-selfcontain` |
-| `tests/` | pytest suite for the vendor machinery |
-| `fixtures/` | Synthetic skill trees the machinery is tested against; `fixtures/contracts-basic/bad-*` are deliberately broken |
+| `contracts/` | Canonical output contracts and the conventions around them (`contracts/README.md`) |
+| `fixtures/` | Synthetic skill trees the machinery runs against; `skillset-alpha` and `skillset-beta` differ in structure, vocabulary and log format on purpose |
 | `docs/spec/` | Design decisions (Japanese) |
-| `.github/workflows/ci.yml` | CI: test suite, then `verify` + `lint-selfcontain` on the good fixture trees, then the fixture contract's conformance tests |
+| `package.json`, `bun.lock` | The vendoring tool's version pin |
+| `.github/workflows/ci.yml` | CI: frozen install, the tool's self-test, then `verify` + `lint-selfcontain` on both fixture trees |
 | `lefthook.yml` | Local pre-push gates mirroring CI (activated per clone with `lefthook install`) |
 
 ## Commands
 
 | Purpose | Command |
 |---|---|
-| Test | `uv run --with pytest -- pytest tests/ -q` |
-| Verify vendored copies | `python3 scripts/vendor.py verify --root <tree>` |
-| Regenerate vendored copies | `python3 scripts/vendor.py gen --root <tree>` |
-| Self-containment lint | `python3 scripts/vendor.py lint-selfcontain --root <tree>` |
+| Install the pinned toolchain | `bun install --frozen-lockfile` |
+| Check the tool against its own vectors | `bunx agentic-skill-vendor self-test` |
+| Verify vendored copies | `bunx agentic-skill-vendor verify --root <tree>` |
+| Regenerate vendored copies | `bunx agentic-skill-vendor gen --root <tree>` |
+| Self-containment lint | `bunx agentic-skill-vendor lint-selfcontain --root <tree>` |
 | Enable pre-push hooks (once per clone) | `lefthook install` |
 
 ## Conventions specific to this project

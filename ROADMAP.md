@@ -11,7 +11,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · 🔁 recurring gate
 | # | Wave | Goal | Status |
 |---|------|------|--------|
 | 0 | Scaffolding | Repository skeleton, agent instructions, artifact store, design spec | ✅ |
-| 1 | Foundation | Declaration-driven vendor machinery, verification, synthetic fixtures, CI | ✅ |
+| 1 | Foundation | Declaration-driven vendoring (now an external tool), verification, synthetic fixtures, CI | ✅ |
 | 2 | Contrast pilots | Port `skill-reviewer` and `skill-interface-audit` through the machinery | ⬜ |
 | G | Gate | Re-evaluate remaining ports with pilot measurements | 🔁 |
 | 3 | Harnesses | Port `trigger-eval`, `empirical-prompt-tuning`, `skill-regression` | ⬜ |
@@ -29,15 +29,23 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · 🔁 recurring gate
 
 ### Wave 1 — Foundation ✅
 
-Machinery only — no skill content is ported in this wave.
+Machinery only — no skill content is ported in this wave. The machinery was prototyped
+here, then split into a repository of its own and published to npm; this repository
+consumes it now instead of owning it.
 
-- [x] Contract format spec (`contracts/README.md`: id, version, conformance convention)
-- [x] `scripts/vendor.py` — `gen` (materialize `references/vendor/` + manifest; atomic, symlink-guarded)
-- [x] `scripts/vendor.py` — `verify` (drift / extra / closure / manifest / digest mismatch / conformance mismatch)
-- [x] `scripts/vendor.py` — `lint-selfcontain` (no references escaping a skill directory)
-- [x] Synthetic fixtures: `contracts-basic`, `skillset-alpha`, `skillset-beta`
-- [x] CI workflow (pytest + verify + lint, green)
-- [x] Local pre-push gate (lefthook: pytest + verify + lint) and repo hygiene (.gitattributes LF, .gitignore)
+- [x] Contract conventions (`contracts/README.md`: one canonical file per id, id-only
+      declarations, conformance directory)
+- [x] Vendoring machinery — prototyped here, since externalized as
+      `@ba0918-dev/agentic-skill-vendor`. It is a dev dependency at range `^0.1.0`,
+      resolved to 0.1.0; the effective pin is the integrity hash in `bun.lock`, which
+      only `bun install --frozen-lockfile` enforces
+- [x] Synthetic fixtures: `skillset-alpha`, `skillset-beta`. The fixtures that exercised
+      the machinery's own failure modes moved to the tool's repository with it
+- [x] CI workflow: frozen install, the tool's self-test, then `verify` +
+      `lint-selfcontain` over both fixture trees. No remote is configured yet, so the
+      workflow has never run on Actions — only the local command runs are verified
+- [x] Local pre-push gate (lefthook, a reduced mirror of CI) and repo hygiene
+      (.gitattributes LF, .gitignore)
 
 ### Wave 2 — Contrast pilots ⬜
 

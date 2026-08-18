@@ -12,9 +12,10 @@ collection by responsibility:
 - **agentic-meta** (this repository) — building and evaluating agent capability itself
 
 Skills arrive here as the split of `claude-skills` proceeds. No skills are ported yet;
-what exists today is the foundation they will stand on: an output-contract protocol
-(`contracts/README.md`) and `scripts/vendor.py`, the single CLI that generates and
-verifies per-skill vendored contract copies (`gen` / `verify`) and lints every skill
-directory for self-containment (`lint-selfcontain`) — exercised in CI by a pytest
-suite against synthetic fixture trees under `fixtures/`. See `PROJECT.md` for
-commands and layout, and `ROADMAP.md` for progress.
+what exists today is the foundation they will stand on: output contracts under
+`contracts/` (see `contracts/README.md`), vendored into each skill that declares them
+by `@ba0918-dev/agentic-skill-vendor` — an external tool held as a dev dependency and
+pinned by the lockfile. CI installs that pin, checks the tool against its own vectors,
+then has it verify the vendored copies and lint every skill directory for
+self-containment across the synthetic skill trees under `fixtures/`. See `PROJECT.md`
+for commands and layout, and `ROADMAP.md` for progress.
