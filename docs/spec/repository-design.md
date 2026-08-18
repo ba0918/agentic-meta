@@ -60,11 +60,11 @@ workflow が存在する環境では統合が「格上げ」として働き、�
 
 ## vendor 機構(宣言駆動・ツール外部化)
 
-vendoring(正本の共有文書を各スキル配下へ展開し、コピーが正本とバイト同一で
-あることを保証する機構)は、外部ツール `@ba0918-dev/agentic-skill-vendor`(npm)に
-委ねる。ツールは devDependency として導入し、lockfile で版を固定する。digest 規則・
-vendored copy のヘッダ形式・violation kind といった機構仕様の正本はツール側
-リポジトリにあり、本リポジトリには複製しない。
+vendoring(正本の共有文書を各スキル配下へ展開し、コピーの本文が正本の本文と
+バイト同一であることを保証する機構)は、外部ツール `@ba0918-dev/agentic-skill-vendor`(npm)に
+委ねる。ツールは devDependency として導入し、lockfile で版を固定する。
+digest 規則(本文の正規化を含む)・vendored copy のヘッダ形式・violation kind
+といった機構仕様の正本はツール側リポジトリにあり、本リポジトリには複製しない。
 
 - 契約の正本はリポジトリ内 `contracts/<id>.md` に1部だけ置く(id はファイル名)
 - 各スキルは SKILL.md frontmatter に契約 id のみを宣言する。digest は書かない
