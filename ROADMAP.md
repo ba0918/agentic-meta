@@ -59,8 +59,10 @@ Two skills with opposite characteristics validate the machinery from both ends.
 - [ ] Both skills pass: self-containment lint, heterogeneous-fixture run
 - [ ] Point CI and the pre-push gate at the repository root too. Both name only the
       fixture trees today, so the first skill landing in `skills/` would go unchecked;
-      the root cannot be added before then, because `verify` and `lint-selfcontain`
-      fail on a tree with no `skills/` directory
+      the wiring waits for wave 2 because `lint-selfcontain` errors on a tree with no
+      `skills/` directory. Root `verify` is held back only by the root
+      `vendor-manifest.json` not being committed yet, so it could be wired ahead of
+      the first skill if that were done first
 
 ### Gate — Re-evaluation 🔁
 
