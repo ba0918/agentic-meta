@@ -36,8 +36,8 @@ consumes it now instead of owning it.
 - [x] Contract conventions (`contracts/README.md`: one canonical file per id, id-only
       declarations, conformance directory)
 - [x] Vendoring machinery — prototyped here, since externalized as
-      `@ba0918-dev/agentic-skill-vendor`. It is a dev dependency at range `^0.1.0`,
-      resolved to 0.1.0; the effective pin is the integrity hash in `bun.lock`, which
+      `@ba0918-dev/agentic-skill-vendor`. It is a dev dependency at range `^0.2.0`,
+      resolved to 0.2.0; the effective pin is the integrity hash in `bun.lock`, which
       `bun install --frozen-lockfile` holds fixed by refusing to re-resolve
 - [x] Synthetic fixtures: `skillset-alpha`, `skillset-beta`, both exercising the passing
       path. The fixtures that exercised the machinery's own failure modes were retired
