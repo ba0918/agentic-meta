@@ -1,6 +1,6 @@
 {
   "private": true,
   "devDependencies": {
-    "@ba0918-dev/agentic-skill-vendor": "^0.1.0"
+    "@ba0918-dev/agentic-skill-vendor": "^0.2.0"
   }
 }

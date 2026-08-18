@@ -66,7 +66,7 @@ generic — takes its seat.
       fixture trees today, so the first skill landing in `skills/` would go unchecked;
       the wiring waits for wave 2 because `lint-selfcontain` errors on a tree with no
       `skills/` directory. Root `verify` is held back only by the root
-      `vendor-manifest.json` not being committed yet, so it could be wired ahead of
+      `vendor-lock.json` not being committed yet, so it could be wired ahead of
       the first skill if that were done first
 
 ### Gate — Re-evaluation 🔁

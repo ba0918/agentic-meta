@@ -69,7 +69,7 @@ digest 規則(本文の正規化を含む)・vendored copy のヘッダ形式・
 - 契約の正本はリポジトリ内 `contracts/<id>.md` に1部だけ置く(id はファイル名)
 - 各スキルは SKILL.md frontmatter に契約 id のみを宣言する。digest は書かない
   (宣言は「安定した依存の意図」、pin は「現在の採用内容」で責務が別)
-- digest pin は中央 lock(`vendor-manifest.json`)に置く。lock は dependencies
+- digest pin は中央 lock(`vendor-lock.json`)に置く。lock は dependencies
   (スキル → 契約 id 列)と resolutions(契約 id → digest)を分離した正規形で、
   ツールの `gen` が正本に合わせて書き直す導出スナップショットである
   (package.json と lockfile の関係と同じ)。専用の承認コマンドは持たず、門番は

@@ -30,7 +30,7 @@ metadata:
 
 A digest never appears beside a declaration. The declaration expresses a stable intent
 to depend on a contract; the digest recording which text is adopted right now lives in
-the central lock, `vendor-manifest.json`, which the tool's `gen` rewrites from the
+the central lock, `vendor-lock.json`, which the tool's `gen` rewrites from the
 canonical text. The two answer different questions and are therefore kept apart.
 
 ## Conformance tests
