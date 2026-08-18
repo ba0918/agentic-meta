@@ -18,31 +18,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+      - uses: oven-sh/setup-bun@v2
 
-      - uses: astral-sh/setup-uv@v5
+      # --frozen-lockfile is the only mode that enforces the lockfile's
+      # integrity hashes, and it runs before self-test on purpose: the bytes of
+      # the vendoring tool are established by the lockfile first, so the tool
+      # is never the sole witness to its own provenance.
+      - name: Install the pinned toolchain
+        run: bun install --frozen-lockfile
 
-      # The same command PROJECT.md documents for local runs, so CI and the
-      # documentation cannot drift apart.
-      - name: Run the vendor tool's own tests
-        run: uv run --with pytest -- pytest tests/ -q
+      - name: Check the vendoring tool against its own vectors
+        run: bunx agentic-skill-vendor self-test
 
-      # The bad-* trees under fixtures/contracts-basic/ are deliberately
-      # broken (the pytest suite proves they fail); direct invocations below
-      # therefore target only the known-good trees.
-      - name: Verify the good fixture trees regenerate without drift
+      # CI never runs gen. Its job is detecting a tree that disagrees with its
+      # lock, not resolving the disagreement.
+      - name: Verify the fixture trees against their locks
         run: |
-          python scripts/vendor.py verify --root fixtures/contracts-basic/good
-          python scripts/vendor.py verify --root fixtures/skillset-alpha
-          python scripts/vendor.py verify --root fixtures/skillset-beta
+          bunx agentic-skill-vendor verify --root fixtures/skillset-alpha
+          bunx agentic-skill-vendor verify --root fixtures/skillset-beta
 
-      - name: Lint the good fixture trees for self-containment
+      - name: Lint the fixture trees for self-containment
         run: |
-          python scripts/vendor.py lint-selfcontain --root fixtures/contracts-basic/good
-          python scripts/vendor.py lint-selfcontain --root fixtures/skillset-alpha
-          python scripts/vendor.py lint-selfcontain --root fixtures/skillset-beta
-
-      - name: Run the fixture contract's conformance tests
-        run: uv run --with pytest -- pytest fixtures/contracts-basic/good/contracts/report-format/conformance -q
+          bunx agentic-skill-vendor lint-selfcontain --root fixtures/skillset-alpha
+          bunx agentic-skill-vendor lint-selfcontain --root fixtures/skillset-beta
