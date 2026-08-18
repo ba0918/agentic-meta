@@ -12,9 +12,9 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · 🔁 recurring gate
 |---|------|------|--------|
 | 0 | Scaffolding | Repository skeleton, agent instructions, artifact store, design spec | ✅ |
 | 1 | Foundation | Declaration-driven vendoring (now an external tool), verification, synthetic fixtures, CI | ✅ |
-| 2 | Contrast pilots | Port `skill-reviewer` and `skill-interface-audit` through the machinery | ⬜ |
+| 2 | Contrast pilots | Port `trigger-eval` and `skill-interface-audit` through the machinery | ⬜ |
 | G | Gate | Re-evaluate remaining ports with pilot measurements | 🔁 |
-| 3 | Harnesses | Port `trigger-eval`, `empirical-prompt-tuning`, `skill-regression` | ⬜ |
+| 3 | Harnesses | Port `empirical-prompt-tuning`, `skill-regression` | ⬜ |
 | 4 | Improver | Port `skill-improve` (depends on harnesses; workflow delegation stripped) | ⬜ |
 | 5 | Auditor | Port `context-audit` (observed read-only since wave 1) | ⬜ |
 
@@ -52,8 +52,13 @@ consumes it now instead of owning it.
 ### Wave 2 — Contrast pilots ⬜
 
 Two skills with opposite characteristics validate the machinery from both ends.
+`skill-reviewer`, the original generic-leaning pick, was adjudicated out of this
+repository's responsibility (see "Out of scope here"); `trigger-eval` — already
+generic — takes its seat.
 
-- [ ] Port `skill-reviewer` (generic-leaning)
+- [ ] Define the generic fixture contract first (do not freeze the old structure —
+      pulled forward from wave 3, since `trigger-eval` is the first harness to land)
+- [ ] Port `trigger-eval` (generic-leaning)
 - [ ] Port `skill-interface-audit` (target-resolution-heavy)
 - [ ] `.claude-plugin/` distribution metadata (arrives with the first ported skill)
 - [ ] Both skills pass: self-containment lint, heterogeneous-fixture run
@@ -76,8 +81,6 @@ Runs after wave 2, revisited after each later wave. Decides with measurements, n
 
 ### Wave 3 — Harnesses ⬜
 
-- [ ] Define the generic fixture contract first (do not freeze the old structure)
-- [ ] Port `trigger-eval` (already generic — smallest step)
 - [ ] Port `empirical-prompt-tuning`
 - [ ] Port `skill-regression` (repo-specific today; generalize target resolution)
 
@@ -95,3 +98,9 @@ Runs after wave 2, revisited after each later wave. Decides with measurements, n
 Documents owned by agentic-workflow (operation contracts such as polling or the artifact
 store internals) stay there. Knowledge documents are replaced by name references to
 agentic-rules skills instead of being vendored.
+
+`skill-reviewer` also stays with agentic-workflow (adjudicated 2026-08-18): cycle's
+reviewer routing names it as the review station for skill-artifact diffs, which makes it
+a workflow review component rather than a capability-measurement instrument. Porting it
+here would couple workflow to this repository across the split. Revisit only if that
+routing ever becomes pluggable.
