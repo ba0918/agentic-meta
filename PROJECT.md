@@ -13,7 +13,8 @@ the separation policy and serves as the reference for structure and conventions.
 
 No application code lives here. The vendoring machinery is an external tool,
 `@ba0918-dev/agentic-skill-vendor`, held as a dev dependency and pinned by the integrity
-hash in `bun.lock`. Bun is therefore the only toolchain the repository needs.
+hash in `bun.lock`. Bun is therefore the only toolchain the checks themselves need;
+lefthook, which runs them ahead of a push, is installed separately per clone.
 
 | Path | What it holds |
 |---|---|

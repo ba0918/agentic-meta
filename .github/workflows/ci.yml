@@ -20,9 +20,10 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
 
-      # --frozen-lockfile is the only mode that enforces the lockfile's
-      # integrity hashes, and it runs before self-test on purpose: the bytes of
-      # the vendoring tool are established by the lockfile first, so the tool
+      # --frozen-lockfile refuses to rewrite the lockfile, so the integrity
+      # hashes enforced here are the recorded ones rather than whatever a fresh
+      # resolution would produce. It runs before self-test on purpose: the bytes
+      # of the vendoring tool are established by the lockfile first, so the tool
       # is never the sole witness to its own provenance.
       - name: Install the pinned toolchain
         run: bun install --frozen-lockfile

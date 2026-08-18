@@ -38,7 +38,7 @@ consumes it now instead of owning it.
 - [x] Vendoring machinery — prototyped here, since externalized as
       `@ba0918-dev/agentic-skill-vendor`. It is a dev dependency at range `^0.1.0`,
       resolved to 0.1.0; the effective pin is the integrity hash in `bun.lock`, which
-      only `bun install --frozen-lockfile` enforces
+      `bun install --frozen-lockfile` holds fixed by refusing to re-resolve
 - [x] Synthetic fixtures: `skillset-alpha`, `skillset-beta`. The fixtures that exercised
       the machinery's own failure modes moved to the tool's repository with it
 - [x] CI workflow: frozen install, the tool's self-test, then `verify` +
@@ -55,6 +55,10 @@ Two skills with opposite characteristics validate the machinery from both ends.
 - [ ] Port `skill-interface-audit` (target-resolution-heavy)
 - [ ] `.claude-plugin/` distribution metadata (arrives with the first ported skill)
 - [ ] Both skills pass: self-containment lint, heterogeneous-fixture run
+- [ ] Point CI and the pre-push gate at the repository root too. Both name only the
+      fixture trees today, so the first skill landing in `skills/` would go unchecked;
+      the root cannot be added before then, because `verify` and `lint-selfcontain`
+      fail on a tree with no `skills/` directory
 
 ### Gate — Re-evaluation 🔁
 
