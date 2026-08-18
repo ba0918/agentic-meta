@@ -1,0 +1,20 @@
+{
+  "lockfileVersion": 1,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "devDependencies": {
+        "@ba0918-dev/agentic-skill-vendor": "^0.1.0",
+      },
+    },
+  },
+  "packages": {
+    "@ba0918-dev/agentic-skill-vendor": ["@ba0918-dev/agentic-skill-vendor@0.1.0", "", { "dependencies": { "ignore": "7.0.6", "js-yaml": "5.2.3" }, "bin": { "agentic-skill-vendor": "dist/cli.js" } }, "sha512-5UdBLnmVSneAt+CRZcPALQCc8NE7LKV5CCUppuaI8h74LOF/HuPf2zgN6AkDSpKDX7WeYgKQGEzdH7p2nCjhnA=="],
+
+    "argparse": ["argparse@2.0.1", "", {}, "sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q=="],
+
+    "ignore": ["ignore@7.0.6", "", {}, "sha512-BAg6QkE8W+TuQLrrw0Ugr7HegXduRuuj8/ti2kSOc+jz1dmx8/WNcjr6XGnq5YpDWxFwwaavqD0+jIUOKelTsw=="],
+
+    "js-yaml": ["js-yaml@5.2.3", "", { "dependencies": { "argparse": "^2.0.1" }, "bin": { "js-yaml": "bin/js-yaml.mjs" } }, "sha512-n+mUVyUX5bVv7G/G2zyIHOhdxfuU1dY2NOFzTQUWiMUbFss8b57NFlgCCaggU78wSw5KVS9cllzeLyzyR+n5nw=="],
+  }
+}

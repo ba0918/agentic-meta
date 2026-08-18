@@ -1,212 +1,44 @@
 # Output Contracts
 
-This directory holds the canonical copies of *output contracts*: machine-checked
-protocols that fix the format of artifacts shared between skills. A contract is
-a protocol, not a document — every contract carries an id, a version, a content
-digest, and (optionally) conformance tests, so that drift between a skill and
-the contract it depends on is detected mechanically instead of by reading.
+This directory holds the canonical text of *output contracts*: protocols that fix the
+format of artifacts shared between skills. A contract is a protocol rather than a
+document because each skill's copy of it is bound to the canonical text by a digest,
+and because a contract may carry conformance tests of its own.
 
-`scripts/vendor.py` is the single tool that generates, verifies, and lints
-everything defined here.
+The vendoring itself — expanding each contract into every skill that declares it, and
+proving each copy byte-identical to its source — is done by
+`@ba0918-dev/agentic-skill-vendor`, installed as a dev dependency. The mechanism's
+specification (digest rules, the vendored copy's header format, violation kinds, exit
+codes) is canonical in that tool's own repository and is deliberately not restated
+here, so the two cannot drift apart. `PROJECT.md` records the commands.
 
 ## Canonical contract files
 
-Each contract lives in exactly one file, `contracts/<id>.md`:
-
-```markdown
----
-id: report-format
-version: 1.2.0
----
-
-# Report Format
-
-...contract body...
-```
-
-- `id` must match `^[a-z0-9][a-z0-9._-]*$`, must not contain `..`, and must be
-  at most 64 characters. Anything else is rejected before a path is ever built
-  from it (path traversal safety).
-- `version` is an opaque string shown to humans; compatibility is enforced by
-  the digest, not by version arithmetic.
-
-### Canonical body and digest
-
-The *canonical body* of a contract is derived deterministically from the file:
-
-1. Remove the frontmatter block (the leading `---` line through the closing
-   `---` line) and any blank lines immediately following it.
-2. Convert CRLF line endings to LF.
-3. Trim trailing newlines to exactly one.
-
-A frontmatter block that opens with `---` but never closes is a configuration
-error (exit 2) — in contract files and `SKILL.md` alike, treating the document
-as all body would silently drop everything the block declares.
-
-The *digest* is `sha256:` followed by the lowercase hex SHA-256 of the
-canonical body encoded as UTF-8. No other transformation (in particular, no
-per-line whitespace trimming) is applied.
-
-### Conformance tests
-
-A contract may ship executable conformance tests in
-`contracts/<id>/conformance/test_*.py`. They are plain pytest files and are
-discovered by pointing pytest at that directory. A skill that claims to satisfy
-a contract is expected to pass that contract's conformance tests.
-
-Conformance content is pinned by its own digest, separate from the contract
-body's: `sha256:` followed by the SHA-256 over every file under
-`contracts/<id>/conformance/`, fed sorted by path and framed as the file's
-relative POSIX path, its size, and its raw bytes (no text canonicalization —
-tests execute byte-exactly). `__pycache__` is excluded so that merely running
-the tests does not change the digest. `gen` records the digest in the
-manifest's `lock.conformance` map; a contract without a conformance directory
-is omitted from that map, and a directory with no files left after the
-`__pycache__` exclusion counts as absent (git cannot store an empty
-directory, so a fresh checkout would otherwise falsely mismatch). `verify` reports any divergence between the locked
-digest and the current conformance content as `conformance-mismatch` —
-editing, adding, or deleting a test file counts, as does a conformance
-directory appearing or disappearing. A deliberate conformance change is
-re-locked by re-running `gen`.
+A contract lives in exactly one file, `contracts/<id>.md`. **The file name is the id** —
+nothing inside the file declares it.
 
 ## Declaring a dependency
 
-A skill declares the contracts it depends on in the frontmatter of its
-`SKILL.md`, under `metadata.contracts`:
+A skill declares what it depends on by id, and only by id, in the frontmatter of its
+`SKILL.md`:
 
 ```yaml
----
-name: report-writer
-description: ...
 metadata:
   contracts:
-    - id: report-format
-      digest: sha256:0123...cdef
----
+    - report-format
 ```
 
-The declaration schema is deliberately narrow: a block-style list of mappings
-with exactly the keys `id` and `digest`, where `digest` matches
-`^sha256:[0-9a-f]{64}$`. Any other shape is a configuration error. The digest
-pins the exact contract content the skill was written against — implicitly
-tracking "latest" is forbidden by construction.
+A digest never appears beside a declaration. The declaration expresses a stable intent
+to depend on a contract; the digest recording which text is adopted right now lives in
+the central lock, `vendor-manifest.json`, which the tool's `gen` rewrites from the
+canonical text. The two answer different questions and are therefore kept apart.
 
-As a fail-loud backstop, a frontmatter that contains a `contracts:` key
-anywhere — at any indentation, including inside a block-scalar prose field such
-as a multi-line `description` — but yields no recognized declaration is
-rejected as a configuration error. A pin mistyped into an unrecognized shape
-thus cannot be silently dropped; the cost is a false positive on frontmatter
-prose that happens to start a line with `contracts:`.
+## Conformance tests
 
-## Generated vendor copies
+A contract may ship conformance tests under `contracts/<id>/conformance/`. They are
+pinned by a digest of their own, separate from the contract body's, so that either can
+change without the other being silently re-adopted.
 
-`vendor.py gen` expands each declared contract into
-`skills/<name>/references/vendor/<id>.md`:
-
-```markdown
-<!-- DO NOT EDIT. Generated by vendor.py. -->
-<!-- contract: report-format -->
-<!-- version: 1.2.0 -->
-<!-- source-digest: sha256:0123...cdef -->
-
-...canonical body...
-```
-
-Generation is deterministic: the same inputs produce byte-identical output. The
-header carries no source path and no timestamp — provenance that would break
-reproducibility or self-containment lives in the manifest instead.
-
-`gen` refuses to generate — exit 1, with nothing written — when a declared
-digest does not match the canonical contract or a declared contract has no
-canonical file (the skill must be updated deliberately, never silently).
-
-`gen` and `verify` also refuse — as a configuration error, exit 2 — any
-symlink on a path they manage: a `skills/<name>` entry that is a symlink, a
-symlinked `references/vendor/` directory, or a symlink among its entries.
-Following one would redirect writes and deletes outside the tree, so before
-every write or delete the resolved real path is re-validated to stay inside
-the tree root.
-
-Writes are crash-safe: each file is written to a same-directory `.tmp` file
-and atomically renamed into place, and `gen` writes everything before deleting
-anything, so an interruption leaves either the old bytes or the new bytes at
-every path, never a torn file. A leftover `.tmp` inside a vendor directory is
-reported by `verify` as `extra` and overwritten by the next `gen`. A leftover
-`vendor-manifest.json.tmp` at the tree root is *not* flagged by `verify` — it
-is inert and is overwritten by the next `gen`.
-
-## Manifest
-
-`gen` also writes a single `vendor-manifest.json` at the tree root, derived
-entirely from the declarations (no hand-maintained mapping exists). It is
-logically split into two sections:
-
-- `lock` — per-skill list of `{id, version, digest}`, plus a per-contract
-  `conformance` map pinning each used contract's conformance-test digest: the
-  immutable basis for offline verification.
-- `provenance` — where each contract came from (`source` path relative to the
-  tree root) and which generator wrote the manifest (`generator`,
-  `generator_version`). No `generated_at` timestamp is recorded: wall-clock
-  time would make regeneration non-reproducible, and reproducibility is the
-  property the manifest exists to guarantee.
-
-## Verification
-
-`vendor.py verify` re-derives everything from the declarations and reports any
-mismatch, one line per violation, prefixed with its kind:
-
-| Kind | Meaning |
-|---|---|
-| `drift` | A vendor copy is missing or differs byte-for-byte from its regenerated content |
-| `extra` | A vendor file exists that no declaration accounts for |
-| `closure` | A declared contract has no canonical file under `contracts/` |
-| `digest-mismatch` | A declared digest does not match the canonical contract |
-| `conformance-mismatch` | A contract's `conformance/` content diverges from the digest locked in the manifest |
-| `manifest` | `vendor-manifest.json` is missing or differs from regeneration (a divergence already reported as `conformance-mismatch` is not double-reported here) |
-
-## Self-containment lint
-
-`vendor.py lint-selfcontain` enforces the repository invariant that every
-`skills/<name>/` directory is self-contained. It scans every file of every
-skill, with no allowlist; files that are not valid UTF-8 are scanned too (the
-content is examined via a lossless byte-to-character mapping — the violation
-patterns are pure ASCII, so a reference cannot hide behind invalid UTF-8
-bytes; a non-ASCII-compatible encoding such as UTF-16, whose interleaved NULs
-break the patterns' contiguity, remains outside their reach). Only `skills/`
-is scanned: the `contracts/` directory itself is outside the lint's scope, so
-a contract body that violates self-containment is flagged only through its
-generated vendor copies inside each dependent skill, never at its canonical
-source:
-
-| Kind | Meaning |
-|---|---|
-| `parent-escape` | The file contains `../` or `..\` (a reference above the skill directory) |
-| `absolute-path` | The file references an absolute filesystem path (`/two/segments`, `~/...`, or a Windows drive path) |
-| `symlink-escape` | A symlink inside the skill directory resolves to a target outside it |
-
-Two syntactic forms are excluded from **absolute-path** detection only: the
-interpreter token of a shebang on a file's first line (`#!/usr/bin/env` — but
-any later absolute path on the shebang line is still reported) and URLs
-(tokens containing `://`). The `parent-escape` check has no exemptions —
-`../` inside a URL or a shebang is still reported. The asymmetry is
-deliberate: an exemption there could hide a real escape, so the check errs
-toward false positives.
-
-Two detection thresholds are accepted trade-offs. A single-segment token such
-as `/help` is not reported — one segment is indistinguishable from prose like
-a slash command, so an absolute path is only recognized from two segments
-(`/two/segments`). And because `:` is not a reference boundary (URL exclusion
-depends on that), an absolute path butted directly against a colon —
-`path:/etc/app/config.yaml` — is not detected; written with a space after the
-colon it is. Revisit the colon trade-off if real `scheme:/path` references
-appear in actual skills or the lint is repurposed as an adversarial gate.
-
-## Exit codes
-
-All subcommands share one scheme:
-
-| Code | Meaning |
-|---|---|
-| 0 | Clean — no violations |
-| 1 | Violations found (each reported as `<kind>: ...` on stdout) |
-| 2 | Configuration or usage error (invalid contract id, malformed declaration, or a file the tool cannot read or write — unreadable files fail loud with the offending path, never a silent skip) |
+Running them is out of scope for vendoring. A digest proves that a copy matches its
+source; it cannot prove that a skill still satisfies the contract. That judgment
+belongs to this repository's regression machinery, not to the tool that copies files.

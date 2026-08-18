@@ -6,8 +6,7 @@ description: Heterogeneous fixture skill bundling a script and a sample log.
 metadata:
   maintainer: nobody
   contracts:
-    - id: trace-log
-      digest: sha256:671830a6d82ecf4bb96a4c196b3457f7a046d19cd773df4db0e075215892ea71
+    - trace-log
 ---
 
 # pipeline_runner (fixture)

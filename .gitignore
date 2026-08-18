@@ -6,6 +6,5 @@
 /.agents/runtime/
 /.agents/tmp/
 
-# Python byproducts (running tests or the tool must not dirty the tree)
-__pycache__/
-.pytest_cache/
+# Installed dependencies (the lockfile is the tracked pin, not the tree)
+/node_modules/

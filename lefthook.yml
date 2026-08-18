@@ -1,23 +1,31 @@
 # Local quality gates, mirroring CI ahead of push. Activate once per clone:
 #   lefthook install
-# CI remains the authority; commands guard on file existence so the hooks are
-# inert until the corresponding tooling lands on the branch being pushed.
+# CI remains the authority; the hook guards on the toolchain being present so
+# it stays inert in a clone where dependencies have not been installed.
 pre-push:
   commands:
-    tests:
-      run: |
-        if [ -d tests ]; then
-          uv run --with pytest -- pytest tests/ -q
-        else
-          echo "lefthook: no tests/ yet - skipping"
-        fi
     vendor-verify:
       run: |
-        # Guard on skills/ (the tool's real precondition), not on vendor.py:
-        # verify/lint exit 2 when no skills/ directory exists to process.
-        if [ -d skills ]; then
-          python3 scripts/vendor.py verify
-          python3 scripts/vendor.py lint-selfcontain
+        # Without set -e the block would exit with the status of its last
+        # command, so an earlier failing check would pass the hook silently.
+        set -e
+        # The installed path is named rather than running
+        # `bunx agentic-skill-vendor`. bunx falls back to fetching from the
+        # registry when the local install is missing, and it would fetch the
+        # unscoped name `agentic-skill-vendor` — a different package from the
+        # pinned `@ba0918-dev/agentic-skill-vendor`. A path cannot resolve
+        # anywhere but the pinned install, which turns "not installed" into a
+        # skip that says so instead of a silent network fetch.
+        vendor=./node_modules/.bin/agentic-skill-vendor
+        if ! command -v bun >/dev/null 2>&1; then
+          echo "lefthook: bun not found - skipping vendor checks"
+        # -f, not -x: the launch is `bun "$vendor"`, which only reads the file,
+        # so requiring an exec bit would silently skip a usable install.
+        elif [ ! -f "$vendor" ]; then
+          echo "lefthook: $vendor not installed (run bun install --frozen-lockfile) - skipping vendor checks"
         else
-          echo "lefthook: no skills/ yet - skipping vendor checks"
+          bun "$vendor" verify --root fixtures/skillset-alpha
+          bun "$vendor" verify --root fixtures/skillset-beta
+          bun "$vendor" lint-selfcontain --root fixtures/skillset-alpha
+          bun "$vendor" lint-selfcontain --root fixtures/skillset-beta
         fi
