@@ -30,11 +30,16 @@ lefthook, which runs them ahead of a push, is installed separately per clone.
 | Purpose | Command |
 |---|---|
 | Install the pinned toolchain | `bun install --frozen-lockfile` |
-| Check the tool against its own vectors | `bunx agentic-skill-vendor self-test` |
-| Verify vendored copies | `bunx agentic-skill-vendor verify --root <tree>` |
-| Regenerate vendored copies | `bunx agentic-skill-vendor gen --root <tree>` |
-| Self-containment lint | `bunx agentic-skill-vendor lint-selfcontain --root <tree>` |
+| Check the tool against its own vectors | `bun ./node_modules/.bin/agentic-skill-vendor self-test` |
+| Verify vendored copies | `bun ./node_modules/.bin/agentic-skill-vendor verify --root <tree>` |
+| Regenerate vendored copies | `bun ./node_modules/.bin/agentic-skill-vendor gen --root <tree>` |
+| Self-containment lint | `bun ./node_modules/.bin/agentic-skill-vendor lint-selfcontain --root <tree>` |
 | Enable pre-push hooks (once per clone) | `lefthook install` |
+
+The tool is invoked by its installed path, not as `bunx agentic-skill-vendor`: with no local
+install, bunx fetches the unscoped registry name `agentic-skill-vendor`, which is a different
+package from the pinned `@ba0918-dev/agentic-skill-vendor`. A path can only ever run the
+pinned install, and says so plainly when that install is missing.
 
 ## Conventions specific to this project
 

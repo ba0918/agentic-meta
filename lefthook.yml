@@ -9,13 +9,21 @@ pre-push:
         # Without set -e the block would exit with the status of its last
         # command, so an earlier failing check would pass the hook silently.
         set -e
-        if ! command -v bunx >/dev/null 2>&1; then
-          echo "lefthook: bunx not found - skipping vendor checks"
-        elif [ ! -d node_modules ]; then
-          echo "lefthook: dependencies not installed (run bun install) - skipping vendor checks"
+        # The installed path is named rather than running
+        # `bunx agentic-skill-vendor`. bunx falls back to fetching from the
+        # registry when the local install is missing, and it would fetch the
+        # unscoped name `agentic-skill-vendor` — a different package from the
+        # pinned `@ba0918-dev/agentic-skill-vendor`. A path cannot resolve
+        # anywhere but the pinned install, which turns "not installed" into a
+        # skip that says so instead of a silent network fetch.
+        vendor=./node_modules/.bin/agentic-skill-vendor
+        if ! command -v bun >/dev/null 2>&1; then
+          echo "lefthook: bun not found - skipping vendor checks"
+        elif [ ! -x "$vendor" ]; then
+          echo "lefthook: $vendor not installed (run bun install --frozen-lockfile) - skipping vendor checks"
         else
-          bunx agentic-skill-vendor verify --root fixtures/skillset-alpha
-          bunx agentic-skill-vendor verify --root fixtures/skillset-beta
-          bunx agentic-skill-vendor lint-selfcontain --root fixtures/skillset-alpha
-          bunx agentic-skill-vendor lint-selfcontain --root fixtures/skillset-beta
+          bun "$vendor" verify --root fixtures/skillset-alpha
+          bun "$vendor" verify --root fixtures/skillset-beta
+          bun "$vendor" lint-selfcontain --root fixtures/skillset-alpha
+          bun "$vendor" lint-selfcontain --root fixtures/skillset-beta
         fi
