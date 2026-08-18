@@ -1,8 +1,3 @@
----
-id: trace-log
-version: 0.9.0
----
-
 # Trace Log Protocol
 
 A trace log is a plain-text stream, one event per line, pipe-separated:

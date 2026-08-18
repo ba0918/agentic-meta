@@ -1,8 +1,3 @@
----
-id: handoff-note
-version: 2.0.0
----
-
 # Handoff Note
 
 A handoff note is a Markdown document with three sections, in this order:
