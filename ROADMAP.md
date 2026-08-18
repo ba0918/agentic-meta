@@ -58,8 +58,9 @@ generic — takes its seat.
 
 - [ ] Define the generic fixture contract first (do not freeze the old structure —
       pulled forward from wave 3, since `trigger-eval` is the first harness to land)
-- [ ] Port `trigger-eval` (generic-leaning)
-- [ ] Port `skill-interface-audit` (target-resolution-heavy)
+- [ ] Port `trigger-eval` as `ba0918-trigger-eval` (generic-leaning)
+- [ ] Port `skill-interface-audit` as `ba0918-skill-interface-audit`
+      (target-resolution-heavy)
 - [ ] `.claude-plugin/` distribution metadata (arrives with the first ported skill)
 - [ ] Both skills pass: self-containment lint, heterogeneous-fixture run
 - [ ] Point CI and the pre-push gate at the repository root too. Both name only the
@@ -81,17 +82,20 @@ Runs after wave 2, revisited after each later wave. Decides with measurements, n
 
 ### Wave 3 — Harnesses ⬜
 
-- [ ] Port `empirical-prompt-tuning`
-- [ ] Port `skill-regression` (repo-specific today; generalize target resolution)
+- [ ] Port `empirical-prompt-tuning` as `ba0918-empirical-prompt-tuning`
+- [ ] Port `skill-regression` as `ba0918-skill-regression` (repo-specific today;
+      generalize target resolution)
 
 ### Wave 4 — Improver ⬜
 
-- [ ] Port `skill-improve` with workflow delegation removed: measurement and proposals
-      in core, application degrades to report-only without workflow
+- [ ] Port `skill-improve` as `ba0918-skill-improve` with workflow delegation
+      removed: measurement and proposals in core, application degrades to
+      report-only without workflow
 
 ### Wave 5 — Auditor ⬜
 
-- [ ] Port `context-audit` (its read-only observation of this repo starts back in wave 1)
+- [ ] Port `context-audit` as `ba0918-context-audit` (its read-only observation
+      of this repo starts back in wave 1)
 
 ## Out of scope here
 
