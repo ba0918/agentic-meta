@@ -40,8 +40,8 @@ consumes it now instead of owning it.
       resolved to 0.1.0; the effective pin is the integrity hash in `bun.lock`, which
       `bun install --frozen-lockfile` holds fixed by refusing to re-resolve
 - [x] Synthetic fixtures: `skillset-alpha`, `skillset-beta`, both exercising the passing
-      path. The fixtures that exercised the machinery's own failure modes moved to the
-      tool's repository with it, leaving the test suite in that repository as the only
+      path. The fixtures that exercised the machinery's own failure modes were retired
+      in the split, leaving the test suite in the tool's repository as the only
       thing that proves `verify` and `lint-selfcontain` can still detect a violation
 - [x] CI workflow: frozen install, the tool's self-test, then `verify` +
       `lint-selfcontain` over both fixture trees. No remote is configured yet, so the

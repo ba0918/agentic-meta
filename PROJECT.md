@@ -18,7 +18,7 @@ lefthook, which runs them ahead of a push, is installed separately per clone.
 
 | Path | What it holds |
 |---|---|
-| `contracts/` | Canonical output contracts and the conventions around them (`contracts/README.md`) |
+| `contracts/` | The output-contract conventions (`contracts/README.md`); canonical contracts land here once written (none yet) |
 | `fixtures/` | Synthetic skill trees the machinery runs against; `skillset-alpha` and `skillset-beta` differ in structure, vocabulary and log format on purpose |
 | `docs/spec/` | Design decisions (Japanese) |
 | `package.json`, `bun.lock` | The vendoring tool's version pin |
