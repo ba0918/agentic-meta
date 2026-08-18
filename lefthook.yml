@@ -19,7 +19,9 @@ pre-push:
         vendor=./node_modules/.bin/agentic-skill-vendor
         if ! command -v bun >/dev/null 2>&1; then
           echo "lefthook: bun not found - skipping vendor checks"
-        elif [ ! -x "$vendor" ]; then
+        # -f, not -x: the launch is `bun "$vendor"`, which only reads the file,
+        # so requiring an exec bit would silently skip a usable install.
+        elif [ ! -f "$vendor" ]; then
           echo "lefthook: $vendor not installed (run bun install --frozen-lockfile) - skipping vendor checks"
         else
           bun "$vendor" verify --root fixtures/skillset-alpha
