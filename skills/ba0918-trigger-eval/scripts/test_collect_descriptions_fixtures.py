@@ -62,8 +62,9 @@ class TestHeterogeneousLayoutFixture(unittest.TestCase):
     def test_reads_a_dotted_skill_name_unchanged(self):
         self.assertIn("obscure.oracle", self.by_name)
 
-    def test_reads_a_snake_case_directory(self):
-        self.assertIn("pipeline_runner", self.by_name)
+    def test_prefers_the_frontmatter_name_over_the_directory_basename(self):
+        self.assertIn("pipeline.runner", self.by_name)
+        self.assertNotIn("pipeline_runner", self.by_name)
 
     def test_reads_a_description_declared_before_the_name(self):
         self.assertEqual(
@@ -73,7 +74,7 @@ class TestHeterogeneousLayoutFixture(unittest.TestCase):
 
     def test_reads_a_description_surrounded_by_unrelated_frontmatter_keys(self):
         self.assertEqual(
-            self.by_name["pipeline_runner"],
+            self.by_name["pipeline.runner"],
             "Heterogeneous fixture skill bundling a script and a sample log.",
         )
 

@@ -1,5 +1,5 @@
 ---
-name: pipeline_runner
+name: pipeline.runner
 license: MIT
 tags: [pipeline, tracing, synthetic]
 description: Heterogeneous fixture skill bundling a script and a sample log.
