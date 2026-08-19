@@ -1,0 +1,11 @@
+{
+  "id": "mp-gray-004",
+  "expected": "must-pass",
+  "before": "Follow [tdd-contract.md](shared/references/tdd-contract.md).\nWrite the test first, then the implementation, then refactor.\n",
+  "after": "Follow [tdd-contract.md](shared/references/tdd-contract.md).\n",
+  "requirements": [
+    "テストファーストで実装している"
+  ],
+  "label": "gray-zone",
+  "notes": "リンク先の契約が同じ内容を規定しており、手元での言い換えを削除した。指示の入手経路がリンク 1 本に寄っただけで内容は不変。維持者裁定は「影響なし」（2026-08-05）。ただし委譲先が契約を読まない前提の箇所では別判断になりうる。"
+}

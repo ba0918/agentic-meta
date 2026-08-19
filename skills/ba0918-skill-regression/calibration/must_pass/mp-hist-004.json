@@ -1,0 +1,9 @@
+{
+  "id": "mp-hist-004",
+  "expected": "must-pass",
+  "before": "Write the deliverable so a maintainer can follow it.\n",
+  "after": "Write the deliverable so a maintainer can follow it — the audience is stated in\nthe shared contract this document links to.\n",
+  "requirements": [
+    "成果物を対象読者に合わせて書いている"
+  ]
+}

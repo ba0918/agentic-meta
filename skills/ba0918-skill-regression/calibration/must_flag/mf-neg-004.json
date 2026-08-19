@@ -1,0 +1,11 @@
+{
+  "id": "mf-neg-004",
+  "expected": "must-flag",
+  "mutation": "negation",
+  "before": "| **BLOCK** | Cannot proceed. Continuing as-is causes a serious problem |\n",
+  "after": "| **BLOCK** | May proceed with a note. Continuing as-is is usually acceptable |\n",
+  "requirements": [
+    "BLOCK 指摘が残っている間は次工程へ進まない",
+    "指摘を BLOCK / WARN / INFO へ分類して報告している"
+  ]
+}

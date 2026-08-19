@@ -1,0 +1,11 @@
+{
+  "id": "mp-gray-006",
+  "expected": "must-pass",
+  "before": "Applies from plugin version 1.55.0, in force since 2026-08-01.\nRun `sh scripts/run_checks.sh` before pushing and attach the output to the report.\n",
+  "after": "Applies from plugin version 1.56.0, in force since 2026-08-03.\nRun `sh scripts/run_checks.sh` before pushing and attach the output to the report.\n",
+  "requirements": [
+    "push の前に scripts/run_checks.sh を実行し、その出力を報告へ添えている"
+  ],
+  "label": "gray-zone",
+  "notes": "散文中の版と発効日だけが動き、要件が一致を取っているコマンドと証拠の規則は不変。数値が変わっても must-flag 側の numeric 変異には当たらない — あちらは要件が測っている数値（反復上限など）が動く編集を指す。維持者裁定は「影響なし」（2026-08-05）。判定基準表の Boundary が空欄なのは、反転条件（要件がその日付・版に一致する）が行の前提そのものへ畳み込まれているため。"
+}

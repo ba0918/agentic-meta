@@ -1,0 +1,11 @@
+{
+  "id": "mf-num-006",
+  "expected": "must-flag",
+  "mutation": "numeric",
+  "before": "| **must-flag side** (20-30 cases) | Edits that indisputably change behavior |\n",
+  "after": "| **must-flag side** (2-3 cases) | Edits that indisputably change behavior |\n",
+  "requirements": [
+    "較正コーパスが片側 20 件以上ある",
+    "件数不足を検査で検出できる"
+  ]
+}

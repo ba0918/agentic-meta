@@ -1,0 +1,9 @@
+{
+  "id": "mp-word-007",
+  "expected": "must-pass",
+  "before": "影響範囲(behavior surface)を先に確定する。\n",
+  "after": "影響範囲（behavior surface）を先に確定する。\n",
+  "requirements": [
+    "影響範囲を確定してから再走対象を選んでいる"
+  ]
+}

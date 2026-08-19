@@ -1,0 +1,9 @@
+{
+  "id": "mp-word-003",
+  "expected": "must-pass",
+  "before": "The ledger is updated by the orchestrator after every scenario passes.\n",
+  "after": "The orchestrator updates the ledger after every scenario passes.\n",
+  "requirements": [
+    "全シナリオ合格の後に台帳を更新している"
+  ]
+}

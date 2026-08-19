@@ -1,0 +1,9 @@
+{
+  "id": "mp-word-012",
+  "expected": "must-pass",
+  "before": "Pass data by file, not summary. Paraphrase hops degrade context.\n",
+  "after": "Pass data by file, not summary. Restating content at each hop loses detail and\ncosts tokens twice.\n",
+  "requirements": [
+    "エージェント間の受け渡しをファイル経由で行っている"
+  ]
+}

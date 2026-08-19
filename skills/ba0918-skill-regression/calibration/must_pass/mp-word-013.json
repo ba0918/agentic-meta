@@ -1,0 +1,9 @@
+{
+  "id": "mp-word-013",
+  "expected": "must-pass",
+  "before": "The profile takes effect on 2026-08-01 (adjudicated 2026-07-30).\n",
+  "after": "The profile takes effect on 2026-08-03 (adjudicated 2026-08-02).\n",
+  "requirements": [
+    "発効済みの profile を用いて検証している"
+  ]
+}

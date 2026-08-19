@@ -1,0 +1,11 @@
+{
+  "id": "mp-gray-005",
+  "expected": "must-pass",
+  "before": "This is a rule about what the claim means, not about its wording: the examples below are\nillustrative, not the complete set of banned phrasings.\n\n- Declaring completion before there is evidence — \"Done!\" / \"Perfect!\" / 「完了！」\n",
+  "after": "This is a rule about what the claim means, not about its wording: the examples below are\nillustrative, not the complete set of banned phrasings.\n\n- Declaring completion before there is evidence — \"Done!\" / 「完了！」\n",
+  "requirements": [
+    "証拠を示す前に完了を宣言していない"
+  ],
+  "label": "gray-zone",
+  "notes": "禁止される主張のクラスを述べた規則と、例が網羅ではない旨の明文が残ったまま、例示の 1 つ（\"Perfect!\"）を削除した。要件が見ているのはクラスの充足であって削除された語ではないため、維持者裁定は「影響なし」（2026-08-05）。要件が例の文言そのもの（\"Perfect!\" を出していないこと）で一致を取っていれば `affected` へ反転する。"
+}

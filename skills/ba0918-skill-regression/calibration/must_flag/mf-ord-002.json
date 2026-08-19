@@ -1,0 +1,11 @@
+{
+  "id": "mf-ord-002",
+  "expected": "must-flag",
+  "mutation": "reorder",
+  "before": "RED    -> write one failing test -> confirm it fails\nGREEN  -> write the minimum code that passes -> confirm everything passes\nREFACTOR -> improve while the tests stay green\n",
+  "after": "GREEN  -> write the minimum code -> confirm everything passes\nRED    -> write one failing test -> confirm it fails\nREFACTOR -> improve while the tests stay green\n",
+  "requirements": [
+    "失敗するテストを先に書いて失敗を確認している",
+    "実装より前にテストが存在したことを出力で示している"
+  ]
+}

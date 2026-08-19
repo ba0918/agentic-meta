@@ -1,0 +1,9 @@
+{
+  "id": "mp-word-010",
+  "expected": "must-pass",
+  "before": "## Overview\n\nThis contract defines the judging rules.\n",
+  "after": "## What this document covers\n\nThis contract defines the judging rules.\n",
+  "requirements": [
+    "判定規則を契約どおりに適用している"
+  ]
+}

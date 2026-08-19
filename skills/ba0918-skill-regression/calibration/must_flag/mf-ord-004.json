@@ -1,0 +1,11 @@
+{
+  "id": "mf-ord-004",
+  "expected": "must-flag",
+  "mutation": "reorder",
+  "before": "0. Take the tree **before writing any project state**.\n1. Do the work.\n2. Release on every exit path.\n",
+  "after": "0. Do the work.\n1. Take the tree.\n2. Release on every exit path.\n",
+  "requirements": [
+    "プロジェクト状態を書く前に作業ツリーを確保している",
+    "終了経路すべてでロックを解放している"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "id": "mf-ord-003",
+  "expected": "must-flag",
+  "mutation": "reorder",
+  "before": "3. **Judge**: judge each scenario with the judging rules\n4. **Report**: present a per-scenario result table\n5. **Update the ledger**: only for skills that passed everything\n",
+  "after": "3. **Update the ledger**: record the run\n4. **Judge**: judge each scenario with the judging rules\n5. **Report**: present a per-scenario result table\n",
+  "requirements": [
+    "全シナリオの合格を確認してから台帳を更新している",
+    "不合格のスキルについて台帳を進めていない"
+  ]
+}

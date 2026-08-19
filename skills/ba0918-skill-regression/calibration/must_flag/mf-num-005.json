@@ -1,0 +1,11 @@
+{
+  "id": "mf-num-005",
+  "expected": "must-flag",
+  "mutation": "numeric",
+  "before": "The total load of one execution path is a design-smell threshold of ~500 lines.\n",
+  "after": "The total load of one execution path is a design-smell threshold of ~5000 lines.\n",
+  "requirements": [
+    "1 実行経路の総ロード行数を見積もって報告している",
+    "閾値を超える場合に責務の再配置を検討している"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "id": "mp-hist-005",
+  "expected": "must-pass",
+  "before": "Do not modify the plan file during implementation.\n",
+  "after": "Do not modify the plan file during implementation. The plan stays a stable\nhuman-readable reference.\n",
+  "requirements": [
+    "実装中に plan 本文を書き換えていない"
+  ]
+}

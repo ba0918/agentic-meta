@@ -1,0 +1,11 @@
+{
+  "id": "mp-gray-003",
+  "expected": "must-pass",
+  "before": "See [verification-gate.md](shared/references/verification-gate.md).\nThe gate function is defined in\n[verification-gate.md](shared/references/verification-gate.md).\n",
+  "after": "The gate function is defined in\n[verification-gate.md](shared/references/verification-gate.md).\n",
+  "requirements": [
+    "検証ゲートの手順に従って証拠を提示している"
+  ],
+  "label": "gray-zone",
+  "notes": "同一文書から同じ契約への参照リンクが 2 本あり、片方を削除した。参照先は変わらず面にも残るため、維持者裁定は「影響なし」（2026-08-05）。"
+}

@@ -1,0 +1,9 @@
+{
+  "id": "mp-word-009",
+  "expected": "must-pass",
+  "before": "Because the hash ignores the declaration, adding declarations to an existing fixture\ncosts zero reruns and the ledger advances with everything carried over.\n",
+  "after": "The hash ignores the declaration. Adding declarations to an existing fixture\ntherefore costs zero reruns, and the ledger advances with everything carried over.\n",
+  "requirements": [
+    "宣言の追加だけの変更で実走を要求していない"
+  ]
+}

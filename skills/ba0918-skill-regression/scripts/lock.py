@@ -51,6 +51,17 @@ RESULT_ACCEPTED_PROSE = "accepted-prose"
 RESULT_ACCEPTED_SEMANTIC = "accepted-semantic"
 RESULT_ACCEPTED_WITHOUT_RUN = "accepted-without-run"
 
+# The three answers a semantic judge may give about a diff. `unclear` is not a
+# failure of the judge — it is the answer that sends the question to a human.
+VERDICT_UNAFFECTED = "unaffected"
+VERDICT_UNCLEAR = "unclear"
+VERDICT_AFFECTED = "affected"
+VERDICTS = (VERDICT_UNAFFECTED, VERDICT_UNCLEAR, VERDICT_AFFECTED)
+
+# Both sides of the calibration corpus need enough cases that a clean score means
+# something. Twenty is the floor the corpus was built to clear.
+MIN_CALIBRATION_CASES = 20
+
 # The scenario content hash is defined once, next to the declaration it hashes.
 # A second implementation here would let the rerun guard and the carry-over rule
 # disagree about whether a declaration-only edit needs a run.

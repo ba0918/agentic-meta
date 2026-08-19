@@ -1,0 +1,11 @@
+{
+  "id": "mf-ord-006",
+  "expected": "must-flag",
+  "mutation": "reorder",
+  "before": "1. Run the repository checks.\n2. Commit only if they pass.\n3. Push.\n",
+  "after": "1. Push.\n2. Run the repository checks.\n3. Commit only if they pass.\n",
+  "requirements": [
+    "検証を通してからコミットしている",
+    "検証の出力を報告に含めている"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "id": "mf-neg-006",
+  "expected": "must-flag",
+  "mutation": "negation",
+  "before": "If code was written before the test, delete it and start over. No exceptions.\n- Do not keep it around \"for reference\"\n",
+  "after": "If code was written before the test, keep it and add the test afterwards.\n- Keeping it around \"for reference\" is fine\n",
+  "requirements": [
+    "テストを先に書いてから実装している",
+    "テストより先に書いた実装コードを破棄したことを報告に含めている"
+  ]
+}

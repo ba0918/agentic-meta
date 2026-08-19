@@ -1,0 +1,11 @@
+{
+  "id": "mf-neg-003",
+  "expected": "must-flag",
+  "mutation": "negation",
+  "before": "1. **Orchestration depth is at most one layer** — Stop at skill/command -> Agent.\n   Do not design Agent-calls-Agent flows.\n",
+  "after": "1. **Orchestration depth is flexible** — Stop at skill/command -> Agent when convenient.\n   Agent-calls-Agent flows are an acceptable design.\n",
+  "requirements": [
+    "サブエージェントからさらにサブエージェントを起動する構成を提案していない",
+    "委譲の深さが 1 段であることを設計の説明に含めている"
+  ]
+}

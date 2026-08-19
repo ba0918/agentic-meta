@@ -1,0 +1,11 @@
+{
+  "id": "mf-neg-005",
+  "expected": "must-flag",
+  "mutation": "negation",
+  "before": "- `target_sha` MUST be the full 40-hex commit id. Abbreviated ids are invalid evidence.\n",
+  "after": "- `target_sha` SHOULD be the full 40-hex commit id. Abbreviated ids are also accepted.\n",
+  "requirements": [
+    "証跡に完全な 40 桁のコミット id を記録している",
+    "短縮 id の証跡を無効として扱っている"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "id": "mp-hist-003",
+  "expected": "must-pass",
+  "before": "The reviewer classifies findings as BLOCK / WARN / INFO.\n",
+  "after": "The reviewer classifies findings as BLOCK / WARN / INFO.\nThis vocabulary is shared with the other review skills.\n",
+  "requirements": [
+    "指摘を BLOCK / WARN / INFO で分類している"
+  ]
+}

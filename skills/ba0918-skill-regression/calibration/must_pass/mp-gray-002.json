@@ -1,0 +1,11 @@
+{
+  "id": "mp-gray-002",
+  "expected": "must-pass",
+  "before": "| `--accept` | Records a judgement made without running |\n\n`--accept` records a judgement made without running the scenarios.\n",
+  "after": "| `--accept` | Records a judgement made without running |\n",
+  "requirements": [
+    "実走せずに承認したことが記録から区別できる"
+  ],
+  "label": "gray-zone",
+  "notes": "表の行と直後の散文が同じ規則を述べていたため、散文側を削除した。規則の所在が表 1 か所へ寄っただけで規則自体は不変。維持者裁定は「影響なし」（2026-08-05）。"
+}

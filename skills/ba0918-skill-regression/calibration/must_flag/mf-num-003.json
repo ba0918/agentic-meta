@@ -1,0 +1,11 @@
+{
+  "id": "mf-num-003",
+  "expected": "must-flag",
+  "mutation": "numeric",
+  "before": "- claim file created with permission mode `0600`, best-effort where the filesystem\n  does not support it\n",
+  "after": "- claim file created with permission mode `0644`, best-effort where the filesystem\n  does not support it\n",
+  "requirements": [
+    "ロックファイルを他ユーザーから読めない権限で作成している",
+    "ロックの取得結果を理由付きで報告している"
+  ]
+}

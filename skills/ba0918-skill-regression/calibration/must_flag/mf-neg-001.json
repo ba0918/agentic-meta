@@ -1,0 +1,11 @@
+{
+  "id": "mf-neg-001",
+  "expected": "must-flag",
+  "mutation": "negation",
+  "before": "5. CLAIM — only now may the claim be made\n   Until step 4 is done, do not write a conclusion.\n",
+  "after": "5. CLAIM — the claim may be written at any point\n   Waiting for step 4 is optional.\n",
+  "requirements": [
+    "証拠となるコマンド出力を提示してから結論を書いている",
+    "未実行のコマンドの結果を予測して報告していない"
+  ]
+}

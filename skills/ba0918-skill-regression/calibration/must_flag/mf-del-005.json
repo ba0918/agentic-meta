@@ -1,0 +1,11 @@
+{
+  "id": "mf-del-005",
+  "expected": "must-flag",
+  "mutation": "deletion",
+  "before": "- **Prerequisite**: Before execution, run an **orthogonality check** on each task's\n  affected file set and guarantee conflicts cannot occur in principle\n- **Partial success allowed**: merge only successful parts\n",
+  "after": "- **Partial success allowed**: merge only successful parts\n",
+  "requirements": [
+    "並行実行の前に対象ファイル集合の直交性を確認している",
+    "衝突しうるタスクを直列化している"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "id": "mp-word-011",
+  "expected": "must-pass",
+  "before": "A requirement marked `critical: true` must be satisfied in every scenario.\n",
+  "after": "A requirement marked `critical: true` must be satisfied in every scenario.\nFor instance, if 3 of 5 scenarios satisfy it, the skill has not passed.\n",
+  "requirements": [
+    "critical 要件が全シナリオで満たされたときだけ合格としている"
+  ]
+}
