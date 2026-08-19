@@ -1,9 +1,11 @@
 # Output Contracts
 
-This directory holds the canonical text of *output contracts*: protocols that fix the
-format of artifacts shared between skills. A contract is a protocol rather than a
-document because each skill's copy of it is bound to the canonical text by a digest,
-and because a contract may carry conformance tests of its own.
+This directory holds the canonical text of *output contracts*: protocols that fix what a
+skill owes something outside itself — the format of an artifact handed to another skill,
+and, where a skill runs against a tree it did not write, how it has to behave toward that
+tree. A contract is a protocol rather than a document because each skill's copy of it is
+bound to the canonical text by a digest, and because a contract may carry conformance
+tests of its own.
 
 The vendoring itself — expanding each contract into every skill that declares it, and
 proving each copy byte-identical to its source — is done by
