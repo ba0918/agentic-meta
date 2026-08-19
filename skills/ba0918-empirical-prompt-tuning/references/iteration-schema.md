@@ -58,7 +58,7 @@ A scenario carrying a harness_error is excluded from the precision aggregate and
 `resolve_exit_verdict()` returns halt (`halt_reason == "checker_protocol_failure"`).
 
 For details, see the "Separating protocol failure from candidate failure" section of
-[checker-protocol.md](checker-protocol.md).
+checker-protocol.md, which SKILL.md links directly.
 
 ## Field definitions
 

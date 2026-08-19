@@ -159,7 +159,7 @@ in parallel on the harness side and record `k_runs` in `iterations.jsonl`
 - Improvement verdict: count it as "improved" only when the gap between the previous and current medians exceeds the noise_band (half the run-to-run difference)
 - Mechanically rules out false acceptance on a "lucky run"
 
-**Write the gate for non-degradation A/B (baseline and candidate side by side) in differential form.**
+**State the gate for non-degradation A/B (baseline and candidate side by side) in differential form.**
 
 ```
 NG: the critical requirement passes in the candidate arm
