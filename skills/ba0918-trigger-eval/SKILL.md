@@ -50,7 +50,7 @@ python3 skills/ba0918-trigger-eval/scripts/collect_descriptions.py --dir skills 
 - Turn the `{name, description}` list into JSON. With no argument, the current repository's `skills/*/SKILL.md`. Apply it generally with `--user-scope` / `--dir PATH`.
 - **Resolve the target and place the output per [references/vendor/fixture-contract.md](references/vendor/fixture-contract.md)**: find the skill container in the target tree by that contract's layer order and hand it to `--dir`, and keep every artifact this run produces outside the target tree.
 - **Normalize the skill names to the bare name with the plugin prefix removed**, and use that same namespace thereafter for the cases' correct labels, the judging choices, and the aggregation.
-- **Duplicate bare names are fail-fast** (v1 does not support duplicate namespaces).
+- **Duplicate bare names stop the run**: v1 cannot represent colliding namespaces, so it names the two that collided rather than carrying one of them silently.
 - **Out of scope for v1**: the hashed nested layout of the runtime's plugin cache directory. Add the glob to `collect_descriptions.py` when it becomes necessary.
 
 ### Phase 1: Harvest real-data seeds (optional)

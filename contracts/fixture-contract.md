@@ -36,12 +36,23 @@ A *skill* is the directory containing a `SKILL.md`. Its identity is read as foll
   `tags`, arbitrary `metadata` entries) are tolerated and ignored.
 - A frontmatter block that fails to parse is treated as absent; the failure is a
   reportable observation, and the skill still counts as resolved.
-- Two skills resolving to the same name is a reportable observation, not an error;
-  each remains identified by its directory path.
+- Two skills resolving to the same name is not a resolution failure; each remains
+  identified by its directory path. An instrument that cannot represent colliding
+  names may stop and state why. Silently dropping one of them is the only forbidden
+  outcome.
 
 Nothing beyond `SKILL.md` itself may be required to *find* a skill. In particular,
 the completion declaration below is an obligation on fixtures, not on target trees;
 an unknown third-party tree will not carry one.
+
+These obligations bind the *instrument* — the agent executing the skill — over the
+resolution result it works from. A helper script serving one purpose inside a run may
+operate on a container the instrument has already resolved and return only the subset
+that purpose needs: a description collector handed a resolved directory carries
+neither the search order nor the exclusions above, and may pass over an entry it
+cannot read a name or a description from. What the instrument may not do is let that
+subset stand in silently for the whole — whatever a helper left out is the
+instrument's to report.
 
 ## Run output placement
 
