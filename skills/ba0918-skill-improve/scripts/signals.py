@@ -36,6 +36,7 @@ import typing
 from events import (
     Capabilities,
     Event,
+    ROUTE_TEXT,
     SessionIdentity,
     SkillInvocation,
     ToolError,
@@ -146,6 +147,12 @@ def session_signals(
     A firing ends the run of corrections attributed to the previous skill only when
     it is a different skill. A retry of the same skill leaves what was said before
     it unattributed, which is the collector's behaviour this replaces.
+
+    An utterance that fires a skill by slash command is that firing, not a
+    correction of whatever ran before it. The adapters emit the utterance and then
+    the firing it carries, so the utterance is discounted here when the firing
+    arrives by the text route — otherwise every switch of skill by slash command
+    would add a correction to the skill being switched away from.
     """
     turns = 0
     tool_errors = 0
@@ -166,6 +173,8 @@ def session_signals(
             skill = event.skill
             invocations[skill] = invocations.get(skill, 0) + 1
             routes.setdefault(skill, set()).add(event.route)
+            if event.route == ROUTE_TEXT and said_since_skill > 0:
+                said_since_skill -= 1
             if last_skill == skill and (turns - last_skill_turn) <= RETRY_WINDOW_TURNS:
                 retries[skill] = retries.get(skill, 1) + 1
             elif last_skill is not None and said_since_skill > 0:

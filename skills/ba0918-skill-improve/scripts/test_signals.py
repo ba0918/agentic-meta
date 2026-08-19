@@ -132,6 +132,23 @@ class TestCorrections(unittest.TestCase):
         aggregate = _one_store([_identity(), _turn(), _fired("commit"), _said(), _said()])
         self.assertEqual(aggregate.skills["commit"].corrections, 2)
 
+    def test_the_utterance_that_fires_a_skill_is_not_also_a_correction(self):
+        aggregate = _one_store([
+            _identity(), _turn(), _fired("commit"),
+            _turn(), _said("/claude-skills:plan-create instead"),
+            _fired("plan-create", events.ROUTE_TEXT),
+        ])
+        self.assertEqual(aggregate.skills["commit"].corrections, 0)
+
+    def test_what_was_said_before_the_utterance_that_switches_skill_still_counts(self):
+        aggregate = _one_store([
+            _identity(), _turn(), _fired("commit"),
+            _turn(), _said("no, not like that"),
+            _turn(), _said("/claude-skills:plan-create instead"),
+            _fired("plan-create", events.ROUTE_TEXT),
+        ])
+        self.assertEqual(aggregate.skills["commit"].corrections, 1)
+
     def test_a_retry_of_the_same_skill_leaves_what_came_before_it_unattributed(self):
         aggregate = _one_store([
             _identity(), _turn(), _fired("commit"), _turn(), _said(),
