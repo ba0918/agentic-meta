@@ -31,7 +31,7 @@ When in doubt, use `task_scenario`. Details in [references/compliance-probe.md](
 ## Execution contract
 
 - **Output location**: `.agents/tmp/empirical-prompt-tuning-{ts}/` in the repository of the session running the tuning — **never inside the target's own tree**, per the run-output placement clause of [references/vendor/fixture-contract.md](references/vendor/fixture-contract.md). `{ts}` is minted once with `date +%Y%m%d-%H%M%S` and reused across every phase of the run
-- **Editing the target**: Phase 4 rewrites the target prompt. When the target lives in a tree this session does not own, follow the mutating-instrument clause of the same contract — copy the tree into the output area, `git init` the copy, record an initial commit, and run the rewriting phases against that copy only. The canonical tree stays read-only for the whole run and must show a clean `git status` afterwards
+- **Editing the target**: Phase 4 rewrites the target prompt, which makes this a mutating instrument under the same contract. The rewriting phases never run against the canonical tree — copy it into the output area leaving its own `.git` behind, `git init` the copy, record an initial commit, and run those phases against the copy only. The canonical tree stays read-only for the whole run and must show a clean `git status` afterwards
 
 ## Workflow
 
@@ -44,7 +44,7 @@ When in doubt, use `task_scenario`. Details in [references/compliance-probe.md](
 ### Phase 1 — Baseline preparation
 
 1. **Fix the target prompt** and record its fingerprint with `compute_instruction_fingerprint()`
-2. **Design 2-3 evaluation scenarios**:
+2. **Design 2-3 evaluation scenarios** — a set that is uniformly easy or uniformly hard produces no signal:
    - `task_scenario`: 1 median task + 1-2 edge cases
    - `compliance_probe`: 1-2 violation-tempting scenarios + 1 normal-compliance scenario (details in [compliance-probe.md](references/compliance-probe.md))
 3. **Design a requirement checklist** of 3-7 items per scenario:
