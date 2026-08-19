@@ -170,6 +170,13 @@ affected scenario from an unaffected one.
       of this repo starts back in wave 1). Drop its `review-rules.md` references while
       porting: that contract is being retired along with `generate-review-rules`
 
+## Publishing
+
+The repository has no remote yet and nothing has been pushed. The condition for opening that
+up was fixed on 2026-08-19: **once the wave 5 port is done and the whole set works end to
+end.** Creating the public repository, the first push, and the 0.1.0 tag all wait for that
+point; until then this is a local repository.
+
 ## Out of scope here
 
 Documents owned by agentic-workflow (operation contracts such as polling or the artifact
