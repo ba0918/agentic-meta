@@ -57,7 +57,7 @@ python3 skills/ba0918-trigger-eval/scripts/collect_descriptions.py --dir skills 
 
 Real-data seeds come from the prompt harvest of `ba0918-skill-improve`. **When that skill is absent from the environment, record "no real-data seeds — synthetic cases only" in the report and go straight to Phase 1.5.** The absence is stated, never silent.
 
-When it is present, harvest the triggering record and the missed-triggering candidates (the `correction_after_skill` signal plus the masked `user_text_masked`) into `.agents/tmp/trigger-eval-{ts}/prompts.jsonl`:
+When it is present, harvest the triggering record (the `slash_fired` signal) and the missed-triggering candidates (the `correction_after_skill` signal plus the masked `user_text_masked`) into `.agents/tmp/trigger-eval-{ts}/prompts.jsonl` and nowhere else:
 
 - The harvester **verifies before writing that the path is ignored, via `git check-ignore --quiet <the resolved actual output path>`, and refuses on a non-zero result** (fail-closed; it does not scan the root .gitignore as a string).
 - **The masking is a denylist and is not complete**, so treat a harvested body file as sensitive even after masking (delete it in Phase 6).
