@@ -81,6 +81,7 @@ class SessionSignals:
     tool_errors: int
     abandoned: bool
     skills: tuple[SkillInSession, ...]
+    utterances_are_superset: bool = False
 
 
 @dataclasses.dataclass(frozen=True)
@@ -108,7 +109,12 @@ class SkillFriction:
 
 @dataclasses.dataclass(frozen=True)
 class Aggregate:
-    """One reading of every store: the skills, the totals, and what was readable."""
+    """One reading of every store: the skills, the totals, and what was readable.
+
+    Sessions whose utterances could only be read as a superset of what the operator
+    said are counted per store, so a report can qualify the correction counts drawn
+    from that store instead of presenting them as exact.
+    """
 
     skills: dict[str, SkillFriction]
     capabilities: dict[str, Capabilities]
@@ -116,6 +122,7 @@ class Aggregate:
     sessions: int
     turns: int
     tool_errors: int
+    superset_utterance_sessions: dict[str, int] = dataclasses.field(default_factory=dict)
 
 
 def split_sessions(
@@ -196,6 +203,9 @@ def session_signals(
         store=store,
         session_id=identity.session_id if identity is not None else NO_SESSION,
         project=identity.project if identity is not None else NO_PROJECT,
+        utterances_are_superset=(
+            identity.utterances_are_superset if identity is not None else False
+        ),
         turns=turns,
         tool_errors=tool_errors,
         abandoned=turns > 0 and tool_errors > turns * ABANDONMENT_ERROR_SHARE,
@@ -289,6 +299,7 @@ def aggregate(stores) -> Aggregate:
     running: dict[str, _Running] = {}
     counted_sessions: set[tuple[str, str]] = set()
     projects: set[str] = set()
+    superset: dict[str, int] = {}
     turns = 0
     tool_errors = 0
 
@@ -297,6 +308,8 @@ def aggregate(stores) -> Aggregate:
             counted_sessions.add((session.store, session.session_id))
             if session.project != NO_PROJECT:
                 projects.add(session.project)
+            if session.utterances_are_superset:
+                superset[session.store] = superset.get(session.store, 0) + 1
             turns += session.turns
             tool_errors += session.tool_errors
             _add_session(running, session)
@@ -311,6 +324,7 @@ def aggregate(stores) -> Aggregate:
         sessions=len(counted_sessions),
         turns=turns,
         tool_errors=tool_errors,
+        superset_utterance_sessions=superset,
     )
 
 

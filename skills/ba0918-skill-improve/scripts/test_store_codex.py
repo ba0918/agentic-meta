@@ -207,6 +207,33 @@ class TestOneConversationRecordedTwice(unittest.TestCase):
                 found, [events.SkillInvocation(skill="commit", route=events.ROUTE_TEXT)]
             )
 
+    def test_the_typed_recording_is_the_one_read_where_a_log_holds_both(self):
+        with tempfile.TemporaryDirectory() as root:
+            _write_rollout(root, [
+                _session_meta(),
+                _typed_user_message("hello"),
+                _item_message("user", "hello"),
+                _item_message("user", "output of a tool the harness ran"),
+            ])
+            said = _of_kind(_events_of(root), events.UserText)
+            self.assertEqual([one.text for one in said], ["hello"])
+
+    def test_a_log_holding_the_typed_recording_reads_no_superset_of_utterances(self):
+        with tempfile.TemporaryDirectory() as root:
+            _write_rollout(root, [
+                _session_meta(),
+                _typed_user_message("hello"),
+                _item_message("user", "output of a tool the harness ran"),
+            ])
+            identity = _of_kind(_events_of(root), events.SessionIdentity)
+            self.assertFalse(identity[0].utterances_are_superset)
+
+    def test_a_log_without_the_typed_recording_says_its_utterances_are_a_superset(self):
+        with tempfile.TemporaryDirectory() as root:
+            _write_rollout(root, [_session_meta(), _item_message("user", "hello")])
+            identity = _of_kind(_events_of(root), events.SessionIdentity)
+            self.assertTrue(identity[0].utterances_are_superset)
+
     def test_a_log_holding_only_the_typed_recording_is_read_from_it(self):
         with tempfile.TemporaryDirectory() as root:
             _write_rollout(root, [

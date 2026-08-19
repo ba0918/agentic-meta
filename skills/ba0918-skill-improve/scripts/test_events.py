@@ -95,6 +95,16 @@ class TestSessionIdentity(unittest.TestCase):
         self.assertEqual(identity.session_id, "s-1")
         self.assertEqual(identity.project, "-home-someone-work")
 
+    def test_a_session_is_read_as_holding_only_real_utterances_unless_it_says_otherwise(self):
+        identity = events.SessionIdentity(session_id="s-1", project="-w-notes")
+        self.assertFalse(identity.utterances_are_superset)
+
+    def test_a_session_can_declare_that_its_utterances_are_a_superset(self):
+        identity = events.SessionIdentity(
+            session_id="s-1", project="-w-notes", utterances_are_superset=True
+        )
+        self.assertTrue(identity.utterances_are_superset)
+
 
 class TestProjectSlug(unittest.TestCase):
     def test_a_working_directory_path_becomes_the_key_every_store_meets_on(self):

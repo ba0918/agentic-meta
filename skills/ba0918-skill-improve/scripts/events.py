@@ -119,10 +119,18 @@ class SessionIdentity:
     The project is the slug form of the working directory, because one runtime
     keeps only the slug and the original path cannot be recovered from it. Adapters
     holding a real path convert it, so all three stores meet on the same key.
+
+    A session may declare its utterances a superset of what the operator actually
+    said. That happens where the only record of an utterance a store kept also
+    holds tool output and text a harness injected, with no field separating them.
+    The declaration travels with the session rather than with each utterance
+    because it is a property of how the whole session had to be read, and a
+    consumer that hands utterance bodies onward needs to know it before it does.
     """
 
     session_id: str
     project: str
+    utterances_are_superset: bool = False
 
 
 NORMALIZED_EVENT_TYPES = (UserText, SkillInvocation, ToolError, Turn, SessionIdentity)

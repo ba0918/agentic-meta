@@ -6,12 +6,32 @@ the payload's own kind says what the record is. The runtime writes the same
 conversation to two channels: one mirrors the model's own items, the other mirrors
 what the interface displayed. A single utterance therefore appears twice.
 
-Only one channel is read per file. Whichever channel that file records messages on
-is the one turns and utterances come from, and the other is passed over. Reading
-both would double the turn count and fire slash-command detection twice for one
-utterance, which manufactures retries out of nothing. Passing one over under-reads
-a conversation that was recorded twice; emitting both invents events that never
-happened, and an invented number moves an improvement action.
+Only one of the two recordings is read per file, and the typed one wins. A file
+holding any record of the operator having typed is read from that recording alone;
+only a file holding no such record at all falls back to the other one.
+
+The order is settled by measurement, not preference. Across the whole of one
+operator's history — 1,212 files — the typed recording holds 1,753 utterances and
+the mirrored one 5,083, and 1,708 of the typed utterances (97%) appear verbatim in
+both. 1,005 files hold both recordings and 991 of those really do duplicate. The
+mirrored recording is thus a superset, not a second source: its surplus is tool
+output and text a harness injected, filed under the operator's role, exactly as
+another runtime files its tool answers. Reading both recordings would double nearly
+every utterance, fire slash-command detection twice for one command, and
+manufacture retries out of nothing. Preferring the mirrored recording — which an
+earlier reading of these logs did — is not a way of losing less: it silently
+substitutes the superset for the utterances, putting tool output into the
+correction count and into the prompt harvest.
+
+A file that had to fall back says so: its session identity declares its utterances
+a superset, so nothing downstream presents that reading as if it held only what the
+operator said.
+
+Turns follow whichever recording was chosen. In the typed recording a turn is the
+operator having typed or the agent having answered; in the fallback it is a message
+record in one of those two roles, the harness's own role left out. Without that
+reconciliation a fallback file would contribute utterances and no turns at all, and
+every rate computed over it would divide by zero.
 
 **This store has no structural route.** Across the whole of one operator's history
 — 114,117 records — no tool name corresponding to a skill call exists; the runtime
@@ -72,6 +92,9 @@ NAME = "codex"
 # The two channels the same conversation is written to.
 CHANNEL_ITEMS = "response_item"
 CHANNEL_INTERFACE = "event_msg"
+
+# The record the interface channel writes when the operator typed something.
+TYPED_UTTERANCE = "user_message"
 
 OPENING_RECORD = "session_meta"
 
@@ -153,17 +176,24 @@ def read_records(path: pathlib.Path) -> list[dict]:
 def conversation_channel(records: list[dict]) -> str:
     """Which of the two recordings of this conversation to read it from.
 
-    The model's own items are preferred where present because that channel carries
-    both sides under one kind of record.
+    A single record of the operator having typed is enough to settle it, because
+    the channel that holds one holds them all — the interface writes every typed
+    utterance there. The other channel is read only where this one is absent.
     """
     for record in records:
-        if record.get("type") == CHANNEL_ITEMS and _payload(record).get("type") == "message":
-            return CHANNEL_ITEMS
-    return CHANNEL_INTERFACE
+        if (
+            record.get("type") == CHANNEL_INTERFACE
+            and _payload(record).get("type") == TYPED_UTTERANCE
+        ):
+            return CHANNEL_INTERFACE
+    return CHANNEL_ITEMS
 
 
-def session_identity(records: list[dict], fallback_name: str) -> SessionIdentity:
-    """Which session this log holds and where it ran."""
+def session_identity(
+    records: list[dict], fallback_name: str, channel: str
+) -> SessionIdentity:
+    """Which session this log holds, where it ran, and how its utterances were read."""
+    superset = channel == CHANNEL_ITEMS
     for record in records:
         if record.get("type") != OPENING_RECORD:
             continue
@@ -173,8 +203,13 @@ def session_identity(records: list[dict], fallback_name: str) -> SessionIdentity
         return SessionIdentity(
             session_id=identifier if isinstance(identifier, str) else fallback_name,
             project=project_slug(cwd) if isinstance(cwd, str) else UNKNOWN_PROJECT,
+            utterances_are_superset=superset,
         )
-    return SessionIdentity(session_id=fallback_name, project=UNKNOWN_PROJECT)
+    return SessionIdentity(
+        session_id=fallback_name,
+        project=UNKNOWN_PROJECT,
+        utterances_are_superset=superset,
+    )
 
 
 def called_tool_name(record: dict) -> tuple[str, str] | None:
@@ -255,7 +290,7 @@ def record_events(
             if role == ROLE_USER:
                 yield from _utterance_events(content_text(payload), at)
     elif channel == CHANNEL_INTERFACE and kind == CHANNEL_INTERFACE:
-        if spoken == "user_message":
+        if spoken == TYPED_UTTERANCE:
             yield Turn(role=ROLE_USER, at=at)
             message = payload.get("message")
             yield from _utterance_events(message if isinstance(message, str) else None, at)
@@ -283,11 +318,11 @@ class CodexStore:
             records = read_records(path)
             if not records:
                 continue
-            identity = session_identity(records, path.stem)
+            channel = conversation_channel(records)
+            identity = session_identity(records, path.stem, channel)
             if self.project is not None and identity.project != self.project:
                 continue
             yield identity
-            channel = conversation_channel(records)
             called: dict[str, str] = {}
             for record in records:
                 yield from record_events(record, channel, called, self.since)

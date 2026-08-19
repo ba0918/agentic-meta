@@ -256,6 +256,32 @@ class TestConfidenceDowngrade(unittest.TestCase):
         self.assertEqual(aggregate.skills["commit"].stores_without_structural, ("codex",))
 
 
+class TestUtterancesReadAsASuperset(unittest.TestCase):
+    def _superset_session(self):
+        return events.SessionIdentity(
+            session_id="s-1", project="-w-notes", utterances_are_superset=True
+        )
+
+    def test_a_session_whose_utterances_are_a_superset_is_counted_under_its_store(self):
+        store = FakeStore("codex", [self._superset_session(), _turn()], structural=False)
+        self.assertEqual(
+            signals.aggregate([store]).superset_utterance_sessions, {"codex": 1}
+        )
+
+    def test_a_store_that_read_no_such_session_is_not_named_at_all(self):
+        self.assertEqual(
+            _one_store([_identity(), _turn()]).superset_utterance_sessions, {}
+        )
+
+    def test_only_the_sessions_read_that_way_are_counted(self):
+        store = FakeStore("codex", [
+            self._superset_session(), _turn(), _identity("s-2"), _turn(),
+        ], structural=False)
+        self.assertEqual(
+            signals.aggregate([store]).superset_utterance_sessions, {"codex": 1}
+        )
+
+
 class TestProjects(unittest.TestCase):
     def test_a_stored_key_and_a_converted_path_are_the_same_project(self):
         stored = FakeStore("claude", [_identity("s-1", "-w-notes"), _turn()])
