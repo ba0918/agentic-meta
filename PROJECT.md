@@ -16,6 +16,10 @@ No application code lives here. The vendoring machinery is an external tool,
 hash in `bun.lock`. Bun is therefore the only toolchain the checks themselves need;
 lefthook, which runs them ahead of a push, is installed separately per clone.
 
+The distributed plugin's version lives in exactly one canonical place: the `version` field of
+`.claude-plugin/plugin.json`. The copy in `.claude-plugin/marketplace.json` is a follower of
+that value, never a second source of it.
+
 | Path | What it holds |
 |---|---|
 | `contracts/` | The output-contract conventions (`contracts/README.md`); canonical contracts land here once written (none yet) |
