@@ -128,14 +128,14 @@ class TestEstimate(unittest.TestCase):
         self.assertFalse(estimate["measured"])
 
 
-class TestPlan(unittest.TestCase):
-    def _plan(self, root, inputs, scenarios, history):
-        return cost.plan(root, inputs, "acme", scenarios, ROUTE, history)
+class TestDryRun(unittest.TestCase):
+    def _dry_run(self, root, inputs, scenarios, history):
+        return cost.dry_run(root, inputs, "acme", scenarios, ROUTE, history)
 
     def test_an_unmeasured_scenario_makes_the_batch_stop_after_the_first(self):
         with tempfile.TemporaryDirectory() as root:
             inputs = _repo(root)
-            report = self._plan(root, inputs, [_scenario(), _scenario("ac-002")], {})
+            report = self._dry_run(root, inputs, [_scenario(), _scenario("ac-002")], {})
             self.assertTrue(report["stop_after_first"])
             self.assertEqual(report["unmeasured"], ["ac-001", "ac-002"])
 
@@ -149,7 +149,7 @@ class TestPlan(unittest.TestCase):
                             input_bytes=cost.input_bytes(root, inputs, "acme", scenario),
                             input_tokens=10, output_tokens=100, wall_seconds=5.0,
                             observed="2026-08-19")
-            report = self._plan(root, inputs, scenarios, history)
+            report = self._dry_run(root, inputs, scenarios, history)
             self.assertFalse(report["stop_after_first"])
             self.assertEqual(report["unmeasured"], [])
             self.assertEqual(report["total"]["output_tokens"], 200)
@@ -164,15 +164,15 @@ class TestPlan(unittest.TestCase):
                         input_bytes=cost.input_bytes(root, inputs, "acme", measured),
                         input_tokens=10, output_tokens=100, wall_seconds=5.0,
                         observed="2026-08-19")
-            report = self._plan(root, inputs, [measured, _scenario("ac-002")], history)
+            report = self._dry_run(root, inputs, [measured, _scenario("ac-002")], history)
             self.assertEqual(report["total"]["output_tokens"], 100)
             self.assertEqual(report["unmeasured"], ["ac-002"])
 
-    def test_the_plan_runs_without_executing_anything(self):
+    def test_the_dry_run_executes_nothing(self):
         with tempfile.TemporaryDirectory() as root:
             inputs = _repo(root)
             before = json.dumps(sorted(os.listdir(root)))
-            self._plan(root, inputs, [_scenario()], {})
+            self._dry_run(root, inputs, [_scenario()], {})
             self.assertEqual(json.dumps(sorted(os.listdir(root))), before)
 
 
@@ -194,3 +194,38 @@ class TestCeiling(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestApproximationIsAlwaysAvailable(unittest.TestCase):
+    """Even with no history, the input side of a scenario is knowable.
+
+    Reporting only "unmeasured" would read as "nothing is known about this
+    batch", when in fact how much the executor has to read is already on disk.
+    The approximation and the measurement are reported side by side and never
+    folded together: one is derived from bytes, the other was observed.
+    """
+
+    def test_an_unmeasured_scenario_still_reports_an_input_approximation(self):
+        estimate = cost.estimate({}, "acme", "ac-001", ROUTE, current_bytes=4000)
+        self.assertFalse(estimate["measured"])
+        self.assertEqual(estimate["approx_input_tokens"], 1000)
+        self.assertIsNone(estimate["output_tokens"])
+
+    def test_a_measured_scenario_reports_both_figures(self):
+        history = {}
+        cost.record(history, "acme", "ac-001", ROUTE, input_bytes=1000,
+                    input_tokens=250, output_tokens=4000, wall_seconds=120.0,
+                    observed="2026-08-19")
+        estimate = cost.estimate(history, "acme", "ac-001", ROUTE, current_bytes=4000)
+        self.assertEqual(estimate["approx_input_tokens"], 1000)
+        self.assertEqual(estimate["output_tokens"], 4000)
+
+    def test_the_report_totals_the_approximation_over_every_scenario(self):
+        with tempfile.TemporaryDirectory() as root:
+            inputs = _repo(root)
+            report = cost.dry_run(root, inputs, "acme",
+                               [_scenario(), _scenario("ac-002")], ROUTE, {})
+            per_scenario = [s["approx_input_tokens"] for s in report["scenarios"]]
+            self.assertEqual(report["approx_input_total"], sum(per_scenario))
+            self.assertGreater(report["approx_input_total"], 0)
+            self.assertEqual(report["total"]["output_tokens"], 0)

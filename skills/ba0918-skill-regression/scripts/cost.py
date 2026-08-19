@@ -135,43 +135,52 @@ def record(history, skill, scenario_id, route, input_bytes, input_tokens,
 def estimate(history, skill, scenario_id, route, current_bytes):
     """What this scenario is expected to cost on this route.
 
-    `measured` is false when there is nothing to look up, and then every figure
-    is None. Cost is a fact about the route it was seen on, so a record from a
-    different route does not answer for this one.
+    `approx_input_tokens` is always there: how much the executor has to read is
+    on disk whether or not the scenario has ever run. `measured` is false when
+    there is nothing to look up, and then the observed figures are None. The two
+    are never folded together — one is derived from bytes, the other was seen.
+    Cost is a fact about the route it was seen on, so a record from a different
+    route does not answer for this one.
     """
-    previous = (history.get(f"{skill}/{scenario_id}") or {}).get(route)
-    if not previous:
-        return {
-            "scenario": scenario_id, "route": route, "measured": False,
-            "input_bytes": current_bytes, "input_tokens": None,
-            "output_tokens": None, "wall_seconds": None,
-        }
-    recorded_bytes = previous.get("input_bytes") or current_bytes or 1
-    scale = (current_bytes / recorded_bytes) if recorded_bytes else 1.0
-    return {
+    base = {
         "scenario": scenario_id,
         "route": route,
-        "measured": True,
         "input_bytes": current_bytes,
-        "input_tokens": max(1, round((previous.get("input_tokens") or 0) * scale)),
-        "output_tokens": previous.get("output_tokens"),
-        "wall_seconds": previous.get("wall_seconds"),
+        "approx_input_tokens": approx_tokens(current_bytes),
     }
+    previous = (history.get(f"{skill}/{scenario_id}") or {}).get(route)
+    if not previous:
+        return dict(base, measured=False, input_tokens=None, output_tokens=None,
+                    wall_seconds=None)
+    recorded_bytes = previous.get("input_bytes") or current_bytes or 1
+    scale = (current_bytes / recorded_bytes) if recorded_bytes else 1.0
+    return dict(
+        base,
+        measured=True,
+        input_tokens=max(1, round((previous.get("input_tokens") or 0) * scale)),
+        output_tokens=previous.get("output_tokens"),
+        wall_seconds=previous.get("wall_seconds"),
+    )
 
 
-def plan(root, inputs_root, skill, scenarios, route, history):
+def dry_run(root, inputs_root, skill, scenarios, route, history):
     """Size a batch without running any part of it.
 
-    The total covers the scenarios there is a measurement for; the ones there is
-    not are named separately, and their presence is what sets `stop_after_first`.
+    `total` covers the scenarios there is a measurement for; the ones there is not
+    are named separately, and their presence is what sets `stop_after_first`.
+    `approx_input_total` covers every scenario, measured or not, so that a batch
+    with no history reads as a known amount of reading rather than as nothing
+    known at all.
     """
     estimates = []
     unmeasured = []
+    approx_total = 0
     totals = {"input_tokens": 0, "output_tokens": 0, "wall_seconds": 0.0}
     for scenario in scenarios:
         current = input_bytes(root, inputs_root, skill, scenario)
         item = estimate(history, skill, scenario["id"], route, current)
         estimates.append(item)
+        approx_total += item["approx_input_tokens"]
         if not item["measured"]:
             unmeasured.append(scenario["id"])
             continue
@@ -184,6 +193,7 @@ def plan(root, inputs_root, skill, scenarios, route, history):
         "scenarios": estimates,
         "unmeasured": unmeasured,
         "measured_count": len(estimates) - len(unmeasured),
+        "approx_input_total": approx_total,
         "total": totals,
         "stop_after_first": bool(unmeasured),
     }
@@ -206,7 +216,7 @@ def ceiling_reached(spent, ceiling):
 
 def main(argv):
     parser = argparse.ArgumentParser(add_help=True, description="Size a batch before running it.")
-    parser.add_argument("mode", choices=("plan", "record"))
+    parser.add_argument("mode", choices=("dry-run", "record"))
     parser.add_argument("--root", default=os.getcwd())
     parser.add_argument("--inputs", required=True)
     parser.add_argument("--skill", required=True)
@@ -241,7 +251,7 @@ def main(argv):
     if args.scenario:
         wanted = set(args.scenario)
         scenarios = [s for s in scenarios if s["id"] in wanted]
-    report = plan(args.root, args.inputs, args.skill, scenarios, args.route, history)
+    report = dry_run(args.root, args.inputs, args.skill, scenarios, args.route, history)
     report["history"] = history_path
     print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0
