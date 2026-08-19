@@ -13,7 +13,10 @@ taking the first layer that yields at least one skill. Layers are never mixed: o
 layer matches, later layers are not consulted. At every layer, directories whose name
 starts with `.` and installed-dependency directories (`node_modules`) are skipped.
 
-1. `<target>/skills/*/SKILL.md` — the conventional layout.
+1. `<target>/skills/*/SKILL.md` — the conventional layout. A `skills/` directory is
+   the position every copy-route installer searches, so a tree holding one is
+   declaring where its skills live. That declaration outranks the root `SKILL.md`
+   below, which a single skill bundling example skills under `skills/` also carries.
 2. `<target>/SKILL.md` — the target tree is itself a single skill. A root `SKILL.md`
    claims the whole tree as one skill, so it outranks the sibling-directory layer
    that would otherwise misread the skill's own subdirectories as separate skills.
@@ -55,7 +58,10 @@ An instrument whose procedure rewrites its target — for example, a phase that 
 descriptions and commits each rewrite — never runs those phases against the canonical
 tree. Instead it:
 
-1. copies the target into the scratch area,
+1. copies the target into the scratch area, leaving the target's own `.git` behind —
+   the mutating phases need a base to diff against, not the target's history, and
+   carrying that history in would make the initial commit below mean something other
+   than the state the run started from,
 2. runs `git init` in the copy and records an initial commit, giving the mutating
    phases a diffable base and a place to commit, and
 3. runs every mutating phase against that working copy only.
