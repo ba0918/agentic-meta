@@ -61,7 +61,11 @@ pinned install, and says so plainly when that install is missing.
 ## Conventions specific to this project
 
 - Language: `docs/spec/` is written in Japanese; everything else — skill bodies included — is
-  written in English (skills stay English to conserve tokens).
+  written in English (skills stay English to conserve tokens). The exception is test data
+  whose content is itself what the test exercises: a CJK string handed to a tokenizer, or a
+  non-English `SKILL.md` an audit rule has to read. That data keeps its own language,
+  because translating it deletes the coverage it exists for. The comments and docstrings
+  around it are English like everything else.
 
 ## Constraints
 
