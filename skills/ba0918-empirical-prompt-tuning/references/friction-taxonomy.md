@@ -35,18 +35,5 @@ This is the signal that "the same kind of problem is not being fixed by patches 
 
 ## Instructions to the executor
 
-Include the following in the executor's friction report template:
-
-```
-## Friction report
-Report the places where the instructions tripped you up, using these categories:
-- ambiguous_term: wording open to multiple interpretations
-- missing_premise: implicit background knowledge is required
-- contradictory: contradiction between instructions
-- over_specified: unnecessarily strict
-- rationalization_hook: an instruction that can be dodged by rationalizing
-- self_containment_gap: does not stand alone without external references
-
-Format: { "category": "<category>", "detail": "<detail>" }
-Return an empty array [] when none apply.
-```
+SKILL.md's Phase 2a executor prompt already carries the category list verbatim. Keep the
+two in step when a category changes; do not maintain a second copy here.

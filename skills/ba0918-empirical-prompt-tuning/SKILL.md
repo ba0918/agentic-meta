@@ -1,6 +1,6 @@
 ---
 name: ba0918-empirical-prompt-tuning
-description: Evaluate text instructions written for agents (a skill, a slash command, a task prompt, a CLAUDE.md section, a rules file, or a code generation prompt) through an unbiased separation of 3 roles (tuner / executor / checker), and improve them iteratively with a fixed friction taxonomy and a statistical adoption gate. Converged verification assets are turned into portable fixtures. Use when the user says "empirical-prompt-tuning", "prompt tuning", "I want to measure instruction quality", "I want to harden this skill", "why is this prompt hard to follow", or "check whether the rule is being obeyed". It is the sister skill of `ba0918-trigger-eval` (which measures the selection layer, description to firing) and covers the body layer, the quality of execution.
+description: Measure and improve text instructions written for agents — a skill, a command, a task prompt, a rules file — by running them under an unbiased 3-role separation (tuner / executor / checker), a fixed friction taxonomy, and a statistical adoption gate. Use when the user says "empirical-prompt-tuning", "prompt tuning", "measure instruction quality", "harden this skill", "why is this prompt hard to follow", or "check whether the rule is being obeyed". Sister skill of `ba0918-trigger-eval` (the selection layer, description to firing); this one covers the body layer, the quality of execution.
 license: MIT
 metadata:
   contracts:
@@ -10,16 +10,14 @@ metadata:
 # ba0918-empirical-prompt-tuning
 
 The quality of a prompt is invisible to the person who wrote it. The very passages the author considers "clear" are where another agent gets stuck. The core of this skill is to **actually run it under an unbiased 3-role separation, evaluate with a fixed taxonomy and pure functions, and iterate**. Do not stop until improvement plateaus.
+
 ## When to Use
 
-- Right after newly creating or substantially revising a skill / slash command / task prompt
+- Right after newly creating or substantially revising a skill / command / task prompt
 - When an agent does not behave as expected and you want to trace the cause to ambiguity on the instruction side
-- When you want to harden a high-importance instruction (a frequently used skill, a prompt at the core of automation)
-- When you want to confirm that a CLAUDE.md section / rules are actually being followed
+- When hardening a high-importance instruction, or confirming that a rules file is actually being followed
 
-When not to use:
-- A one-off throwaway prompt (the evaluation cost does not pay off)
-- When the goal is not improving the success rate but merely reflecting the author's subjective taste
+Not worth the evaluation cost for a one-off throwaway prompt, or when the goal is the author's taste rather than the success rate.
 
 ## Determining the Target Type (do this first)
 
@@ -55,7 +53,7 @@ When in doubt, use `task_scenario`. Details in [references/compliance-probe.md](
    - **Fix them in advance and never move them afterwards**
 4. **Verify reachability** (3 axes: process / environment / contract consistency; details in [requirement-reachability.md](references/requirement-reachability.md)):
    - Before the requirement table, enumerate the stop conditions that could halt the workflow in this environment
-   - Leaving an unreachable requirement penalizes an executor that behaved exactly as instructed, invalidating the measurement
+   - Leaving an unreachable requirement penalizes an executor that behaved exactly as instructed, invalidating the measurement. It shows up as an identical failure in both arms, and has recurred 3 times in practice
 5. Normalize the scenarios + checklist to JSON and **lock the sha256** (`verify_checklist_integrity()`).
    If the design releases reachability on the prompt side, include the prompt in the hash target as well
 
@@ -89,7 +87,7 @@ Report the places where the instructions tripped you up, using these categories:
 
 ## Report structure
 - artifact: <the produced output or a summary of the execution result>
-- friction: [{ "category": "<category>", "detail": "<detail>" }, ...]
+- friction: [{ "category": "<category>", "detail": "<detail>" }, ...] (an empty array when none apply)
 - discretionary fills: places the instructions left undecided that you filled in with your own judgment (bulleted)
 - retries: how many times you redid the same decision, and why
 ```
@@ -321,23 +319,8 @@ When the subagent launch cap is hit (counted cumulatively per session; a slot is
 | "The checklist is too strict, let's loosen it" | That requires a baseline reset (start over from iteration 0). The hash lock enforces it |
 | "The checker's grading is wrong" | If you object to the checker, improve how the requirement is written (in the next baseline). For the current iteration the checker's verdict is final |
 
-## Common Failures
-
-- **Scenarios too easy / too hard**: neither produces a signal. One median + one edge is the baseline
-- **Watching only the metrics**: chasing runtime alone starves the prompt
-- **Too many changes per iteration**: you cannot trace which fix worked. One theme, one iter
-- **Tuning the scenario to fit the fix**: the checklist sha256 changes and it halts (by design)
-- **Showing the target prompt to the checker**: lenient interpretation bias comes back. Never hand it over
-- **Locking an unreachable requirement**: grading a step that stops earlier for environmental reasons penalizes an
-  executor that behaved correctly, and shows up as an identical failure in both arms. Observed recurring 3 times ([requirement-reachability.md](references/requirement-reachability.md))
-
 ## Related
 
 - `ba0918-trigger-eval` — the sister skill for the selection layer (description→firing). This skill measures the quality of body execution; that one measures firing accuracy
 - `ba0918-skill-regression` — this skill's convergence output (fixture.json) can be converted into a regression asset
 - `ba0918-skill-improve` — passive analysis (past session data). This skill is active testing
-- [references/checker-protocol.md](references/checker-protocol.md) — the checker subagent launch contract
-- [references/requirement-reachability.md](references/requirement-reachability.md) — pre-lock reachability verification (process / environment / contract consistency)
-- [references/iteration-schema.md](references/iteration-schema.md) — the iteration JSON record schema
-- [references/friction-taxonomy.md](references/friction-taxonomy.md) — the 6 friction categories
-- [references/compliance-probe.md](references/compliance-probe.md) — the evaluation method for passive constraints
