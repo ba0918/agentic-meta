@@ -11,12 +11,7 @@
       "name": "ba0918-meta",
       "version": "0.1.0",
       "description": "Skills that measure a skill set: how accurately its descriptions fire, and whether each SKILL.md is complete as an API specification",
-      "source": "./",
-      "strict": false,
-      "skills": [
-        "./skills/ba0918-skill-interface-audit",
-        "./skills/ba0918-trigger-eval"
-      ]
+      "source": "./"
     }
   ]
 }
