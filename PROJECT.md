@@ -68,6 +68,11 @@ pinned install, and says so plainly when that install is missing.
   non-English `SKILL.md` an audit rule has to read. That data keeps its own language,
   because translating it deletes the coverage it exists for. The comments and docstrings
   around it are English like everything else.
+- Licensing: the repository is MIT and `LICENSE` at the root covers it. A skill derived from
+  someone else's work carries an additional `LICENSE` in its own directory, holding that
+  author's copyright notice — MIT requires the notice to travel with every copy, and a skill
+  directory is what the copy routes install. `ba0918-empirical-prompt-tuning` is the current
+  case. Check for a per-skill licence before porting anything else.
 
 ## Constraints
 

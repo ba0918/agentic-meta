@@ -14,7 +14,8 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · 🔁 recurring gate
 | 1 | Foundation | Declaration-driven vendoring (now an external tool), verification, synthetic fixtures, CI | ✅ |
 | 2 | Contrast pilots | Port `trigger-eval` and `skill-interface-audit` through the machinery | ✅ |
 | G | Gate | Re-evaluate remaining ports with pilot measurements | 🔁 |
-| 3 | Harnesses | Port `empirical-prompt-tuning`, `skill-regression` | ⬜ |
+| 3a | Tuning harness | Port `empirical-prompt-tuning` | ✅ |
+| 3b | Regression harness | Port `skill-regression` (design open — see below) | ⬜ |
 | 4 | Improver | Port `skill-improve` (depends on harnesses; workflow delegation stripped) | ⬜ |
 | 5 | Auditor | Port `context-audit` (observed read-only since wave 1) | ⬜ |
 
@@ -110,11 +111,52 @@ flash-tier model rather than a session model, Tier 2 live firing is impossible a
 fixtures no session has installed, the mutating-instrument clause has never fired, and every
 cell ran once.
 
-### Wave 3 — Harnesses ⬜
+### Wave 3a — Tuning harness ✅
 
-- [ ] Port `empirical-prompt-tuning` as `ba0918-empirical-prompt-tuning`
-- [ ] Port `skill-regression` as `ba0918-skill-regression` (repo-specific today;
-      generalize target resolution)
+- [x] Port `empirical-prompt-tuning` as `ba0918-empirical-prompt-tuning`
+
+The port carries its own `LICENSE`. The skill derives from github.com/mizchi/skills, and
+MIT requires the original copyright notice to travel with every copy; it was the only skill
+in the source collection holding a licence of its own.
+
+Three couplings came off. The runner behind the separate-process fallback belonged to
+workflow's operation contracts, so what remains is the principle it served — the 3-role
+separation needs a model invocation in an independent context, not a subagent as such — plus
+a statement that supplying such a runner is the invoking session's job. The sibling links
+became bare `ba0918-` names, and the hand-off that converts a converged fixture into a
+regression asset now names its destination and reports the destination missing rather than
+dropping the artifact. Output placement and the working-copy discipline for the phase that
+rewrites its target were already fixed by `fixture-contract`, so the skill declares that
+contract instead of restating either rule.
+
+### Wave 3b — Regression harness ⬜
+
+- [ ] Port `skill-regression` as `ba0918-skill-regression`
+
+Split out of wave 3 because three design questions have to be settled before the port, and
+none of them is answered by applying the existing triage. Dropping the skill, or porting it
+with features removed, is not among the options (decided 2026-08-19) — it is the closest
+thing the collection has to an end-to-end test for skills. The port redesigns instead.
+
+1. **Writing into the target tree.** capture writes `fixtures.json` into the target's own
+   skill directory and keeps a ledger the target repository's CI reads, while
+   `fixture-contract` states that an instrument never writes into the target tree. In the
+   source collection the instrument and its target were the same repository, so the two
+   never met; here the target is arbitrary and they collide. The ledger's value is precisely
+   that it is committed to the target and gates that repository's CI, so refusing the write
+   outright removes the gate.
+2. **Two meanings of "fixture".** `fixture-contract` uses the word for a synthetic *skill
+   tree* an instrument runs against; skill-regression uses it for a *scenario plus a
+   requirements checklist*. Both land in this repository at once.
+3. **What reverse dependency lookup is still for.** The machinery exists to catch one shared
+   contract silently changing the behaviour of a dozen skills that reference it. Here
+   contracts are expanded into every skill that declares them, so such a change already shows
+   up as a direct edit inside each skill. The mechanism still has to work for target trees
+   that share files, but its value proposition is not the one it was built for.
+
+Its instance state does not port: `ledger.json` is the source collection's own verification
+record. The calibration corpus does — it is what proves the judging model can still tell an
+affected scenario from an unaffected one.
 
 ### Wave 4 — Improver ⬜
 
@@ -127,6 +169,13 @@ cell ran once.
 - [ ] Port `context-audit` as `ba0918-context-audit` (its read-only observation
       of this repo starts back in wave 1). Drop its `review-rules.md` references while
       porting: that contract is being retired along with `generate-review-rules`
+
+## Publishing
+
+The repository has no remote yet and nothing has been pushed. The condition for opening that
+up was fixed on 2026-08-19: **once the wave 5 port is done and the whole set works end to
+end.** Creating the public repository, the first push, and the 0.1.0 tag all wait for that
+point; until then this is a local repository.
 
 ## Out of scope here
 
