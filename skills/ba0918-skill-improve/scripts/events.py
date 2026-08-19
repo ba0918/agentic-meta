@@ -16,7 +16,10 @@ aggregation serve every store.
 
 import dataclasses
 import datetime
+import re
 import typing
+
+_OUTSIDE_KEY_ALPHABET = re.compile(r"[^A-Za-z0-9-]")
 
 ROUTE_TEXT = "text"
 ROUTE_STRUCTURAL = "structural"
@@ -120,15 +123,27 @@ Event = typing.Union[NORMALIZED_EVENT_TYPES]
 def project_slug(path: str) -> str:
     """Convert a real working directory into the slug SessionIdentity carries.
 
-    Separators become hyphens and a leading hyphen is dropped. The conversion lives
-    here because the adapters holding a real path would otherwise each write it, and
-    two spellings of it do not fail loudly — they make one project read as two.
+    Every character outside the key alphabet — ASCII letters, digits, hyphen —
+    becomes a hyphen, and nothing is stripped afterwards, so an absolute path keeps
+    the leading hyphen its leading separator produced. Letter case is carried
+    through unchanged. This reproduces the directory names one runtime actually
+    writes, checked against the whole of that runtime's project directory.
+
+    Dropping the leading hyphen, and converting only the separator, would both be
+    survivable if the key were only ever compared loosely; the earlier form did
+    exactly that and matched by substring. Substring matching makes one project a
+    match for every project whose name extends it, so the key is compared whole and
+    therefore has to be spelled exactly as the runtime spells it.
+
+    The conversion lives here because the adapters holding a real path would
+    otherwise each write it, and two spellings of it do not fail loudly — they make
+    one project read as two.
 
     The conversion is one-way: a hyphen already inside a directory name becomes
     indistinguishable from a converted separator, so the original path cannot be
     recovered from the slug.
     """
-    return path.replace("/", "-").lstrip("-")
+    return _OUTSIDE_KEY_ALPHABET.sub("-", path)
 
 
 @dataclasses.dataclass(frozen=True)

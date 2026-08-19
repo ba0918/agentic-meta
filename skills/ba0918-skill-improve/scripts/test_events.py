@@ -100,7 +100,22 @@ class TestProjectSlug(unittest.TestCase):
     def test_a_working_directory_path_becomes_the_key_every_store_meets_on(self):
         separator = "/"
         path = separator + separator.join(("home", "someone", "develop", "notes"))
-        self.assertEqual(events.project_slug(path), "home-someone-develop-notes")
+        self.assertEqual(events.project_slug(path), "-home-someone-develop-notes")
+
+    def test_the_leading_separator_survives_as_the_leading_hyphen_of_the_key(self):
+        separator = "/"
+        path = separator + separator.join(("home", "someone", "work"))
+        self.assertTrue(events.project_slug(path).startswith("-"))
+
+    def test_a_dot_is_converted_like_any_other_character_outside_the_key_alphabet(self):
+        separator = "/"
+        path = separator + separator.join(("home", "someone", ".notes"))
+        self.assertEqual(events.project_slug(path), "-home-someone--notes")
+
+    def test_capital_letters_are_carried_into_the_key_unchanged(self):
+        separator = "/"
+        path = separator + separator.join(("tmp", "Crates", "Core"))
+        self.assertEqual(events.project_slug(path), "-tmp-Crates-Core")
 
     def test_a_hyphen_inside_a_directory_name_is_indistinguishable_from_a_separator(self):
         separator = "/"
