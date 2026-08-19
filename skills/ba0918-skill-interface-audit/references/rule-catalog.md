@@ -34,9 +34,7 @@ suffix is an aid to readability only — use `where` for matching against a base
 ## Phase 1: Structural Rules (pure functions)
 
 This phase owns structural quality that a repository-level validation entry point does not
-look at. Where the target repository has one, do not re-decide what it already enforces
-(frontmatter shape, description trigger wording, link existence); where it has none, say so in
-the report rather than assuming those checks ran elsewhere.
+look at.
 
 | ID | Severity | Action | Canon | Verification | Content |
 |---|---|---|---|---|---|
@@ -46,7 +44,6 @@ the report rather than assuming those checks ran elsewhere.
 | SI-S004 | WARN | NEEDS\_JUDGMENT | authoring-principles, platform-neutral vocabulary | pure function | **Platform-specific tool vocabulary leaked in**: SKILL.md or references/ contains one runtime's proprietary tool name or a specific model identifier. Code blocks and quotes are excluded |
 | SI-S006 | WARN | NEEDS\_JUDGMENT | authoring-principles #5 | pure function | **A contract is inlined**: a run of 12 words matches verbatim between a file (SKILL.md or references/) and a vendored contract that same file links to. Code blocks are excluded |
 
-SI-S005 is reserved and not implemented, so the numbering has a gap.
 
 ### SI-S001 detail: reference chain depth
 
@@ -99,8 +96,6 @@ different file set:
 
 - A PascalCase tool name (`Edit`, `Read`, `Write`, etc.) is detected only when it appears
   standalone **outside sentence-initial position**
-- A capital at the start of a sentence (line start, or right after a period) is ordinary
-  English orthography and is excluded
 - Lowercase `edit`, `read`, `write`, etc. are excluded as ordinary verbs (they are also used
   as command names)
 - Because `LSP` is also an industry-standard protocol name, detect only tool usages such as

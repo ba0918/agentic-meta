@@ -1,6 +1,6 @@
 ---
 name: ba0918-skill-interface-audit
-description: Audit each SKILL.md statically as an API specification and detect missing contracts and structural violations. It treats its own internalized authoring principles as the source of truth and verifies them mechanically through the SI-* rule system, using a hybrid model of pure-function static checks plus LLM semantic judgment. It emits findings that include candidate patches and hands dynamic verification over to the skills that own it. Use when the user says "skill-interface-audit", "audit the interfaces", "check the skill contracts", "audit SKILL.md", or "check the API specification".
+description: Audit each SKILL.md statically as an API specification and report what its contract is missing — undeclared side effects, completion conditions that cannot be verified, undefined failure handling — alongside structural violations. Every finding carries a patch candidate, and none is ever applied automatically. Use when the user says "skill-interface-audit", "audit the interfaces", "check the skill contracts", "audit SKILL.md", or "check the API specification".
 metadata:
   contracts:
     - fixture-contract
@@ -14,8 +14,6 @@ Taking the principles of [references/authoring-principles.md](references/authori
 Where the sibling measurement skills own dynamic measurement and the quality of resident instructions, this skill owns **the contractual completeness of a skill tree's SKILL.md files**.
 
 ## Positioning and architecture
-
-Among the measurement skills it owns the "contract layer", and it is cut exclusively against instruction-file auditing by the set of target files. It is a hybrid model of pure-function static checks plus LLM semantic judgment. For details see [references/positioning.md](references/positioning.md).
 
 Reference material (progressive disclosure):
 
@@ -31,7 +29,7 @@ Reference material (progressive disclosure):
 - No argument: audit every skill in the target tree.
 - One or more skill names: audit only the named skills. For example: `ba0918-skill-interface-audit ba0918-trigger-eval`
 - `--update-baseline`: fix the current findings as the baseline (thereafter only new findings are presented).
-- `--bridge`: generate the bridging output toward dynamic verification (scenario candidates for execution-quality measurement plus fixture candidates for regression).
+- `--bridge`: generate the bridging output toward dynamic verification (Phase 3).
 
 No command is created; being single-workflow, it needs no named entry point.
 
@@ -40,7 +38,7 @@ No command is created; being single-workflow, it needs no named entry point.
 - **Resolving script paths**: `{skill_dir}` is the directory this skill is installed in (an absolute path). `{target}` is the tree under audit, defaulting to the current project root.
 - **Non-interactive fallback**: when running headless or as a subagent, fall to the safe side and change no state. Do not write the baseline; emit the full report.
 - `{ts}` is minted with `date +%Y%m%d-%H%M%S` and the same value is reused across the phases.
-- **Output location**: `.agents/tmp/skill-interface-audit-{ts}/` in the repository of the session running the audit — **never inside `{target}`**, per the run-output placement clause of [references/vendor/fixture-contract.md](references/vendor/fixture-contract.md). The baseline lives on the same side and is keyed to the target it was taken from. This audit reads its target and never writes to it, so it needs no working copy.
+- **Output location**: `.agents/tmp/skill-interface-audit-{ts}/` in the repository of the session running the audit — **never inside `{target}`**, per the run-output placement clause of [references/vendor/fixture-contract.md](references/vendor/fixture-contract.md). The baseline lives on the same side and is keyed to the target it was taken from. This audit needs no working copy of its target.
 
 ## Workflow
 
@@ -64,7 +62,6 @@ python3 {skill_dir}/scripts/static_checks.py --root {target} --skills-dir <the r
 ```
 
 Target rules: SI-S001 through SI-S004, plus SI-S006 (details in [references/rule-catalog.md](references/rule-catalog.md)).
-All of them correspond to machine-verifiable principles of the authoring canon and can be decided deterministically.
 
 The finding schema:
 `id / severity / action / where(skill:file:line) / what / why / how / fix_draft(null | suggested text)`
@@ -73,11 +70,9 @@ The finding schema:
 
 The LLM evaluates the SI-C\* rules. Keep this clearly separate from Phase 1.
 
-1. Read each skill's SKILL.md and evaluate the contract elements SI-C001 through SI-C006
-2. **"Not applicable" is a legitimate state**: a read-only skill needs no side-effect declaration, and a single-workflow skill needs no delegation conditions. If you can judge that "given this skill's nature, this contract element is unnecessary", it is a PASS
-3. The criterion is not "does the section exist" but "**could an LLM misunderstand this point and cause an accident**"
-4. Every finding is REPORT\_ONLY. Include a patch candidate (a draft of the concrete text to add) in `fix_draft`
-5. A patch candidate is capped at NEEDS\_JUDGMENT and is **never applied automatically** — rewriting the meaning of a body is not an automatic fix. That single rule is quoted here in full, so do not read the taxonomy for this step; the reference stays available for the three-value definitions
+1. Read each skill's SKILL.md and evaluate the contract elements SI-C001 through SI-C006. [references/rule-catalog.md](references/rule-catalog.md) owns their definitions, the cases where an element is legitimately unnecessary, and the discipline behind their severities
+2. The criterion is not "does the section exist" but "**could an LLM misunderstand this point and cause an accident**"
+3. Every finding is REPORT\_ONLY, and a patch candidate is **never applied automatically** — rewriting the meaning of a body is not an automatic fix. That single rule is quoted here in full, so do not read the taxonomy for this step; the reference stays available for the three-value definitions
 
 ### Phase 3: Aggregate and bridge
 
@@ -95,7 +90,7 @@ The LLM evaluates the SI-C\* rules. Keep this clearly separate from Phase 1.
    - The ambiguous spots of an SI-C\* finding → scenario candidates for `ba0918-empirical-prompt-tuning` (mapped onto the friction-taxonomy categories)
    - The diff after applying a patch candidate → fixture candidates for `ba0918-skill-regression`
    - **When a destination skill is absent from the environment, do not delegate**: write the bridging output as a file under the output directory and state in the report which destination was missing. The absence is reported, never silent
-5. Report completion with evidence: name each check that was run, show its result, and state what was not checked. A completion claim standing on anything but a command run in this session and its output is not a completion claim
+5. Emit the completion report the completion conditions below require
 
 ### The friction-taxonomy mapping (for the bridge output)
 
@@ -112,16 +107,15 @@ Map SI-C\* findings onto the fixed taxonomy of `ba0918-empirical-prompt-tuning` 
 
 ## Important rules
 
-- **Never change a SKILL.md**: every output of this skill is REPORT\_ONLY or NEEDS\_JUDGMENT. A patch candidate is a proposal, and the user decides whether to apply it
+- **Findings are proposals, never edits**: every output is REPORT\_ONLY or NEEDS\_JUDGMENT, and applying a patch candidate is the user's decision
 - **Do not turn it into template enforcement**: do not make it a pressure to "add N sections to every skill". The criterion is "could an LLM misunderstand this point", not uniformity of form
-- **Do not overlap with the target's own checks**: where the target repository ships a validation entry point, what it already enforces belongs to it. This skill owns the rest. Where the target has none, state that in the report rather than assuming the checks ran elsewhere
+- **Do not re-decide what the target's own validation entry point already enforces**; where the target has none, say so in the report
 - **Ground the basis of a severity in experience**: "directly causes accidents" at a given tier is an empirical claim. Anything that cannot be tied to measured friction data stays at INFO
-- **Do not invent new criteria**: the SI-\* rules audit the principles of `authoring-principles.md` and never create quality criteria of their own
+- **Do not invent new criteria**: every finding traces to a principle of `authoring-principles.md`
 
 ## Side effects
 
-- Generates a report and a findings JSON under `.agents/tmp/skill-interface-audit-{ts}/`
-- Writes `.agents/config/skill-interface-audit-baseline.json` only when `--update-baseline` is given
+- Writes a report and a findings JSON into the output directory, and the baseline file only when `--update-baseline` is given
 - **Never changes** the target tree
 
 ## Completion conditions
@@ -129,7 +123,7 @@ Map SI-C\* findings onto the fixed taxonomy of `ba0918-empirical-prompt-tuning` 
 - Phase 1 and Phase 2 are complete for every target skill
 - The summary-first report has been generated
 - When a baseline update was requested, the baseline file has been written
-- The report names the checks that were run, their results, and what was left unchecked
+- The report names the checks that were run, their results, and what was left unchecked. A completion claim standing on anything but a command run in this session and its output is not a completion claim
 
 ## Handling failures
 
@@ -140,7 +134,7 @@ Map SI-C\* findings onto the fixed taxonomy of `ba0918-empirical-prompt-tuning` 
 ## Prerequisites
 
 - Python 3 must be available
-- `{target}` must resolve to at least one skill under the layer order of the fixture contract
+- `{target}` resolves to at least one skill
 
 ## Delegation conditions
 

@@ -14,18 +14,16 @@
 `ba0918-context-audit` owns the resident instruction files an agent carries into every task,
 and this skill owns the skills themselves — each `SKILL.md` plus the reference files beside it.
 
-**Relation to the target repository's own checks**: a repository that ships a validation entry
-point already enforces some of this mechanically — frontmatter shape, description trigger
-wording, link existence. Those are not re-decided here; this skill owns the structural quality
-that a repository-level check does not look at. The relation runs both ways, and that is the
-exit strategy: a rule that proves stably machine-decidable in the audit is a candidate to move
-into the target repository's own checks and out of this catalog. When a target has no
-validation entry point at all, nothing is subtracted — say so in the report rather than
-assuming the checks ran elsewhere.
+**Relation to the target repository's own checks**: what a target's own validation entry point
+already enforces mechanically — frontmatter shape, description trigger wording, link existence
+— is not re-decided here; this skill owns the structural quality such a check does not look at.
+The relation runs both ways, and that is the exit strategy: a rule that proves stably
+machine-decidable in the audit is a candidate to move into the target's own checks and out of
+this catalog. A target with no validation entry point subtracts nothing — say so in the report
+rather than assuming the checks ran elsewhere.
 
 ## Architecture: the hybrid model
 
-**Pure functions deliver deterministic verdicts; the LLM is used for semantic judgment only.**
 This is not a purely static audit: contract completeness is a reading of intent, so the SI-C\*
 rules are decided by the LLM and stay REPORT_ONLY.
 
