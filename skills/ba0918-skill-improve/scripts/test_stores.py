@@ -128,6 +128,19 @@ class TestTheArgumentsThatPointAtEachStore(unittest.TestCase):
         self.assertEqual(stores.given_locations(Given()), {})
 
 
+class TestWhichProjectIsRead(unittest.TestCase):
+    def test_the_working_directory_is_the_project_when_none_is_named(self):
+        self.assertEqual(
+            stores.chosen_project(None, False), events.project_slug(os.getcwd())
+        )
+
+    def test_a_named_project_is_read_instead_of_the_working_directory(self):
+        self.assertEqual(stores.chosen_project("-w-notes", False), "-w-notes")
+
+    def test_asking_for_every_project_reads_them_all(self):
+        self.assertIsNone(stores.chosen_project("-w-notes", True))
+
+
 class TestWhetherTheStoreIsThere(unittest.TestCase):
     def test_a_store_whose_location_does_not_exist_is_reported_absent_not_dropped(self):
         with tempfile.TemporaryDirectory() as parent:

@@ -20,7 +20,6 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import collect
-import events
 import store_claude
 import store_codex
 import store_opencode
@@ -324,17 +323,6 @@ class TestCredentialWarnings(unittest.TestCase):
 
 
 class TestTheProjectThatIsRead(unittest.TestCase):
-    def test_the_working_directory_is_what_is_read_when_no_project_is_named(self):
-        self.assertEqual(
-            collect.chosen_project(None, False), events.project_slug(os.getcwd())
-        )
-
-    def test_a_named_project_is_read_instead_of_the_working_directory(self):
-        self.assertEqual(collect.chosen_project(PROJECT, False), PROJECT)
-
-    def test_asking_for_every_project_reads_them_all(self):
-        self.assertIsNone(collect.chosen_project(PROJECT, True))
-
     def test_only_the_named_project_is_counted(self):
         with tempfile.TemporaryDirectory() as parent:
             root = _claude_root(parent)

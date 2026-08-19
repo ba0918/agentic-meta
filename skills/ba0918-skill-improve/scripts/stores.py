@@ -24,7 +24,7 @@ import typing
 import store_claude
 import store_codex
 import store_opencode
-from events import SessionStore
+from events import SessionStore, project_slug
 
 # The selection standing for every registered store.
 EVERY_STORE = "all"
@@ -101,6 +101,19 @@ class Reading:
     store: SessionStore
     location: pathlib.Path
     present: bool
+
+
+def chosen_project(named: str | None, all_projects: bool) -> str | None:
+    """Which project a run reads, or None for every project.
+
+    With no project named, the working directory is the project, converted to the
+    key every store meets on. Asking for every project wins over a named one rather
+    than being refused as a contradiction: the wider reading cannot lose anything
+    the narrower one would have found.
+    """
+    if all_projects:
+        return None
+    return named if named else project_slug(str(pathlib.Path.cwd()))
 
 
 def given_locations(arguments: typing.Any) -> dict[str, str]:

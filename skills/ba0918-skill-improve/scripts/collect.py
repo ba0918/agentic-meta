@@ -43,7 +43,7 @@ import typing
 import secret_detect
 import signals
 import stores
-from events import Capabilities, UserText, project_slug
+from events import Capabilities, UserText
 
 EXIT_OK = 0
 EXIT_REFUSED = 2
@@ -82,19 +82,6 @@ class WatchedForSecrets:
             if isinstance(event, UserText):
                 self._found.extend(secret_detect.detect_secrets(event.text))
             yield event
-
-
-def chosen_project(named: str | None, all_projects: bool) -> str | None:
-    """Which project to read, or None for every project.
-
-    With no project named, the working directory is the project, converted to the
-    same key the stores meet on. Asking for every project wins over a named one
-    rather than being refused as a contradiction: the wider reading cannot lose
-    anything the narrower one would have found.
-    """
-    if all_projects:
-        return None
-    return named if named else project_slug(str(pathlib.Path.cwd()))
 
 
 def period_start(days: int, now: datetime.datetime) -> datetime.datetime:
@@ -300,7 +287,7 @@ def main(argv: list[str] | None = None) -> int:
         return EXIT_REFUSED
 
     now = datetime.datetime.now(datetime.timezone.utc)
-    project = chosen_project(arguments.project, arguments.all_projects)
+    project = stores.chosen_project(arguments.project, arguments.all_projects)
     readings = stores.build_stores(
         arguments.store,
         stores.given_locations(arguments),
