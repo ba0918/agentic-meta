@@ -218,7 +218,9 @@ def main(argv):
     parser = argparse.ArgumentParser(add_help=True, description="Size a batch before running it.")
     parser.add_argument("mode", choices=("dry-run", "record"))
     parser.add_argument("--root", default=os.getcwd())
-    parser.add_argument("--inputs", required=True)
+    # Only dry-run reads it; requiring it of `record` would make the documented
+    # invocation an error.
+    parser.add_argument("--inputs")
     parser.add_argument("--skill", required=True)
     parser.add_argument("--route", required=True)
     parser.add_argument("--history", default=None)
@@ -247,6 +249,9 @@ def main(argv):
         print(f"recorded {args.skill}/{args.scenario[0]} on {args.route} in {history_path}")
         return 0
 
+    if not args.inputs:
+        print("dry-run needs --inputs", file=sys.stderr)
+        return 2
     scenarios = lock.load_scenarios(args.root, args.skill)
     if args.scenario:
         wanted = set(args.scenario)

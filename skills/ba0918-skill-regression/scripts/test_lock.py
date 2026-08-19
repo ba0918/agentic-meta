@@ -646,3 +646,68 @@ class TestPartialUpdateWithJudgment(unittest.TestCase):
                     semantic=self._judgment(recorded, current, ["ac-002"]),
                     gate_reason="the judge was not calibrated")
             self.assertEqual(json.dumps(state, sort_keys=True), before)
+
+
+class TestCommandLine(unittest.TestCase):
+    """The documented invocations have to exist.
+
+    A path that is written up in a reference but missing from the command line is
+    unreachable in practice, however well the function behind it is tested.
+    """
+
+    def _repo_with_two(self, root):
+        _repo(root, exercises=["skills/acme/references/guide.md"])
+        _write(root, "evals/cases/acme/ac-002.yaml",
+               _scenario_yaml("acme", "ac-002",
+                              exercises=["skills/acme/references/guide.md"]))
+
+    def test_a_judgment_can_be_supplied_from_the_command_line(self):
+        with tempfile.TemporaryDirectory() as root:
+            self._repo_with_two(root)
+            state = lock.load(root)
+            lock.update(root, state, "acme", "2026-08-01")
+            lock.save(root, state)
+            recorded = dict(state["skills"]["acme"]["file_sha256"])
+            _write(root, "skills/acme/references/guide.md", "guide, reworked")
+            current = lock.file_hashes(root, lock.skill_surface(root, "acme"))
+
+            judgment = os.path.join(root, "judgment.json")
+            with open(judgment, "w", encoding="utf-8") as handle:
+                json.dump({"skill": "acme",
+                           "diff_sha256": lock.semantic_diff_sha256(recorded, current),
+                           "model": "some-judge",
+                           "scenarios": {"ac-002": {
+                               "verdict": lock.VERDICT_UNAFFECTED,
+                               "rationale": "the wording moved, the steps did not"}}},
+                          handle)
+            calibration = os.path.join(root, "calibration.json")
+            with open(calibration, "w", encoding="utf-8") as handle:
+                json.dump({"gate": "open", "reason": None}, handle)
+
+            code = lock.main(["--update", "acme", "--partial", "--scenario", "ac-001",
+                              "--semantic", judgment, "--calibration", calibration,
+                              "--today", TODAY, root])
+            self.assertEqual(code, 0)
+            scenarios = lock.load(root)["skills"]["acme"]["scenarios"]
+            self.assertEqual(scenarios["ac-002"]["result"], lock.RESULT_ACCEPTED_SEMANTIC)
+
+    def test_without_calibration_evidence_the_judgment_is_refused(self):
+        with tempfile.TemporaryDirectory() as root:
+            self._repo_with_two(root)
+            state = lock.load(root)
+            lock.update(root, state, "acme", "2026-08-01")
+            lock.save(root, state)
+            recorded = dict(state["skills"]["acme"]["file_sha256"])
+            _write(root, "skills/acme/references/guide.md", "guide, reworked")
+            current = lock.file_hashes(root, lock.skill_surface(root, "acme"))
+            judgment = os.path.join(root, "judgment.json")
+            with open(judgment, "w", encoding="utf-8") as handle:
+                json.dump({"skill": "acme",
+                           "diff_sha256": lock.semantic_diff_sha256(recorded, current),
+                           "model": "some-judge",
+                           "scenarios": {"ac-002": {
+                               "verdict": lock.VERDICT_UNAFFECTED,
+                               "rationale": "the wording moved"}}}, handle)
+            code = lock.main(["--update", "acme", "--partial", "--scenario", "ac-001",
+                              "--semantic", judgment, "--today", TODAY, root])
+            self.assertEqual(code, 1)

@@ -59,6 +59,19 @@ scenario whose ground moved underneath it.
 Running nothing is legitimate. A change that reaches no scenario advances the lock with
 no run at all.
 
+## What editing a scenario does, and does not, set off
+
+A scenario lives outside every behaviour surface, so editing one leaves `--check`
+green. That is deliberate — on the surface, a scenario would make its own skill stale
+the moment it was touched — but it means **nothing stops an edit from landing
+unverified**. `--impact-scenarios` names the scenario as reached, and the carry-over
+rule refuses to carry it forward, so the next run and the next partial update both
+demand it. Until one of those happens, the lock says nothing.
+
+The rule against editing toward an easier scenario is therefore held by whoever reads
+the diff, not by the gate. A scenario edit is a change to what "verified" means, and it
+belongs in a review the same way a change to the skill does.
+
 ## What the entry then says
 
 The skill-level result is decided by the per-scenario records, not asserted:

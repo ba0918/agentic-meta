@@ -229,3 +229,19 @@ class TestApproximationIsAlwaysAvailable(unittest.TestCase):
             self.assertEqual(report["approx_input_total"], sum(per_scenario))
             self.assertGreater(report["approx_input_total"], 0)
             self.assertEqual(report["total"]["output_tokens"], 0)
+
+
+class TestCommandLine(unittest.TestCase):
+    def test_recording_needs_no_inputs_directory(self):
+        """`record` reads nothing from the inputs directory, so demanding one turns
+        the documented invocation into an error."""
+        with tempfile.TemporaryDirectory() as root:
+            path = os.path.join(root, "history.json")
+            code = cost.main(["record", "--skill", "acme", "--scenario", "ac-001",
+                              "--route", ROUTE, "--history", path,
+                              "--input-bytes", "1000", "--input-tokens", "250",
+                              "--output-tokens", "4000", "--wall-seconds", "120",
+                              "--observed", "2026-08-19"])
+            self.assertEqual(code, 0)
+            self.assertEqual(cost.load_history(path)["acme/ac-001"][ROUTE]["output_tokens"],
+                             4000)

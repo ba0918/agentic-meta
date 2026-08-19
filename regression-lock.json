@@ -17,7 +17,7 @@
       "scenarios": {
         "sia-001": {
           "result": "pass",
-          "scenario_sha256": "a7f866b1d573ecfbba181f3a9797109e2a0c24c23925235c3506cbaf975a2188",
+          "scenario_sha256": "ac858c0a5607dfc89bb2f6dbba7f9451c6177cbf8530572309954cc91fb0a815",
           "verified": "2026-08-19"
         }
       },

@@ -95,8 +95,12 @@ run and carries the result in its own evidence.
 
 ```
 python3 {skill_dir}/scripts/lock.py --update <skill> --partial \
-  --scenario <ran>... --semantic JUDGMENT.json .
+  --scenario <ran>... --semantic JUDGMENT.json --calibration SCORED.json .
 ```
+
+`SCORED.json` is what `--score` printed for this run. Without it the gate is closed:
+a judge whose error rate was never measured must not reach the record, and silence is
+not evidence that it was measured.
 
 The judgment is checked in full before anything is written, and one failure refuses the
 whole record: the diff hash must match the change actually in front of it — which is

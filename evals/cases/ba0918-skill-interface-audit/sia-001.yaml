@@ -9,10 +9,6 @@ files:
   - tree/skills/acme-notes/SKILL.md
   - tree/skills/acme-review/SKILL.md
 
-env:
-  SHELL_COMMANDS_AVAILABLE: 'no'
-  FILE_READ_AND_WRITE_AVAILABLE: 'yes'
-
 exercises:
   - skills/ba0918-skill-interface-audit/SKILL.md
 

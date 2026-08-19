@@ -733,6 +733,8 @@ def main(argv):
     accept = take("--accept")
     partial = take("--partial")
     note = take_value("--note")
+    semantic_path = take_value("--semantic")
+    calibration_path = take_value("--calibration")
     scenario_ids = take_all("--scenario")
     today = take_value("--today") or datetime.date.today().isoformat()
 
@@ -771,10 +773,36 @@ def main(argv):
             print(f"warning: unresolvable path: {path}", file=sys.stderr)
         return 2 if unresolved else 0
 
+    try:
+        return _run_update(root, state, skill, today, note, accept, partial,
+                           scenario_ids, semantic_path, calibration_path)
+    except LockError as exc:
+        print(exc, file=sys.stderr)
+        return 1
+
+
+def _run_update(root, state, skill, today, note, accept, partial, scenario_ids,
+                semantic_path, calibration_path):
     if accept:
         entry = update_accept(root, state, skill, today, note=note)
     elif partial:
-        refused = partial_update(root, state, skill, scenario_ids, today, note=note)
+        semantic = None
+        gate = None
+        if semantic_path:
+            with open(semantic_path, encoding="utf-8") as handle:
+                semantic = json.load(handle)
+            # No calibration evidence means the gate is closed. A judge whose error
+            # rate was never measured must not reach the record, and silence is not
+            # evidence that it was measured.
+            gate = "no calibration evidence was supplied for the judge"
+            if calibration_path:
+                with open(calibration_path, encoding="utf-8") as handle:
+                    scored = json.load(handle)
+                gate = scored.get("reason") if scored.get("gate") != "open" else None
+                if gate is None and scored.get("gate") != "open":
+                    gate = "the calibration did not open the gate"
+        refused = partial_update(root, state, skill, scenario_ids, today, note=note,
+                                 semantic=semantic, gate_reason=gate)
         if refused:
             for scenario_id, reason in refused:
                 print(f"cannot carry {scenario_id}: {reason}", file=sys.stderr)
