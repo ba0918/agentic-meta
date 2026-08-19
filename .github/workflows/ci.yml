@@ -52,25 +52,18 @@ jobs:
       # CI never runs gen. Its job is detecting a tree that disagrees with its
       # lock, not resolving the disagreement.
       #
-      # The repository root is checked alongside the fixture trees. The skills
-      # under skills/ carry vendored copies of the contracts in contracts/, and
-      # nothing else in this workflow would notice a copy drifting from its
-      # canonical text.
-      - name: Verify the fixture trees and the repository root against their locks
-        run: |
-          bun ./node_modules/.bin/agentic-skill-vendor verify --root .fixtures/skillset-alpha
-          bun ./node_modules/.bin/agentic-skill-vendor verify --root .fixtures/skillset-beta
-          bun ./node_modules/.bin/agentic-skill-vendor verify --root .
+      # The skills under skills/ carry vendored copies of the contracts in
+      # contracts/, and nothing else in this workflow would notice a copy
+      # drifting from its canonical text.
+      - name: Verify the repository root against its lock
+        run: bun ./node_modules/.bin/agentic-skill-vendor verify --root .
 
       # This runs before the Python suites below, not after. lint-selfcontain
       # reads the working tree, and pytest writes .pyc files under
       # skills/*/scripts/__pycache__/ whose byte content the lint reports as
       # absolute-path violations.
-      - name: Lint the fixture trees and the repository root for self-containment
-        run: |
-          bun ./node_modules/.bin/agentic-skill-vendor lint-selfcontain --root .fixtures/skillset-alpha
-          bun ./node_modules/.bin/agentic-skill-vendor lint-selfcontain --root .fixtures/skillset-beta
-          bun ./node_modules/.bin/agentic-skill-vendor lint-selfcontain --root .
+      - name: Lint the repository root for self-containment
+        run: bun ./node_modules/.bin/agentic-skill-vendor lint-selfcontain --root .
 
       # plugin.json declares the version; marketplace.json and package.json
       # repeat it for the routes that read them, so both can only ever follow.
@@ -91,9 +84,8 @@ jobs:
       # The plugin manifest is not the only way these skills reach a consumer:
       # the copy routes search the tree for skills/ directories of their own.
       # This step is what notices a skill such a route would pick up but the
-      # Agent Skills specification rejects — the condition the .fixtures/ layout
-      # exists to keep out of the distributable surface. A violating tree exits
-      # non-zero here; a clean one is silent.
+      # Agent Skills specification rejects. A violating tree exits non-zero
+      # here; a clean one is silent.
       #
       # `gh skill` is documented as a preview command, subject to change without
       # notice. It is a step of its own so a change on that side can be dropped
