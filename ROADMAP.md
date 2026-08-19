@@ -15,7 +15,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · 🔁 recurring gate
 | 2 | Contrast pilots | Port `trigger-eval` and `skill-interface-audit` through the machinery | ✅ |
 | G | Gate | Re-evaluate remaining ports with pilot measurements | 🔁 |
 | 3a | Tuning harness | Port `empirical-prompt-tuning` | ✅ |
-| 3b | Regression harness | Port `skill-regression` (design open — see below) | ⬜ |
+| 3b | Regression harness | Port `skill-regression`, redesigned around a root lock and a sized run | ✅ |
 | 4 | Improver | Port `skill-improve` (depends on harnesses; workflow delegation stripped) | ⬜ |
 | 5 | Auditor | Port `context-audit` (observed read-only since wave 1) | ⬜ |
 
@@ -43,7 +43,9 @@ consumes it now instead of owning it.
 - [x] Synthetic fixtures: `skillset-alpha`, `skillset-beta`, both exercising the passing
       path. The fixtures that exercised the machinery's own failure modes were retired
       in the split, leaving the test suite in the tool's repository as the only
-      thing that proves `verify` and `lint-selfcontain` can still detect a violation
+      thing that proves `verify` and `lint-selfcontain` can still detect a violation.
+      **Retired entirely in wave 3b** — their only realised use was running the tool's
+      own commands, which belongs to that tool
 - [x] CI workflow: frozen install, the tool's self-test, then `verify` +
       `lint-selfcontain` over both fixture trees. No remote is configured yet, so the
       workflow has never run on Actions — only the local command runs are verified
@@ -148,34 +150,48 @@ session model, only one iteration ran, and the executor was handed `SKILL.md` al
 the `references/` beside it. The Gate below inherits the first of those, which wave 2 also
 left open.
 
-### Wave 3b — Regression harness ⬜
+### Wave 3b — Regression harness ✅
 
-- [ ] Port `skill-regression` as `ba0918-skill-regression`
+- [x] Port `skill-regression` as `ba0918-skill-regression`
 
-Split out of wave 3 because three design questions have to be settled before the port, and
-none of them is answered by applying the existing triage. Dropping the skill, or porting it
-with features removed, is not among the options (decided 2026-08-19) — it is the closest
-thing the collection has to an end-to-end test for skills. The port redesigns instead.
+Split out of wave 3 because three design questions had to be settled before the port, and
+none of them was answered by applying the existing triage. Dropping the skill, or porting it
+with features removed, was not among the options (decided 2026-08-19) — it is the closest
+thing the collection has to an end-to-end test for skills. The port redesigned instead, and
+the three questions were settled in a sparring session on the same day.
 
-1. **Writing into the target tree.** capture writes `fixtures.json` into the target's own
-   skill directory and keeps a ledger the target repository's CI reads, while
-   `fixture-contract` states that an instrument never writes into the target tree. In the
-   source collection the instrument and its target were the same repository, so the two
-   never met; here the target is arbitrary and they collide. The ledger's value is precisely
-   that it is committed to the target and gates that repository's CI, so refusing the write
-   outright removes the gate.
-2. **Two meanings of "fixture".** `fixture-contract` uses the word for a synthetic *skill
-   tree* an instrument runs against; skill-regression uses it for a *scenario plus a
-   requirements checklist*. Both land in this repository at once.
-3. **What reverse dependency lookup is still for.** The machinery exists to catch one shared
-   contract silently changing the behaviour of a dozen skills that reference it. Here
-   contracts are expanded into every skill that declares them, so such a change already shows
-   up as a direct edit inside each skill. The mechanism still has to work for target trees
-   that share files, but its value proposition is not the one it was built for.
+1. **Writing into the target tree.** Settled by moving every asset out of the skill under
+   test. Scenarios live at `evals/cases/<skill>/`, the files they stage at
+   `evals/inputs/<skill>/`, and the verification record at `regression-lock.json` in the
+   repository root — the position a lock file occupies, and one an update that reinstalls
+   the skill cannot overwrite. Nothing is written inside a skill directory, so a scenario
+   can no longer make its own skill stale, and copy-route installers no longer ship test
+   material to consumers. The `fixture-contract` clause was amended to separate a run's own
+   output, still forbidden, from an asset the operator authors after a run has finished.
+2. **Two meanings of "fixture".** Settled by retiring the synthetic skill trees. Their only
+   realised use was running the vendoring tool's own commands, which belongs to that tool;
+   the instrument acceptance they were built for was never once performed. Acceptance now
+   runs against real skill repositories, and the word means one thing.
+3. **What reverse dependency lookup is still for.** Kept, and confirmed by measurement:
+   running it here shows a change to the canonical text of a contract affecting no skill at
+   all, because contracts are expanded into each skill and the copies are what sits on a
+   surface. For a target tree that shares files between skills — which an arbitrary one may
+   — the mechanism works as it always did.
 
-Its instance state does not port: `ledger.json` is the source collection's own verification
-record. The calibration corpus does — it is what proves the judging model can still tell an
-affected scenario from an unaffected one.
+Beyond the port, the run acquired something the source never had. Its own text calls rerun
+cost the root problem, yet nothing anywhere recorded what a run cost. A batch is now sized
+before it starts, a scenario with no measurement runs alone and reports before the batch
+goes on, and a ceiling stops a runaway. Cost history and judge calibration are facts about
+the environment that produced them, so neither is committed.
+
+Being stale now asks for a recorded judgment rather than a rerun: the source's "when in
+doubt, run" gave whoever demanded a run no share of its cost, while its red flag punished
+the acceptance that was the only cheap answer. Both are gone.
+
+Its instance state did not port: the source's own verification record is its own. The
+calibration corpus did — it is what proves a judging model can still tell an affected
+scenario from an unaffected one, and it measures the model rather than any target, so it
+travels with the instrument.
 
 ### Wave 4 — Improver ⬜
 

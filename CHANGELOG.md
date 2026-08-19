@@ -24,6 +24,14 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   convergence functions say improvement has plateaued. The verdict is computed, never judged
   by whoever is doing the tuning. It carries its own `LICENSE`: the skill derives from
   github.com/mizchi/skills and the original copyright notice travels with it.
+- `ba0918-skill-regression` — a regression harness for skills. It keeps the pass criteria a
+  skill was tuned against as scenario files beside the repository, and when a `SKILL.md` or a
+  shared contract changes it re-runs only the scenarios that change actually reaches. A lock
+  at the repository root records what was verified against which content, so editing one
+  shared contract can no longer silently change the behaviour of every skill citing it.
+  Every batch is sized before it starts and stops after the first scenario it has no
+  measurement for, and a record going stale asks for a recorded judgment rather than a
+  rerun.
 - The contracts these skills are bound to, canonical in `contracts/` and expanded into each
   skill that declares one: `fixture-contract` (how an instrument finds skills in a tree it
   did not write, what it may read while doing so, and where it may write its output),
