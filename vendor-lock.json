@@ -1,5 +1,8 @@
 {
   "dependencies": {
+    "ba0918-empirical-prompt-tuning": [
+      "fixture-contract"
+    ],
     "ba0918-skill-interface-audit": [
       "fix-action-taxonomy",
       "fixture-contract",
