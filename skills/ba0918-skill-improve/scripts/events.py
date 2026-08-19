@@ -27,11 +27,32 @@ ROLE_ASSISTANT = "assistant"
 TURN_ROLES = (ROLE_USER, ROLE_ASSISTANT)
 
 
+def _reject_zoneless(at: datetime.datetime, subject: str) -> None:
+    """Refuse a time that carries no zone, naming what the time belongs to."""
+    if at.tzinfo is None or at.tzinfo.utcoffset(at) is None:
+        raise ValueError(f"{subject} time must carry a zone")
+
+
 @dataclasses.dataclass(frozen=True)
 class UserText:
-    """One utterance by the operator, as written."""
+    """One utterance by the operator, as written, and when it was written.
+
+    The utterance carries its own time because the prompt line this skill hands to
+    the trigger evaluation fixes a timestamp to the utterance itself. Reading that
+    timestamp off the preceding turn instead would make the pairing an implicit
+    dependency on event order, so an adapter that reorders or omits a turn would
+    quietly attach the wrong time to an utterance.
+
+    The stores record time differently — one as integer milliseconds, the others as
+    ISO 8601 strings — so a missing zone is refused here rather than left to each
+    adapter to notice, which is the same reason Turn refuses one.
+    """
 
     text: str
+    at: datetime.datetime
+
+    def __post_init__(self):
+        _reject_zoneless(self.at, "utterance")
 
 
 @dataclasses.dataclass(frozen=True)
@@ -75,8 +96,7 @@ class Turn:
     def __post_init__(self):
         if self.role not in TURN_ROLES:
             raise ValueError(f"not a turn role: {self.role!r}")
-        if self.at.tzinfo is None or self.at.tzinfo.utcoffset(self.at) is None:
-            raise ValueError("turn time must carry a zone")
+        _reject_zoneless(self.at, "turn")
 
 
 @dataclasses.dataclass(frozen=True)

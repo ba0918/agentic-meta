@@ -41,7 +41,14 @@ class TestNormalizedEventVocabulary(unittest.TestCase):
 
 class TestUserText(unittest.TestCase):
     def test_it_carries_the_body_of_the_utterance(self):
-        self.assertEqual(events.UserText(text="/improve please").text, "/improve please")
+        self.assertEqual(events.UserText(text="/improve please", at=AT).text, "/improve please")
+
+    def test_it_records_when_the_utterance_was_made(self):
+        self.assertEqual(events.UserText(text="/improve please", at=AT).at, AT)
+
+    def test_it_refuses_a_time_carrying_no_zone(self):
+        with self.assertRaises(ValueError):
+            events.UserText(text="/improve please", at=datetime.datetime(2026, 8, 19, 12, 0))
 
 
 class TestSkillInvocation(unittest.TestCase):
