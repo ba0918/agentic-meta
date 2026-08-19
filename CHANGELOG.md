@@ -19,8 +19,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   finding carries a patch candidate, and none is ever applied automatically.
 - The contracts both skills are bound to, canonical in `contracts/` and expanded into each
   skill that declares one: `fixture-contract` (how an instrument finds skills in a tree it
-  did not write, and where it may write its output), `severity-and-verdicts` and
-  `fix-action-taxonomy` (the vocabulary a finding is reported in).
+  did not write, what it may read while doing so, and where it may write its output),
+  `severity-and-verdicts` and `fix-action-taxonomy` (the vocabulary a finding is reported
+  in). An instrument bound to `fixture-contract` reads its own directory, the tree it
+  measures and its own output area — anything else takes an explicit grant from the run
+  that invoked it.
 - `.claude-plugin/` metadata, which installs both skills together as the plugin
   `ba0918-meta`.
 
