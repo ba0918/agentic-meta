@@ -1,0 +1,11 @@
+{
+  "id": "mf-ord-005",
+  "expected": "must-flag",
+  "mutation": "reorder",
+  "before": "3. **First run**: run every scenario and confirm that all of them pass\n4. **Record in the ledger**: `--update <skill>`\n",
+  "after": "3. **Record in the ledger**: `--update <skill>`\n4. **First run**: run every scenario and confirm that all of them pass\n",
+  "requirements": [
+    "初回実走で全シナリオの合格を確認してから資産化している",
+    "落ちる fixture をそのまま資産化していない"
+  ]
+}

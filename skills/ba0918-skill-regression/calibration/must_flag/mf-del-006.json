@@ -1,0 +1,11 @@
+{
+  "id": "mf-del-006",
+  "expected": "must-flag",
+  "mutation": "deletion",
+  "before": "| **BLOCK** | Critical implementation issues detected | Fix before proceeding |\n| **ESCALATE** | A finding requires changing an AGREED ledger row | Escalate to brainstorm |\n",
+  "after": "| **BLOCK** | Critical implementation issues detected | Fix before proceeding |\n",
+  "requirements": [
+    "仕様の不足をレビュー内で独断で埋めず差し戻している",
+    "判定値を規定の語彙から選んでいる"
+  ]
+}

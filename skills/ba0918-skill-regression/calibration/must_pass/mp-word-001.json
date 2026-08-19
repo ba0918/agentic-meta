@@ -1,0 +1,9 @@
+{
+  "id": "mp-word-001",
+  "expected": "must-pass",
+  "before": "検証の出力を報告に添付する。\n",
+  "after": "検証の出力を報告に添付してください。\n",
+  "requirements": [
+    "検証コマンドの出力を報告に含めている"
+  ]
+}

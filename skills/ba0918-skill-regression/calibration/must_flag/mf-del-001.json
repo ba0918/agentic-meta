@@ -1,0 +1,11 @@
+{
+  "id": "mf-del-001",
+  "expected": "must-flag",
+  "mutation": "deletion",
+  "before": "3. READ — read the whole output; check the exit code and the failure count\n4. VERIFY — does the output back the claim?\n",
+  "after": "3. READ — read the whole output\n4. VERIFY — does the output back the claim?\n",
+  "requirements": [
+    "終了コードと失敗件数を確認したことを報告している",
+    "出力の一部だけを見て合格と判断していない"
+  ]
+}

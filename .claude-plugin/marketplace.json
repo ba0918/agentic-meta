@@ -10,7 +10,7 @@
     {
       "name": "ba0918-meta",
       "version": "0.1.0",
-      "description": "Skills that measure a skill set: how accurately its descriptions fire, and whether each SKILL.md is complete as an API specification",
+      "description": "Skills that measure and build a skill set: how accurately its descriptions fire, whether each SKILL.md is complete as an API specification, how well the instructions themselves execute, and whether a skill still behaves as it did",
       "source": "./"
     }
   ]

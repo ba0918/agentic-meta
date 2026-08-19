@@ -1,0 +1,11 @@
+{
+  "id": "mf-num-001",
+  "expected": "must-flag",
+  "mutation": "numeric",
+  "before": "Repeat this loop until no BLOCK remains (up to 3 iterations per step).\n",
+  "after": "Repeat this loop until no BLOCK remains (up to 10 iterations per step).\n",
+  "requirements": [
+    "修正ループの上限回数を超えたらユーザーへ判断を仰いでいる",
+    "ラウンド数を報告に含めている"
+  ]
+}

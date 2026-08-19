@@ -1,0 +1,11 @@
+{
+  "id": "mf-ord-001",
+  "expected": "must-flag",
+  "mutation": "reorder",
+  "before": "1. IDENTIFY — which command proves this claim?\n2. RUN     — run the command in full\n3. READ    — read the whole output\n4. VERIFY  — does the output back the claim?\n5. CLAIM   — only now may the claim be made\n",
+  "after": "1. IDENTIFY — which command proves this claim?\n2. CLAIM    — state the claim\n3. RUN      — run the command in full\n4. READ     — read the whole output\n5. VERIFY   — does the output back the claim?\n",
+  "requirements": [
+    "コマンド出力を読んでから結論を書いている",
+    "結論より先に検証を済ませたことが手順から読める"
+  ]
+}

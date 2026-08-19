@@ -1,0 +1,9 @@
+{
+  "id": "mp-word-008",
+  "expected": "must-pass",
+  "before": "A carry-over is valid by induction on the previous entry.\n",
+  "after": "A carry-over is valid by induction on the previous entry (the entry immediately\nbefore this update).\n",
+  "requirements": [
+    "持ち越しの根拠を直前エントリとの帰納で説明している"
+  ]
+}

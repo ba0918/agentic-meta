@@ -1,0 +1,9 @@
+{
+  "id": "mp-word-006",
+  "expected": "must-pass",
+  "before": "The declaration is a complete calim about the files a scenario reads.\n",
+  "after": "The declaration is a complete claim about the files a scenario reads.\n",
+  "requirements": [
+    "宣言が完全主張であることを踏まえて持ち越しを判断している"
+  ]
+}

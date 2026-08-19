@@ -1,0 +1,11 @@
+{
+  "id": "mf-neg-002",
+  "expected": "must-flag",
+  "mutation": "negation",
+  "before": "- **A declaration that misses the surface is discarded.** If any declared path is\n  absent from the current behavior surface, the whole claim is distrusted.\n",
+  "after": "- **A declaration that misses the surface is still honored.** A declared path that is\n  absent from the current behavior surface is simply skipped.\n",
+  "requirements": [
+    "面に存在しないパスを宣言したシナリオを常時再走の側へ倒している",
+    "宣言の取り違えが持ち越しを買わないことを説明できる"
+  ]
+}

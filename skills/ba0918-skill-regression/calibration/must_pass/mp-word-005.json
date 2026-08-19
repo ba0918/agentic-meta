@@ -1,0 +1,9 @@
+{
+  "id": "mp-word-005",
+  "expected": "must-pass",
+  "before": "Use a throwaway worktree for scenarios that edit files (e.g. capture, commit).\n",
+  "after": "Use a throwaway worktree for scenarios that edit files (for example capture and commit).\n",
+  "requirements": [
+    "ファイルを編集するシナリオを使い捨て worktree で隔離している"
+  ]
+}

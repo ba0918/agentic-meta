@@ -1,0 +1,9 @@
+{
+  "id": "mp-hist-001",
+  "expected": "must-pass",
+  "before": "Resolve the store before reading or writing artifacts.\nPaths are relative to the repository root.\n",
+  "after": "Resolve the store before reading or writing artifacts.\nPaths are relative to the repository root (not to the current directory).\n",
+  "requirements": [
+    "アーティファクトのパスをリポジトリルート基準で解決している"
+  ]
+}

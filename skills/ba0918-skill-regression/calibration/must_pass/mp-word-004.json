@@ -1,0 +1,9 @@
+{
+  "id": "mp-word-004",
+  "expected": "must-pass",
+  "before": "Read the output check the exit code and report the result.\n",
+  "after": "Read the output, check the exit code, and report the result.\n",
+  "requirements": [
+    "終了コードを確認して報告している"
+  ]
+}

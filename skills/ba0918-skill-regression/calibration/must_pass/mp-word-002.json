@@ -1,0 +1,9 @@
+{
+  "id": "mp-word-002",
+  "expected": "must-pass",
+  "before": "Do not proceed without evidence.\n",
+  "after": "Never proceed without evidence.\n",
+  "requirements": [
+    "証拠なしに完了を宣言していない"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "id": "mp-hist-006",
+  "expected": "must-pass",
+  "before": "Record accepted WARN findings with their rationale.\n",
+  "after": "Record accepted WARN findings together with the reason they were accepted.\n",
+  "requirements": [
+    "受け入れた WARN 指摘の理由を記録している"
+  ]
+}

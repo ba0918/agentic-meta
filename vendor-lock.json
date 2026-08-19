@@ -8,6 +8,9 @@
       "fixture-contract",
       "severity-and-verdicts"
     ],
+    "ba0918-skill-regression": [
+      "fixture-contract"
+    ],
     "ba0918-trigger-eval": [
       "fixture-contract"
     ]
@@ -17,7 +20,7 @@
       "digest": "sha256:d0d8b0b855c186d7e5905c4566cce5608b18237eef301398afd6356f340b2e6a"
     },
     "fixture-contract": {
-      "digest": "sha256:9d51e9e8332f181163d581629b03313cbea2c05e7b3640ccd93c08f0fdb1e5d9"
+      "digest": "sha256:fa6437ecd9213e0c5d34a6e6c2591ec4622f66c71b60ff6ed1cd303e6dc5176b"
     },
     "severity-and-verdicts": {
       "digest": "sha256:bf8018979eb9ea2f51fb206bf85f1a1b952042706aad532406358bf3e50dfc52"

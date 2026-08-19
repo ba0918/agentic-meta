@@ -26,13 +26,14 @@ for the routes that read them; both are followers, never a second source of the 
 |---|---|
 | `skills/` | The skills themselves, one directory each. A skill is self-contained: the contracts it declares are expanded under its own `references/vendor/`, and its Python scripts sit beside their tests in `scripts/` |
 | `contracts/` | The output-contract conventions (`contracts/README.md`) and the canonical text of each contract: `fixture-contract`, `severity-and-verdicts`, `fix-action-taxonomy` |
+| `evals/` | Measurement assets for the skills here: `cases/<skill>/` holds one scenario per file and `inputs/<skill>/` the files a scenario stages. Outside `skills/`, so they are committed but never shipped to anyone installing a skill |
+| `regression-lock.json` | What `ba0918-skill-regression` last verified, and against which content. A lock file at the root, like `vendor-lock.json` beside it |
 | `vendor-lock.json` | Which contract text each skill has currently adopted. Derived — the tool's `gen` rewrites it from the canonical text; it is never edited by hand |
-| `.fixtures/` | Synthetic skill trees the machinery runs against; `skillset-alpha` and `skillset-beta` differ in structure, vocabulary and log format on purpose. The leading dot keeps them out of the copy routes' default discovery: they hold deliberately malformed skills, which a distribution surface must not carry |
 | `.claude-plugin/` | Distribution metadata: `plugin.json`, which declares the canonical version, and `marketplace.json`, which follows it |
 | `.opencode/` | The OpenCode route's plugin entry. It registers `skills/` with the runtime and does nothing else |
 | `docs/spec/` | Design decisions (Japanese) |
 | `package.json`, `bun.lock` | The vendoring tool's version pin, the OpenCode route's entry declaration (`main`, `files`), and one of the two version followers |
-| `.github/workflows/ci.yml` | CI: frozen install, the tool's self-test, then `verify` + `lint-selfcontain` over both fixture trees and the repository root, the version-declaration check, the Agent Skills specification validation, and the skills' script suites |
+| `.github/workflows/ci.yml` | CI: frozen install, the tool's self-test, then `verify` + `lint-selfcontain` over the repository root, the version-declaration check, the Agent Skills specification validation, and the skills' script suites |
 | `lefthook.yml` | Local pre-push gates mirroring CI (activated per clone with `lefthook install`) |
 
 ## Commands
@@ -49,7 +50,7 @@ for the routes that read them; both are followers, never a second source of the 
 | Check the version declarations agree | `c=$(jq -r .version .claude-plugin/plugin.json); test "$c" = "$(jq -r '.plugins[0].version' .claude-plugin/marketplace.json)" && test "$c" = "$(jq -r .version package.json)"` |
 | Enable pre-push hooks (once per clone) | `lefthook install` |
 
-`<tree>` is `.` for this repository itself as well as either fixture tree. Run the lint before
+`<tree>` is `.` — this repository is the only tree the tool is pointed at. Run the lint before
 the script suites, never after: the lint reads the working tree rather than the index, and the
 `.pyc` files pytest leaves under `skills/*/scripts/__pycache__/` are reported as absolute-path
 violations. `PYTHONDONTWRITEBYTECODE=1` belongs to the documented command for the same reason —
@@ -68,6 +69,15 @@ pinned install, and says so plainly when that install is missing.
   non-English `SKILL.md` an audit rule has to read. That data keeps its own language,
   because translating it deletes the coverage it exists for. The comments and docstrings
   around it are English like everything else.
+- Placement of measurement assets: nothing that measures a skill is written inside that
+  skill's directory. Scenarios and their input files live under `evals/`, and the
+  verification record is a lock at the repository root. Two things follow from the
+  placement rather than from anyone's care: a scenario cannot make its own skill look
+  unverified by being edited, and the copy routes, which search `skills/` and nothing else,
+  never ship test material to someone who only wanted the skill. Facts about the
+  environment a measurement ran in — what it cost, whether a judging model passed
+  calibration — are not committed at all, since the repository is cloned into other
+  environments where they would not hold.
 - Licensing: the repository is MIT and `LICENSE` at the root covers it. A skill derived from
   someone else's work carries an additional `LICENSE` in its own directory, holding that
   author's copyright notice — MIT requires the notice to travel with every copy, and a skill

@@ -1,0 +1,11 @@
+{
+  "id": "mf-del-002",
+  "expected": "must-flag",
+  "mutation": "deletion",
+  "before": "A dependency recorded as `MISSING` in the previous entry blocks the carry-over:\na broken reference is not a foundation to induct from.\n`fixtures.json` is handled through `scenario_sha256`.\n",
+  "after": "`fixtures.json` is handled through `scenario_sha256`.\n",
+  "requirements": [
+    "前回検証時に実体の無かった依存を持つシナリオを持ち越していない",
+    "持ち越し不可の理由を列挙している"
+  ]
+}

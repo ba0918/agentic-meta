@@ -1,0 +1,11 @@
+{
+  "id": "mp-gray-001",
+  "expected": "must-pass",
+  "before": "- Run the tests and confirm they all pass.\n- Include the command output as evidence.\n\nRemember to run the tests and confirm they all pass before reporting.\n",
+  "after": "- Run the tests and confirm they all pass.\n- Include the command output as evidence.\n",
+  "requirements": [
+    "テストの実行結果を証拠として報告に含めている"
+  ],
+  "label": "gray-zone",
+  "notes": "同一文書内で 2 回述べられていた同じ指示のうち後段の 1 つを削除した。残った箇条書きが同じ内容を過不足なく述べているため、維持者裁定は「影響なし」（2026-08-05）。"
+}

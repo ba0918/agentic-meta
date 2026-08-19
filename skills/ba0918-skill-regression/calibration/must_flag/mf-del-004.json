@@ -1,0 +1,11 @@
+{
+  "id": "mf-del-004",
+  "expected": "must-flag",
+  "mutation": "deletion",
+  "before": "Record with `--note \"<one line>\"` the path the executor took and any harness\nconstraints it worked around.\nFor a failing skill, do not advance the ledger.\n",
+  "after": "For a failing skill, do not advance the ledger.\n",
+  "requirements": [
+    "台帳更新時に run の性質を --note で残している",
+    "実走の由来が台帳から読める"
+  ]
+}

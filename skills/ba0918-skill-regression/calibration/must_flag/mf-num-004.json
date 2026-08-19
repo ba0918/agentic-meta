@@ -1,0 +1,11 @@
+{
+  "id": "mf-num-004",
+  "expected": "must-flag",
+  "mutation": "numeric",
+  "before": "The behavior surface picks up files referenced **one hop** away from the skill's\nown .md files.\n",
+  "after": "The behavior surface picks up files referenced **three hops** away from the skill's\nown .md files.\n",
+  "requirements": [
+    "影響範囲の算出が参照 1 段先で止まっている",
+    "面に含めたファイルの根拠を説明できる"
+  ]
+}

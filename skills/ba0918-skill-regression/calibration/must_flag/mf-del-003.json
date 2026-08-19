@@ -1,0 +1,11 @@
+{
+  "id": "mf-del-003",
+  "expected": "must-flag",
+  "mutation": "deletion",
+  "before": "- **Required**: Dispatch the delegations **concurrently in one batch**; issuing them\n  one turn at a time serializes execution\n- **Cost**: N Agent contexts\n",
+  "after": "- **Cost**: N Agent contexts\n",
+  "requirements": [
+    "複数の委譲を 1 メッセージ内に並べて同時発行している",
+    "並行実行したことを報告に含めている"
+  ]
+}

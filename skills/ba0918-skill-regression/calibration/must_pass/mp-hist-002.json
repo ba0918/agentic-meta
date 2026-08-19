@@ -1,0 +1,9 @@
+{
+  "id": "mp-hist-002",
+  "expected": "must-pass",
+  "before": "Sensors include static_collisions, coverage drift, and translation damage.\n",
+  "after": "Sensors include coverage drift and translation damage.\n(static_collisions was dropped from the examples; the sensor list itself is\ndefined by each loop's configuration, not by this sentence.)\n",
+  "requirements": [
+    "ループのセンサー構成を設定側から読み取っている"
+  ]
+}

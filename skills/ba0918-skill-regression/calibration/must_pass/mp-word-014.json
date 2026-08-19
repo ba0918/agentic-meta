@@ -1,0 +1,9 @@
+{
+  "id": "mp-word-014",
+  "expected": "must-pass",
+  "before": "An undeclared scenario merely costs a rerun; a wrong declaration silently skips one.\n",
+  "after": "An undeclared scenario merely costs a rerun.\nA wrong declaration silently skips one.\n",
+  "requirements": [
+    "確証が無いときは宣言を書かずに残している"
+  ]
+}

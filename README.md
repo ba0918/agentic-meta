@@ -1,8 +1,9 @@
 # agentic-meta
 
-Skills that measure a skill set. They answer two questions an author cannot answer by
-reading their own work: does each skill fire when it should, and does each `SKILL.md`
-say enough to be executed correctly?
+Skills that measure a skill set. They answer the questions an author cannot answer by
+reading their own work: does each skill fire when it should, does each `SKILL.md` say
+enough to be executed correctly, do the instructions themselves survive contact with an
+agent, and does a skill still behave the way it did before the last edit?
 
 - **`ba0918-trigger-eval`** measures how accurately a set of skills fires. It judges from
   the descriptions alone — the model's field of view at real triggering time — and reports
@@ -12,8 +13,17 @@ say enough to be executed correctly?
   specification. It reports what the contract leaves out: undeclared side effects,
   completion conditions that cannot be verified, undefined failure handling. Every finding
   carries a patch candidate, and none is ever applied automatically.
+- **`ba0918-empirical-prompt-tuning`** measures and improves the text of an instruction.
+  It runs the instruction under a separation of roles where the one doing the work never
+  sees the pass criteria and the one grading never sees the instruction, classifies where
+  the executor got stuck, and repeats until improvement plateaus. The verdict is computed,
+  not judged by whoever is doing the tuning.
+- **`ba0918-skill-regression`** keeps the criteria a skill was tuned against as scenarios,
+  and re-runs only the ones a change actually reaches. A lock records what was verified
+  against which content, so editing one shared contract cannot silently change every skill
+  citing it. Every batch is sized before it starts.
 
-Both take any skill directory as their target, not only this repository's.
+All of them take any skill directory as their target, not only this repository's.
 
 ## Install
 
@@ -75,7 +85,7 @@ APM warns when a dependency is unpinned — pin a release tag
 
 Skills are copied into the project at install time, and updates are pulled by running the
 command again. Naming one skill installs that skill alone; naming the repository installs
-both. Each command places them where its agent setting points: `gh skill` asks which agent
+all of them. Each command places them where its agent setting points: `gh skill` asks which agent
 when none is named, while `npx skills` defaults to the shared `.agents/skills/`.
 
 ```
@@ -83,10 +93,10 @@ gh skill install ba0918/agentic-meta ba0918-trigger-eval --agent claude-code
 npx skills add ba0918/agentic-meta --skill ba0918-trigger-eval
 ```
 
-One caveat specific to this route: do not pass an option that widens discovery past its
-default (`gh skill --allow-hidden-dirs`, `npx skills --full-depth`). This repository keeps
-deliberately malformed skills under `.fixtures/` as test material for the two instruments,
-and a widened search installs those alongside the real ones.
+What a copy route installs is the contents of `skills/` and nothing else. The material
+these skills are measured with — scenarios, their input files, the verification lock —
+lives outside that directory on purpose, so it is committed here without reaching anyone
+who only wanted the skills.
 
 ## License
 

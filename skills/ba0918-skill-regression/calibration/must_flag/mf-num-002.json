@@ -1,0 +1,11 @@
+{
+  "id": "mf-num-002",
+  "expected": "must-flag",
+  "mutation": "numeric",
+  "before": "2-3 scenarios (1 median + 1-2 edge), 3-7 requirements each, and at least one\n`critical: true`\n",
+  "after": "1 scenario, 1-2 requirements each, and at least one `critical: true`\n",
+  "requirements": [
+    "fixture が 2 件以上のシナリオを持つ",
+    "各シナリオが 3 件以上の要件を持つ"
+  ]
+}
