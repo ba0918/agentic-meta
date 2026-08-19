@@ -331,27 +331,12 @@ class TestPeriod(unittest.TestCase):
             said = _of_kind(_events_of(root, since=CUTOFF), events.UserText)
             self.assertEqual([one.text for one in said], ["new"])
 
-    def test_a_file_last_written_before_the_period_is_dropped_before_it_is_opened(self):
-        with tempfile.TemporaryDirectory() as root:
-            stale = _write_session(root, "-w-notes", "stale.jsonl", [_message("user", "old")])
-            fresh = _write_session(root, "-w-notes", "fresh.jsonl", [_message("user", "new")])
-            stale_time = CUTOFF.timestamp() - 86400
-            os.utime(stale, (stale_time, stale_time))
-            kept = store_claude.files_written_since(
-                [store_claude.pathlib.Path(stale), store_claude.pathlib.Path(fresh)], CUTOFF
-            )
-            self.assertEqual([one.name for one in kept], ["fresh.jsonl"])
-
     def test_a_file_left_out_by_its_write_time_contributes_nothing(self):
         with tempfile.TemporaryDirectory() as root:
             stale = _write_session(root, "-w-notes", "stale.jsonl", [_message("user", "old")])
             stale_time = CUTOFF.timestamp() - 86400
             os.utime(stale, (stale_time, stale_time))
             self.assertEqual(_events_of(root, since=CUTOFF), [])
-
-    def test_a_file_whose_write_time_cannot_be_read_is_kept_for_the_line_by_line_filter(self):
-        missing = store_claude.pathlib.Path(os.path.join("no-such-place", "a.jsonl"))
-        self.assertEqual(store_claude.files_written_since([missing], CUTOFF), [missing])
 
 
 class TestUndatedRecords(unittest.TestCase):
@@ -395,18 +380,6 @@ class TestContainment(unittest.TestCase):
             os.makedirs(directory)
             os.symlink(leaked, os.path.join(directory, "a.jsonl"))
             self.assertEqual(_events_of(root), [])
-
-    def test_a_directory_beside_the_root_is_not_read_as_part_of_it(self):
-        with tempfile.TemporaryDirectory() as parent:
-            root = os.path.join(parent, "projects")
-            sibling = os.path.join(parent, "projects-backup")
-            os.makedirs(root)
-            _write_session(sibling, "-w-notes", "a.jsonl", [_message("user", "leaked")])
-            self.assertIsNone(
-                store_claude.resolve_within(
-                    store_claude.pathlib.Path(sibling), store_claude.pathlib.Path(root)
-                )
-            )
 
     def test_a_missing_root_is_read_as_an_empty_store(self):
         with tempfile.TemporaryDirectory() as parent:

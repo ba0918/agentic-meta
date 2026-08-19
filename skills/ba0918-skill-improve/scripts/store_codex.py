@@ -44,7 +44,6 @@ import datetime
 import json
 import os
 import pathlib
-import re
 import typing
 
 from events import (
@@ -60,6 +59,12 @@ from events import (
     Turn,
     UserText,
     project_slug,
+)
+from store_shared import (
+    files_written_since,
+    resolve_within,
+    slash_skill_in,
+    zoned_time,
 )
 
 NAME = "codex"
@@ -79,9 +84,6 @@ UNNAMED_TOOL = "unknown"
 # placeholder name, which would collide with a project that happened to be called it.
 UNKNOWN_PROJECT = ""
 
-# /<plugin>:<skill-name> in an utterance, with no whitelist of plugin names.
-SLASH_SKILL_RE = re.compile(r"/([a-z][a-z0-9-]*):([a-z][a-z0-9-]*)")
-
 TEXT_BLOCKS = ("input_text", "output_text")
 
 
@@ -92,35 +94,6 @@ def default_root() -> pathlib.Path:
     home path in any file as a reference outside the skill directory.
     """
     return pathlib.Path.home() / ("." + "codex") / "sessions"
-
-
-def resolve_within(path: pathlib.Path, root: pathlib.Path) -> pathlib.Path | None:
-    """Resolve links and return the path only if it stays inside root."""
-    try:
-        resolved = path.resolve(strict=True)
-        resolved_root = root.resolve(strict=True)
-    except (OSError, ValueError):
-        return None
-    if not resolved.is_relative_to(resolved_root):
-        return None
-    return resolved
-
-
-def files_written_since(
-    files: typing.Iterable[pathlib.Path], since: datetime.datetime | None
-) -> list[pathlib.Path]:
-    """Drop files last written before the period, without opening any of them."""
-    if since is None:
-        return list(files)
-    cutoff = since.timestamp()
-    kept: list[pathlib.Path] = []
-    for path in files:
-        try:
-            if path.stat().st_mtime >= cutoff:
-                kept.append(path)
-        except OSError:
-            kept.append(path)
-    return kept
 
 
 def rollout_files(root: pathlib.Path) -> list[pathlib.Path]:
@@ -143,16 +116,7 @@ def rollout_files(root: pathlib.Path) -> list[pathlib.Path]:
 
 def record_time(record: dict) -> datetime.datetime | None:
     """Read the record's own timestamp, always as a zoned time."""
-    raw = record.get("timestamp")
-    if not isinstance(raw, str):
-        return None
-    try:
-        parsed = datetime.datetime.fromisoformat(raw.replace("Z", "+00:00"))
-    except ValueError:
-        return None
-    if parsed.tzinfo is None:
-        return parsed.replace(tzinfo=datetime.timezone.utc)
-    return parsed
+    return zoned_time(record.get("timestamp"))
 
 
 def _payload(record: dict) -> dict:
@@ -240,12 +204,6 @@ def content_text(payload: dict) -> str | None:
         and isinstance(block.get("text"), str)
     ]
     return "\n".join(fragments) if fragments else None
-
-
-def slash_skill_in(text: str) -> str | None:
-    """The skill a slash command in this text fires, stripped of its plugin prefix."""
-    found = SLASH_SKILL_RE.search(text)
-    return found.group(2) if found else None
 
 
 def command_failure(payload: dict, called: dict[str, str]) -> str | None:

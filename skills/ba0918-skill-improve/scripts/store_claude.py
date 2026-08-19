@@ -45,6 +45,12 @@ from events import (
     Turn,
     UserText,
 )
+from store_shared import (
+    files_written_since,
+    resolve_within,
+    slash_skill_in,
+    zoned_time,
+)
 
 NAME = "claude"
 
@@ -57,9 +63,6 @@ UNNAMED_TOOL = "unknown"
 
 SKILL_TOOL_NAMES = ("Skill", "skill")
 
-# /<plugin>:<skill-name> in an utterance, with no whitelist of plugin names.
-SLASH_SKILL_RE = re.compile(r"/([a-z][a-z0-9-]*):([a-z][a-z0-9-]*)")
-
 # "<plugin>:<skill-name>" or a bare "<skill-name>" in the Skill tool's input.
 SKILL_INPUT_RE = re.compile(r"^(?:([a-z][a-z0-9-]*):)?([a-z][a-z0-9-]*)$")
 
@@ -71,46 +74,6 @@ def default_root() -> pathlib.Path:
     home path in any file as a reference outside the skill directory.
     """
     return pathlib.Path.home() / ("." + "claude") / "projects"
-
-
-def resolve_within(path: pathlib.Path, root: pathlib.Path) -> pathlib.Path | None:
-    """Resolve links and return the path only if it stays inside root.
-
-    Containment is decided on the resolved paths by path components rather than by
-    string prefix: a directory beside the root whose name merely extends it shares
-    the prefix and would otherwise be read as part of the root.
-    """
-    try:
-        resolved = path.resolve(strict=True)
-        resolved_root = root.resolve(strict=True)
-    except (OSError, ValueError):
-        return None
-    if not resolved.is_relative_to(resolved_root):
-        return None
-    return resolved
-
-
-def files_written_since(
-    files: typing.Iterable[pathlib.Path], since: datetime.datetime | None
-) -> list[pathlib.Path]:
-    """Drop files last written before the period, without opening any of them.
-
-    A file untouched since before the period holds no record inside it, so its
-    contents are never loaded. A file whose write time cannot be read is kept: the
-    per-record filter downstream still applies, so keeping it costs a read, while
-    dropping it would silently lose a session.
-    """
-    if since is None:
-        return list(files)
-    cutoff = since.timestamp()
-    kept: list[pathlib.Path] = []
-    for path in files:
-        try:
-            if path.stat().st_mtime >= cutoff:
-                kept.append(path)
-        except OSError:
-            kept.append(path)
-    return kept
 
 
 def session_files(
@@ -149,16 +112,7 @@ def session_files(
 
 def record_time(record: dict) -> datetime.datetime | None:
     """Read the record's own timestamp, always as a zoned time."""
-    raw = record.get("timestamp")
-    if not isinstance(raw, str):
-        return None
-    try:
-        parsed = datetime.datetime.fromisoformat(raw.replace("Z", "+00:00"))
-    except ValueError:
-        return None
-    if parsed.tzinfo is None:
-        return parsed.replace(tzinfo=datetime.timezone.utc)
-    return parsed
+    return zoned_time(record.get("timestamp"))
 
 
 def _blocks(record: dict) -> list[dict]:
@@ -201,12 +155,6 @@ def utterance_of(record: dict) -> str | None:
     if not fragments:
         return None
     return "\n".join(fragments)
-
-
-def slash_skill_in(text: str) -> str | None:
-    """The skill a slash command in this text fires, stripped of its plugin prefix."""
-    found = SLASH_SKILL_RE.search(text)
-    return found.group(2) if found else None
 
 
 def _bare_skill_name(value: typing.Any) -> str | None:

@@ -25,7 +25,6 @@ import dataclasses
 import datetime
 import json
 import pathlib
-import re
 import sqlite3
 import typing
 
@@ -43,6 +42,7 @@ from events import (
     UserText,
     project_slug,
 )
+from store_shared import slash_skill_in
 
 NAME = "opencode"
 
@@ -55,9 +55,6 @@ MESSAGES_SQL = (
     "SELECT id, time_created, data FROM message WHERE session_id = ? ORDER BY time_created"
 )
 PARTS_SQL = "SELECT data FROM part WHERE message_id = ? ORDER BY time_created"
-
-# /<plugin>:<skill-name> in an utterance, with no whitelist of plugin names.
-SLASH_SKILL_RE = re.compile(r"/([a-z][a-z0-9-]*):([a-z][a-z0-9-]*)")
 
 SKILL_TOOL = "skill"
 ERROR_STATUS = "error"
@@ -133,12 +130,6 @@ def part_failure(part: dict) -> str | None:
         return None
     tool = part.get("tool")
     return tool if isinstance(tool, str) and tool else UNNAMED_TOOL
-
-
-def slash_skill_in(text: str) -> str | None:
-    """The skill a slash command in this text fires, stripped of its plugin prefix."""
-    found = SLASH_SKILL_RE.search(text)
-    return found.group(2) if found else None
 
 
 def _message_events(
