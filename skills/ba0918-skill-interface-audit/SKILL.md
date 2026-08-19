@@ -46,9 +46,10 @@ No command is created; being single-workflow, it needs no named entry point.
 
 1. Resolve `{target}`'s skill container by the layer order of [references/vendor/fixture-contract.md](references/vendor/fixture-contract.md), and build the target list. Narrow it if skill names were given as arguments
 2. Pass the resolved container to `static_checks.py` as `--skills-dir`. The script serves this phase only and reports what it could read; **anything it passed over is yours to state in the report**
-3. Also collect the files under each skill's `references/` as secondary targets
-4. Check whether the baseline file (`.agents/config/skill-interface-audit-baseline.json`) exists
-5. How the baseline is handled:
+3. A finding's `where` locates a file by directory basename; the skill set this run reports is keyed by the name resolved from frontmatter. Translate before judging completion — the two differ whenever a skill's declared name is not its directory name, and reading the basename as the identity turns that skill into a missing one
+4. Also collect the files under each skill's `references/` as secondary targets
+5. Check whether the baseline file (`.agents/config/skill-interface-audit-baseline.json`) exists
+6. How the baseline is handled:
    - **Auditing every skill with no baseline present**: present the first-run flow — (a) fix the current state as the baseline and present only new findings thereafter, or (b) the full report only (the baseline is not written)
    - **A single skill specified**: do not present the baseline first-run flow. Emit the full report. Write the baseline only when `--update-baseline` is explicit
 
