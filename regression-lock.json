@@ -1,0 +1,48 @@
+{
+  "coverage_exempt": {},
+  "skills": {
+    "ba0918-skill-interface-audit": {
+      "file_sha256": {
+        "skills/ba0918-skill-interface-audit/SKILL.md": "d469d891f3f5a26d65f224aa02819735a57751fa0e8249b1f52eb8e8ed328c3c",
+        "skills/ba0918-skill-interface-audit/references/authoring-principles.md": "993f8773182b8ed7f59d7d851c71d327210f444848a69aed69f8cde725f6e390",
+        "skills/ba0918-skill-interface-audit/references/positioning.md": "7f49c3c65c1ef3a9511fd978b694b30685864e13495fd34dc4ca923a21326ba1",
+        "skills/ba0918-skill-interface-audit/references/rule-catalog.md": "92a704f01e1a7ac0412c7c65e7429fc96e2a52952a8741291b81b2dde9aa3567",
+        "skills/ba0918-skill-interface-audit/references/vendor/fix-action-taxonomy.md": "13423cbf60274d899d186cca9d5a398f7a1b0e4e4456ec1a1631af7403592aa4",
+        "skills/ba0918-skill-interface-audit/references/vendor/fixture-contract.md": "00648ea748a846ba2415fab948c1bec09ee287e36717dcef43754d9ee3903f76",
+        "skills/ba0918-skill-interface-audit/references/vendor/severity-and-verdicts.md": "d779066bc837defd9f9a0e4ca000b474670cd9f83803584a2193a4fa9d62997e",
+        "skills/ba0918-skill-interface-audit/scripts/static_checks.py": "e27a4fd834e74bd716813ef4711b4fc268b3db9cf1d6a57bb57300b589553f68"
+      },
+      "note": "ran on the process-queue route with a small-tier executor; that backend refuses every shell call unless the operator's registry enables auto-approval, and a run without it produces nothing",
+      "result": "pass",
+      "scenarios": {
+        "sia-001": {
+          "result": "pass",
+          "scenario_sha256": "a7f866b1d573ecfbba181f3a9797109e2a0c24c23925235c3506cbaf975a2188",
+          "verified": "2026-08-19"
+        }
+      },
+      "structural_sha256": {
+        "skills/ba0918-skill-interface-audit/SKILL.md": "e86f11e7bdbfd0b349e29506e2fd8f61cea0c846857493433d2c759a1bfe7041",
+        "skills/ba0918-skill-interface-audit/references/authoring-principles.md": "6727fd5ece2eaf04f94c9c2215f79b4cf6ed4e741cef1a9bd67420f3bfbd1340",
+        "skills/ba0918-skill-interface-audit/references/positioning.md": "2257e3840b3bc1a34f66c52c8fd19776a94f30c97b7f34c0ed83ff89aed199c9",
+        "skills/ba0918-skill-interface-audit/references/rule-catalog.md": "0f858d23d78d2b622a39b9f5c31c0b139d5ef30a956e9fd2eb21bbd7c3c59aa1",
+        "skills/ba0918-skill-interface-audit/references/vendor/fix-action-taxonomy.md": "856194fb7a709fac953382e84ca7d1f62aba208f5bdb138a7d682e0bf6192d1f",
+        "skills/ba0918-skill-interface-audit/references/vendor/fixture-contract.md": "c79b37f86e65861109d4c73ded49023e6fdf2b32aebf1e78414ed302b69812fa",
+        "skills/ba0918-skill-interface-audit/references/vendor/severity-and-verdicts.md": "39d8b73eb32e23ee7a61e471879b44872f2cb7df191fbd3688ea9a7359f9eff1"
+      },
+      "surface": [
+        "skills/ba0918-skill-interface-audit/SKILL.md",
+        "skills/ba0918-skill-interface-audit/references/authoring-principles.md",
+        "skills/ba0918-skill-interface-audit/references/positioning.md",
+        "skills/ba0918-skill-interface-audit/references/rule-catalog.md",
+        "skills/ba0918-skill-interface-audit/references/vendor/fix-action-taxonomy.md",
+        "skills/ba0918-skill-interface-audit/references/vendor/fixture-contract.md",
+        "skills/ba0918-skill-interface-audit/references/vendor/severity-and-verdicts.md",
+        "skills/ba0918-skill-interface-audit/scripts/static_checks.py"
+      ],
+      "surface_sha256": "d6e315ec03cec949dcef4207e5c0856446a8afd076441b012a1fe1c05575c23f",
+      "verified": "2026-08-19"
+    }
+  },
+  "version": 1
+}
