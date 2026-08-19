@@ -1,6 +1,6 @@
 ---
 name: ba0918-trigger-eval
-description: A meta skill that mechanically measures a skill set's description firing accuracy (recall / precision / stability / confusion matrix) using a description-only judging subagent, identifies colliding pairs, and runs the description-rewrite then re-evaluation loop until it converges. It proves improvement with measured evidence (metric deltas, a holdout gate, and the Tier1-to-Tier2 divergence rate). The target can be this repository's skills/, any skill directory, or the user scope. Use when the user says "trigger-eval", "firing accuracy", "measure skill firing", "trigger evaluation", "rewrite the descriptions", or "show me skill collisions with a confusion matrix". It is the sister skill of `ba0918-empirical-prompt-tuning` (which covers the quality of body execution) and measures the selection layer, description to firing.
+description: A meta skill that mechanically measures how accurately a skill set's descriptions fire (recall / precision / stability / confusion matrix) by judging from the descriptions alone, identifies colliding pairs, and runs the rewrite then re-evaluation loop to convergence. The target is this repository's skills/, any skill directory, or the user scope. Use when the user says "trigger-eval", "firing accuracy", "measure skill firing", "trigger evaluation", "rewrite the descriptions", or "show me skill collisions with a confusion matrix". Sister skill of `ba0918-empirical-prompt-tuning`, which covers the quality of body execution; this one measures the selection layer, description to firing.
 metadata:
   contracts:
     - fixture-contract
@@ -8,9 +8,7 @@ metadata:
 
 # ba0918-trigger-eval
 
-A meta-skill that measures and improves, as a property of description quality, the "spontaneous skill triggering from natural-language instructions" that degrades as the number of skills grows. By passing the judging agent **nothing but the list of descriptions** (reproducing the model's field of view at real triggering time), it measures recall / precision / stability / confusion matrix mechanically and runs the revise→re-evaluate loop to convergence.
-
-**Positioning**: where `ba0918-empirical-prompt-tuning` measures "the quality of executing the body", trigger-eval measures "the selection layer (description → triggering)".
+Spontaneous skill triggering from natural-language instructions degrades as a skill set grows. This skill treats that as a property of description quality: the judging agent is passed **nothing but the list of descriptions** — the model's field of view at real triggering time — so recall / precision / stability / confusion matrix are measured mechanically, and the revise→re-evaluate loop runs to convergence.
 
 ## Minimal execution recipes
 
@@ -59,9 +57,8 @@ python3 skills/ba0918-trigger-eval/scripts/collect_descriptions.py --dir skills 
 
 Real-data seeds come from the prompt harvest of `ba0918-skill-improve`. **When that skill is absent from the environment, record "no real-data seeds — synthetic cases only" in the report and go straight to Phase 1.5.** The absence is stated, never silent.
 
-When it is present, harvest into `.agents/tmp/trigger-eval-{ts}/prompts.jsonl`:
+When it is present, harvest the triggering record and the missed-triggering candidates (the `correction_after_skill` signal plus the masked `user_text_masked`) into `.agents/tmp/trigger-eval-{ts}/prompts.jsonl`:
 
-- Harvest the triggering record and the missed-triggering candidates (the `correction_after_skill` signal plus the masked `user_text_masked`). The output goes only under `.agents/tmp/trigger-eval-{ts}/`.
 - The harvester **verifies before writing that the path is ignored, via `git check-ignore --quiet <the resolved actual output path>`, and refuses on a non-zero result** (fail-closed; it does not scan the root .gitignore as a string).
 - **The masking is a denylist and is not complete**, so treat a harvested body file as sensitive even after masking (delete it in Phase 6).
 
@@ -73,27 +70,20 @@ python3 skills/ba0918-trigger-eval/scripts/static_collisions.py \
   --output .agents/tmp/trigger-eval-{ts}/collisions.json
 ```
 
-The top pairs are used **only** for defining the "neighboring skills" for hard-negative generation. Do not use the ranking to prioritize revisions or to nominate merge candidates: the 2026-07-27 measurement (188 cases) showed the top 3 static pairs had zero measured confusion while the only confused pair ranked 7th — lexical overlap does not predict confusion (confusion comes from missing discriminating information, which set operations on vocabulary cannot see). Hard-negative material needs pairs that *look* confusable, not pairs that *are* confused, so that use survives.
+The top pairs define the "neighboring skills" for hard-negative generation and nothing else. Do not use the ranking to prioritize revisions or to nominate merge candidates: the 2026-07-27 measurement (188 cases) showed the top 3 static pairs had zero measured confusion while the only confused pair ranked 7th — confusion comes from missing discriminating information, which set operations on vocabulary cannot see. Hard-negative material needs pairs that *look* confusable, not pairs that *are* confused, so that use survives.
 
 ### Phase 2: Generate the test cases and freeze them in advance
 
-**The generator is a dedicated subagent (a lightweight model) separate from the reviser**. Follow [testcase-design.md](references/testcase-design.md):
+**The generator is a dedicated subagent (a lightweight model) separate from the reviser.** [testcase-design.md](references/testcase-design.md) owns the case ratios, the per-call chunk limit, the stratified holdout split and the triple anonymization gate. On top of that contract:
 
-- 2 positives / 1-2 hard negatives / at least 25% none overall. A single correct label.
-- ≤10 skills per call, and **verify that the number of emitted cases == the expected number**.
-- **Freeze them into `cases.json` (train) and `cases_holdout.json` (a 20% holdout, stratified so that both sides hold at least 25% none)**. No substitution thereafter. Never show the holdout to the revision loop.
-- **Apply the triple anonymization gate before freezing** (re-apply the masker / reject near-matches against the raw seeds / screen for high-entropy tokens).
+- **Freeze the cases into `cases.json` (train) and `cases_holdout.json` (holdout)**. No substitution thereafter, and never show the holdout to the revision loop.
+- **Apply the anonymization gate before freezing**, not after.
 
 ### Phase 3: Judging round
 
-Pass the judging agent (**a lightweight model, stated explicitly**, a fresh subagent) the description list plus a batch of cases, and collect its JSON answers. Follow [judge-protocol.md](references/judge-protocol.md):
+Pass the judging agent (**a lightweight model, stated explicitly**, a fresh subagent) the description list plus a batch of cases, and collect its JSON answers. [judge-protocol.md](references/judge-protocol.md) owns the input and output schemas, the input distribution methods, the batching and shuffling rules, the collection validation and the stability sampling. On top of that contract:
 
-- **Judge in two modes** (selection / autonomous of `judge-protocol.md`). **The default measures both selection and autonomous**, and `--selection-only` restores the former behavior (selection only). The input and output schemas are shared and only the framing differs. Generate `judged-{mode}-iterN.json` separately per mode (never mix them).
-- Distributing the input is either **inline passing, or read access to exactly two files: `skills.json` plus the batch file** ("Input distribution methods" of `judge-protocol.md`).
-- Batches of ≤20 cases, dispatched in parallel (at most 4). Shuffle the case order.
-- On collection, **verify that "the number of judgments == the number of cases"**. Re-judge a malformed batch exactly once → if it is still malformed, materialize it as `INVALID`.
-- For stability, judge the same case independently twice (from the second iteration onward, reduce this to a fixed sample of 20-30 cases; `--full-stability` for all of them).
-- State explicitly in the judging prompt that "no tools may be used, and the judgment must come from the given input alone" (a soft guarantee). When passing files, state explicitly as well that no file other than the two permitted ones may be read.
+- **Judge in two modes** (selection / autonomous). **The default measures both**, and `--selection-only` restores the former behavior. The schemas are shared and only the framing differs. Generate `judged-{mode}-iterN.json` separately per mode, and never mix them.
 
 ### Phase 4: Aggregation
 
@@ -108,7 +98,7 @@ python3 skills/ba0918-trigger-eval/scripts/aggregate_metrics.py \
   --output .agents/tmp/trigger-eval-{ts}/metrics-autonomous-iterN.json
 ```
 
-Compute recall / precision / specificity / stability / confusion matrix / invalid_rate with the formulas of `metrics-spec.md`. **Never mix the two modes' results**: selection is authoritative for the convergence and regression guards, and autonomous is a reference series ("The mode axis" of `metrics-spec.md`). Retain each iteration's metrics JSON — it is the anchor for comparing one run against another.
+Compute recall / precision / specificity / stability / confusion matrix / invalid_rate with the formulas of `metrics-spec.md`. **Never mix the two modes' results**: selection is authoritative for the convergence and regression guards, and autonomous is a reference series ("The mode axis" of `metrics-spec.md`).
 
 ### Phase 5: Revision
 
@@ -120,7 +110,7 @@ Compute recall / precision / specificity / stability / confusion matrix / invali
 
 ### Phase 6: Re-evaluation → convergence judgment
 
-Repeat Phases 3-5. **The selection-mode series is authoritative** for judging the stopping conditions (autonomous is a reference series and a calibration signal; never mix it into the convergence or regression judgment. See the mode axis of metrics-spec.md). The stopping conditions are any of:
+Repeat Phases 3-5, judging the stopping conditions on the selection series (Phase 4). The stopping conditions are any of:
 
 1. **Convergence**: the improvement in macro recall / precision is under +1pt for two consecutive iterations.
 2. **Hard cap**: `max_iterations = 5`.
@@ -143,7 +133,7 @@ Emit to `.agents/tmp/trigger-eval-{ts}/report.md`:
 - **Candidate pairs for merging or redesigned separation** (only pairs whose measured confusion does not resolve after two revisions — never the static pre-pass ranking; see Phase 1.5)
 - Execution metadata (the judging model / the date / the sha256 of `cases.json` and `cases_holdout.json` / the stability sample ledger)
 
-**What is retained is report.md / cases.json / cases_holdout.json / the metrics JSON of each iteration** (the anchors for reproduction and cross-run comparison). **The harvest files containing raw prompt bodies (the `--capture-prompts` output) are deleted.** Prompt deletion of `trigger-eval-*` directories older than 30 days. The failure examples put into report.md are **only cases that passed the anonymization inspection** (transcribing a raw seed is forbidden).
+**What is retained is report.md / cases.json / cases_holdout.json / the metrics JSON of each iteration** (the anchors for reproduction and cross-run comparison). **The harvest files containing raw prompt bodies are deleted**, along with `trigger-eval-*` directories older than 30 days.
 
 ## The four-part set of resource caps
 
@@ -159,6 +149,6 @@ Leave no dimension unbounded:
 - Passing the SKILL.md body to the judging agent
 - Editing the cases after freezing them / showing the holdout to the revision loop
 - Adopting despite the regression guard or the holdout gate on the grounds that "it is written in the report", without reverting
-- Leaving the `--capture-prompts` output among the retained artifacts
+- Leaving the harvested prompt bodies among the retained artifacts
 - Always skipping Tier 2 without a reason
 - A revised description promising capabilities beyond the SKILL.md body

@@ -14,7 +14,7 @@ Both modes use the same input schema and the same case batches, and **produce an
 ## What is and is not handed to the judging agent
 
 - **Handed over**: the description list (JSON of `{name, description}`) plus the batch of fictional instruction cases (an array of `{case_id, text}`).
-- **Not handed over**: the body of SKILL.md. Showing the body diverges from what the model sees at real firing time and produces false positives (the same thinking as `ba0918-empirical-prompt-tuning` Iteration 0). This reproduces the fact that at real firing time the model sees only the description.
+- **Not handed over**: the body of SKILL.md. At real firing time the model sees only the description, so showing the body diverges from that field of view and produces false positives (the same thinking as `ba0918-empirical-prompt-tuning` Iteration 0).
 - **Tool prohibition**: **switch the tool-prohibition wording in the prompt to match the distribution method** (never hand over a self-contradictory contract). For inline delivery: "use no tools at all; judge only from the given input". For file delivery: "you may read only the 2 files specified. Any other tool use or file read is forbidden". Either way it is a prompt-level **soft guarantee** and does not mechanically strip tool access (state this limit explicitly).
 
 ### Input distribution methods (the formal contract)
@@ -23,8 +23,6 @@ Input to the judging agent is limited to one of these 2 forms:
 
 1. **Inline delivery**: embed the description list and the case batch directly in the prompt body. No additional file read occurs.
 2. **File delivery**: allow reading **only 2 files** — `skills.json` (the description list) and the case batch file. Any tool use or file read beyond those 2 files is forbidden.
-
-In both cases, **access to SKILL.md bodies and other sources is forbidden** (a soft guarantee). For file delivery, state "do not read anything but the 2 permitted files" explicitly in the prompt.
 
 ## Input schema
 
@@ -68,9 +66,7 @@ Tier 2 detects firing from the session's own output stream (`--output-format str
 
 ## Validity limits (things to state / knobs)
 
-- The Tier 1 judging agent is a **selector** instructed to "pick one", and its distribution differs from autonomous firing (firing nothing and answering directly).
-- **selection is an upper bound on discriminability; autonomous is an approximation of salience. Their distributions differ, so the results must never be mixed.** selection measures "given that something will be launched, which fits best" and therefore gives an upper bound on recall/precision, while autonomous includes "is this worth launching at all" and is closer to real-world salience. Mixing them averages two different populations and damages both signals.
+- **selection is an upper bound on discriminability; autonomous is an approximation of salience. Their distributions differ, so the results must never be mixed** — mixing averages two different populations and damages both signals.
 - The judging model (a lightweight model) differs from the session model in real use.
 - Therefore Tier 1 recall/precision is **a metric relative to a lightweight-model selector**, and **its divergence from Tier 2 real firing is the calibration signal**.
 - "The judging model" and "the Tier 2 execution conditions (`--max-turns` / timeout / worktree)" are knobs.
-- The judging agent's tool prohibition is a prompt-level **soft guarantee**.
