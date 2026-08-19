@@ -24,11 +24,11 @@ pre-push:
         elif [ ! -f "$vendor" ]; then
           echo "lefthook: $vendor not installed (run bun install --frozen-lockfile) - skipping vendor checks"
         else
-          bun "$vendor" verify --root fixtures/skillset-alpha
-          bun "$vendor" verify --root fixtures/skillset-beta
+          bun "$vendor" verify --root .fixtures/skillset-alpha
+          bun "$vendor" verify --root .fixtures/skillset-beta
           bun "$vendor" verify --root .
-          bun "$vendor" lint-selfcontain --root fixtures/skillset-alpha
-          bun "$vendor" lint-selfcontain --root fixtures/skillset-beta
+          bun "$vendor" lint-selfcontain --root .fixtures/skillset-alpha
+          bun "$vendor" lint-selfcontain --root .fixtures/skillset-beta
           bun "$vendor" lint-selfcontain --root .
         fi
         # uv is guarded separately from bun: a clone without uv still owes the

@@ -58,8 +58,8 @@ jobs:
       # canonical text.
       - name: Verify the fixture trees and the repository root against their locks
         run: |
-          bun ./node_modules/.bin/agentic-skill-vendor verify --root fixtures/skillset-alpha
-          bun ./node_modules/.bin/agentic-skill-vendor verify --root fixtures/skillset-beta
+          bun ./node_modules/.bin/agentic-skill-vendor verify --root .fixtures/skillset-alpha
+          bun ./node_modules/.bin/agentic-skill-vendor verify --root .fixtures/skillset-beta
           bun ./node_modules/.bin/agentic-skill-vendor verify --root .
 
       # This runs before the Python suites below, not after. lint-selfcontain
@@ -68,8 +68,8 @@ jobs:
       # absolute-path violations.
       - name: Lint the fixture trees and the repository root for self-containment
         run: |
-          bun ./node_modules/.bin/agentic-skill-vendor lint-selfcontain --root fixtures/skillset-alpha
-          bun ./node_modules/.bin/agentic-skill-vendor lint-selfcontain --root fixtures/skillset-beta
+          bun ./node_modules/.bin/agentic-skill-vendor lint-selfcontain --root .fixtures/skillset-alpha
+          bun ./node_modules/.bin/agentic-skill-vendor lint-selfcontain --root .fixtures/skillset-beta
           bun ./node_modules/.bin/agentic-skill-vendor lint-selfcontain --root .
 
       # marketplace.json repeats the version canonically declared in plugin.json,

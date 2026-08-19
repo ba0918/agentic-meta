@@ -21,5 +21,5 @@ skill's frontmatter, and expanded into that skill by `@ba0918-dev/agentic-skill-
 — an external tool held as a dev dependency and pinned by the lockfile. CI installs that
 pin, checks the tool against its own vectors, then has it verify the vendored copies and
 lint every skill directory for self-containment, across the repository root and the
-synthetic skill trees under `fixtures/`, and runs the skills' Python script suites. See
+synthetic skill trees under `.fixtures/`, and runs the skills' Python script suites. See
 `PROJECT.md` for commands and layout, and `ROADMAP.md` for progress.
