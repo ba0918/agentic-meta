@@ -24,6 +24,13 @@ jobs:
           # runtime major update cannot change CI behavior on its own.
           bun-version: "1.3.x"
 
+      # uv runs the ported skills' Python script suites. The action is pinned to
+      # an exact release because the repository publishes no floating major tag;
+      # the uv version itself is a minor-series pin, the same shape as bun above.
+      - uses: astral-sh/setup-uv@v10.0.1
+        with:
+          version: "0.11.x"
+
       # --frozen-lockfile refuses to rewrite the lockfile, so the integrity
       # hashes enforced here are the recorded ones rather than whatever a fresh
       # resolution would produce. It runs before self-test on purpose: the bytes
@@ -44,12 +51,46 @@ jobs:
 
       # CI never runs gen. Its job is detecting a tree that disagrees with its
       # lock, not resolving the disagreement.
-      - name: Verify the fixture trees against their locks
+      #
+      # The repository root is checked alongside the fixture trees. The skills
+      # under skills/ carry vendored copies of the contracts in contracts/, and
+      # nothing else in this workflow would notice a copy drifting from its
+      # canonical text.
+      - name: Verify the fixture trees and the repository root against their locks
         run: |
           bun ./node_modules/.bin/agentic-skill-vendor verify --root fixtures/skillset-alpha
           bun ./node_modules/.bin/agentic-skill-vendor verify --root fixtures/skillset-beta
+          bun ./node_modules/.bin/agentic-skill-vendor verify --root .
 
-      - name: Lint the fixture trees for self-containment
+      # This runs before the Python suites below, not after. lint-selfcontain
+      # reads the working tree, and pytest writes .pyc files under
+      # skills/*/scripts/__pycache__/ whose byte content the lint reports as
+      # absolute-path violations.
+      - name: Lint the fixture trees and the repository root for self-containment
         run: |
           bun ./node_modules/.bin/agentic-skill-vendor lint-selfcontain --root fixtures/skillset-alpha
           bun ./node_modules/.bin/agentic-skill-vendor lint-selfcontain --root fixtures/skillset-beta
+          bun ./node_modules/.bin/agentic-skill-vendor lint-selfcontain --root .
+
+      # marketplace.json repeats the version canonically declared in plugin.json,
+      # so it can only ever follow. A disagreement between the two is otherwise
+      # invisible until a consumer installs the published plugin.
+      - name: Check the plugin version declarations agree
+        run: |
+          canonical=$(jq -r .version .claude-plugin/plugin.json)
+          follower=$(jq -r '.plugins[0].version' .claude-plugin/marketplace.json)
+          test "$canonical" = "$follower" || {
+            echo "plugin.json declares $canonical, marketplace.json declares $follower"
+            exit 1
+          }
+
+      # pytest is fetched per run rather than pinned, matching how the sister
+      # repository installs it. uv resolves the interpreter itself, so the
+      # workflow needs no separate Python setup step.
+      - name: Run the skills' script suites
+        env:
+          # The suites leave no .pyc behind, so a working tree they have run in
+          # still passes the self-containment lint. CI checks out fresh, but the
+          # pre-push mirror runs in a tree that persists between pushes.
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: uv run --with pytest pytest skills -q

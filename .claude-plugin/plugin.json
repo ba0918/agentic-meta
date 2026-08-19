@@ -1,0 +1,19 @@
+{
+  "name": "ba0918-meta",
+  "version": "0.1.0",
+  "description": "Skills that measure a skill set: how accurately its descriptions fire, and whether each SKILL.md is complete as an API specification",
+  "author": {
+    "name": "ba0918"
+  },
+  "repository": "https://github.com/ba0918/agentic-meta",
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "meta",
+    "measurement",
+    "evaluation",
+    "trigger",
+    "audit",
+    "descriptions"
+  ]
+}

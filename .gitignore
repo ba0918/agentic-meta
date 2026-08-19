@@ -8,3 +8,8 @@
 
 # Installed dependencies (the lockfile is the tracked pin, not the tree)
 /node_modules/
+
+# Python bytecode and test cache left by the skills' script suites. A user-scope
+# ignore hides these on the author's machine; a fresh checkout has no such ignore.
+__pycache__/
+.pytest_cache/

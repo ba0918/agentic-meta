@@ -1,10 +1,10 @@
 # Local quality gates, mirroring CI ahead of push. Activate once per clone:
 #   lefthook install
-# CI remains the authority; the hook guards on the toolchain being present so
+# CI remains the authority; the hook guards on each toolchain being present so
 # it stays inert in a clone where dependencies have not been installed.
 pre-push:
   commands:
-    vendor-verify:
+    checks:
       run: |
         # Without set -e the block would exit with the status of its last
         # command, so an earlier failing check would pass the hook silently.
@@ -26,6 +26,21 @@ pre-push:
         else
           bun "$vendor" verify --root fixtures/skillset-alpha
           bun "$vendor" verify --root fixtures/skillset-beta
+          bun "$vendor" verify --root .
           bun "$vendor" lint-selfcontain --root fixtures/skillset-alpha
           bun "$vendor" lint-selfcontain --root fixtures/skillset-beta
+          bun "$vendor" lint-selfcontain --root .
+        fi
+        # uv is guarded separately from bun: a clone without uv still owes the
+        # vendor checks above, so one missing toolchain must not skip the other.
+        #
+        # The suites run after the lint, never before, and with bytecode writing
+        # off. lint-selfcontain reads the working tree, and .pyc files under
+        # skills/*/scripts/__pycache__/ are reported as absolute-path violations
+        # — which, in a tree that survives between pushes, would otherwise fail
+        # the next push rather than this one.
+        if ! command -v uv >/dev/null 2>&1; then
+          echo "lefthook: uv not found - skipping the skills' script suites"
+        else
+          PYTHONDONTWRITEBYTECODE=1 uv run --with pytest pytest skills -q
         fi
