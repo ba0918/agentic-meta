@@ -671,7 +671,7 @@ class TestSIS006(unittest.TestCase):
         self.assertEqual(sc.check_si_s006([t], {"root": tmpdir}), [])
 
     def test_same_named_link_outside_vendor_is_not_the_contract(self):
-        # 契約であるかはリンクの解決先が決める。ファイル名の一致では決めない
+        # Where the link resolves decides whether it is the contract; the file name does not.
         tmpdir = tempfile.mkdtemp()
         _make_contract(tmpdir, "polling-pattern.md", f"# Contract\n\n{_LONG}\n")
         t = _make_target(

@@ -489,7 +489,7 @@ def _first_contract_ngram_hit(stream, contract_grams, n):
 
 
 def _vendored_contract_grams(vendor_dir: str) -> dict[str, set[str]]:
-    """{契約ファイル名: n-gram 集合}。vendor ディレクトリが無ければ空。"""
+    """{contract file name: set of n-grams}. Empty when there is no vendor directory."""
     grams: dict[str, set[str]] = {}
     if not os.path.isdir(vendor_dir):
         return grams
@@ -506,10 +506,11 @@ def _vendored_contract_grams(vendor_dir: str) -> dict[str, set[str]]:
 
 
 def _linked_contracts(content, containing_dir, vendor_dir, contract_grams) -> set[str]:
-    """このファイルが実際にリンクしている vendored contract のファイル名。
+    """The vendored contracts this file actually links to, by file name.
 
-    リンク文字列の前方一致ではなく解決後のパスで判定する。同じ契約が SKILL.md からは
-    `references/vendor/x.md`、references/ 配下からは `vendor/x.md` と書かれるため。
+    Decided on the resolved path rather than a prefix of the link text: the same contract
+    is written `references/vendor/x.md` from SKILL.md and `vendor/x.md` from a file under
+    references/, and a prefix match splits on that difference.
     """
     linked = set()
     for link, _ in _extract_md_links(content):
