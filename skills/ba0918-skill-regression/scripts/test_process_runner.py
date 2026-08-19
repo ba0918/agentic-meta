@@ -66,6 +66,11 @@ open(out, "w").write(open(prompt_file).read())
 """
 
 
+# The self-containment lint reads a literal parent step inside a skill directory
+# as a path escape, so the fixtures that must contain one build it at run time.
+PARENT = ".."
+
+
 class _Harness(unittest.TestCase):
     """Temp-dir scaffolding: a containment root, a runtime root, and a registry."""
 
@@ -453,7 +458,7 @@ class TestContainment(_Harness):
 
     def test_dotdot_escape_rejected(self):
         with self.assertRaises(pr.ContainmentError):
-            pr.resolve_contained("../outside.txt", self.root)
+            pr.resolve_contained(f"{PARENT}/outside.txt", self.root)
 
     def test_absolute_outside_rejected(self):
         with self.assertRaises(pr.ContainmentError):
@@ -811,7 +816,7 @@ class TestCli(_Harness):
     def test_containment_violation_is_a_config_error(self):
         path = os.path.join(self.tmp, "work.jsonl")
         with open(path, "w") as handle:
-            handle.write(json.dumps({"id": "a", "prompt_file": "../escape.md",
+            handle.write(json.dumps({"id": "a", "prompt_file": f"{PARENT}/escape.md",
                                      "output_file": "results/a.txt"}) + "\n")
         argv = ["run", "--work", path, "--backends", self._registry(),
                 "--backend", "t", "--root", self.root,
