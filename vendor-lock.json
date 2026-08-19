@@ -1,0 +1,12 @@
+{
+  "dependencies": {
+    "ba0918-trigger-eval": [
+      "fixture-contract"
+    ]
+  },
+  "resolutions": {
+    "fixture-contract": {
+      "digest": "sha256:29546277e572f3720f5da5d1f45e36ac288ff53be8b8a9830910afb67d27ad94"
+    }
+  }
+}
