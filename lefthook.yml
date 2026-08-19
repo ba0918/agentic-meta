@@ -44,19 +44,22 @@ pre-push:
         else
           PYTHONDONTWRITEBYTECODE=1 uv run --with pytest pytest skills -q
         fi
-        # marketplace.json repeats the version canonically declared in
-        # plugin.json, so it can only ever follow. CI runs this same comparison,
-        # but only after the push — a disagreement pushed to a shared branch is
-        # already published by then.
+        # plugin.json declares the version; marketplace.json and package.json
+        # repeat it for the routes that read them, so both can only ever follow.
+        # CI runs this same comparison, but only after the push — a disagreement
+        # pushed to a shared branch is already published by then.
         if ! command -v jq >/dev/null 2>&1; then
           echo "lefthook: jq not found - skipping the plugin version check"
         else
           canonical=$(jq -r .version .claude-plugin/plugin.json)
-          follower=$(jq -r '.plugins[0].version' .claude-plugin/marketplace.json)
-          test "$canonical" = "$follower" || {
-            echo "plugin.json declares $canonical, marketplace.json declares $follower"
-            exit 1
-          }
+          for follower in \
+            "marketplace.json:$(jq -r '.plugins[0].version' .claude-plugin/marketplace.json)" \
+            "package.json:$(jq -r .version package.json)"; do
+            test "$canonical" = "${follower#*:}" || {
+              echo "plugin.json declares $canonical, ${follower%%:*} declares ${follower#*:}"
+              exit 1
+            }
+          done
         fi
         # The copy routes install by searching the tree for skills/ directories,
         # so a skill the Agent Skills specification rejects reaches a consumer
