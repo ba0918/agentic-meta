@@ -1112,3 +1112,22 @@ class TestInlinedPromptCarriesNoPathToFollow(_Harness):
     def test_the_report_path_survives(self):
         # The one path the executor does need is the one it writes to.
         self.assertIn(REPORT_PATH, self.prompt)
+
+
+class TestRerunGuardsEveryKeyItReads(_Harness):
+    UID = "demo-skill-ds-001"
+
+    def test_a_manifest_missing_the_inputs_directory_is_refused(self):
+        """The guard names the keys a rerun needs, and reads only those.
+
+        A key it reads but does not check surfaces as a KeyError traceback instead
+        of the "rebuild the batch" message the operator can act on.
+        """
+        self.build()
+        path = os.path.join(self.batch, "manifest.json")
+        manifest = json.loads(open(path).read())
+        del manifest[self.UID]["inputs_root"]
+        with open(path, "w") as handle:
+            json.dump(manifest, handle)
+        with self.assertRaises(rq.QueueError):
+            rq.rerun(self.batch)

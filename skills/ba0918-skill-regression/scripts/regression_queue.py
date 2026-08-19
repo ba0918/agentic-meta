@@ -610,7 +610,8 @@ def rerun(batch_dir, *, units=None):
 
     for uid in targets:
         entry = manifest[uid]
-        if "scenario_path" not in entry or "scenario_sha256" not in entry:
+        if any(key not in entry
+               for key in ("scenario_path", "scenario_sha256", "inputs_root")):
             raise QueueError(
                 f"manifest entry {uid} predates rerun support — rebuild the batch")
         # Manifest keys are validated at build time, but the manifest is a plain file;
