@@ -7,10 +7,18 @@ counts whichever runtime produced them — which is the whole point of separatin
 the reading from the counting.
 
 Four signals say a skill is not working well: it was fired again immediately, the
-operator spoke again right after firing it, the session it ran in mostly failed,
+operator spoke again right after firing it, the session it ran in was broken off,
 and tool runs inside that session failed. The first two are attributed to the
 skill; the last two are properties of the session, and every skill fired in that
 session carries them.
+
+Being broken off is read two ways, because only one of the three stores writes it
+down. Where a store does, its own record decides and nothing is inferred. Where a
+store does not, it is inferred from the share of the session's turns that failed.
+The inference is never laid on top of a store that keeps the record — that would
+count one break-off twice — and which of the two produced a number is carried into
+the result, since a report presenting them as one measurement would be wrong about
+what it measured.
 
 Two of those attributions are inherited from the collector this replaces, and are
 kept deliberately even though each reads oddly on its own:
@@ -39,6 +47,7 @@ from events import (
     Capabilities,
     Event,
     ROUTE_TEXT,
+    SessionAbandoned,
     SessionIdentity,
     SkillInvocation,
     ToolError,
@@ -51,8 +60,9 @@ from events import (
 # the same attempt being made again rather than the skill being used afresh.
 RETRY_WINDOW_TURNS = 3
 
-# A session whose failed tool runs exceed this share of its turns is read as having
-# been abandoned rather than finished.
+# Where a store keeps no record of a session being broken off, a session whose
+# failed tool runs exceed this share of its turns is read as having been broken off
+# rather than finished.
 ABANDONMENT_ERROR_SHARE = 0.3
 
 NO_SESSION = ""
@@ -91,6 +101,11 @@ class SkillFriction:
     A downgrade is not a smaller number: it says the count itself is incomplete,
     because a store it was seen through cannot read one of the two detection
     routes at all. The stores that cannot are named so a report can say which.
+
+    The abandoned count is named the same way, for a different reason: it mixes
+    stores that recorded a break-off with stores where one was inferred from the
+    share of failed turns. Naming the inferring ones is what lets a report qualify
+    the number instead of presenting a mixture as a single measurement.
     """
 
     skill: str
@@ -105,6 +120,7 @@ class SkillFriction:
     routes: tuple[str, ...] = ()
     stores_without_structural: tuple[str, ...] = ()
     confidence_downgraded: bool = False
+    stores_with_inferred_abandonment: tuple[str, ...] = ()
 
 
 @dataclasses.dataclass(frozen=True)
@@ -148,8 +164,25 @@ def split_sessions(
         yield identity, collected
 
 
+def broken_off(
+    recorded: bool, its_own_record: bool, turns: int, tool_errors: int
+) -> bool:
+    """Whether the session ended without finishing, by the best evidence there is.
+
+    Where the store keeps its own record, that record decides and the share of
+    failed runs is not consulted. Consulting both would count one break-off twice,
+    and would let an inference the store never needed override its silence.
+    """
+    if recorded:
+        return its_own_record
+    return turns > 0 and tool_errors > turns * ABANDONMENT_ERROR_SHARE
+
+
 def session_signals(
-    store: str, identity: SessionIdentity | None, stream: typing.Iterable[Event]
+    store: str,
+    identity: SessionIdentity | None,
+    stream: typing.Iterable[Event],
+    records_abandonment: bool = False,
 ) -> SessionSignals:
     """Count one session's friction.
 
@@ -172,9 +205,12 @@ def session_signals(
     last_skill: str | None = None
     last_skill_turn = 0
     said_since_skill = 0
+    its_own_record = False
 
     for event in stream:
-        if isinstance(event, Turn):
+        if isinstance(event, SessionAbandoned):
+            its_own_record = True
+        elif isinstance(event, Turn):
             turns += 1
         elif isinstance(event, ToolError):
             tool_errors += 1
@@ -208,7 +244,7 @@ def session_signals(
         ),
         turns=turns,
         tool_errors=tool_errors,
-        abandoned=turns > 0 and tool_errors > turns * ABANDONMENT_ERROR_SHARE,
+        abandoned=broken_off(records_abandonment, its_own_record, turns, tool_errors),
         skills=tuple(
             SkillInSession(
                 skill=skill,
@@ -223,9 +259,11 @@ def session_signals(
 
 
 def store_signals(store) -> list[SessionSignals]:
-    """Every session one store holds, counted."""
+    """Every session one store holds, counted as that store's declaration allows."""
     return [
-        session_signals(store.name, identity, collected)
+        session_signals(
+            store.name, identity, collected, store.capabilities.abandonment_signal
+        )
         for identity, collected in split_sessions(store.events())
     ]
 
@@ -271,6 +309,13 @@ def _finished(
             if store in capabilities and not capabilities[store].structural
         )
     )
+    inferred = tuple(
+        sorted(
+            store
+            for store in totals.stores
+            if store in capabilities and not capabilities[store].abandonment_signal
+        )
+    )
     return SkillFriction(
         skill=skill,
         invocations=totals.invocations,
@@ -284,6 +329,7 @@ def _finished(
         routes=tuple(sorted(totals.routes)),
         stores_without_structural=unreadable,
         confidence_downgraded=bool(unreadable),
+        stores_with_inferred_abandonment=inferred,
     )
 
 

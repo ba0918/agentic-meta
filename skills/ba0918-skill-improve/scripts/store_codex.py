@@ -52,11 +52,11 @@ with no status beside it. That body is not parsed for failure, for the same reas
 the commands are not parsed for skill firings, so a reading of older logs
 under-reports errors and says so rather than guessing.
 
-An aborted turn is recognised and deliberately produces nothing. The normalized
-vocabulary holds five kinds and abandonment is not one of them; it is derived
-downstream from how much of a session failed. Recording an abort as a tool failure
-would inflate exactly the count that derivation divides by. Consequently
-abandonment detection here inherits the same generational limit as error detection.
+An aborted turn is this runtime's own record of a session having been broken off,
+and it is the only one of the three stores that keeps such a record. It is emitted
+as abandonment and never as a tool failure: a failure would inflate exactly the
+count the other stores' abandonment is inferred from, so the two would stop meaning
+the same thing under the same name.
 """
 
 import dataclasses
@@ -72,6 +72,7 @@ from events import (
     ROLE_ASSISTANT,
     ROLE_USER,
     ROUTE_TEXT,
+    SessionAbandoned,
     SessionIdentity,
     SkillInvocation,
     TURN_ROLES,
@@ -95,6 +96,9 @@ CHANNEL_INTERFACE = "event_msg"
 
 # The record the interface channel writes when the operator typed something.
 TYPED_UTTERANCE = "user_message"
+
+# The record this runtime writes when a turn was broken off before it finished.
+BROKEN_OFF = "turn_aborted"
 
 OPENING_RECORD = "session_meta"
 
@@ -296,6 +300,8 @@ def record_events(
             yield from _utterance_events(message if isinstance(message, str) else None, at)
         elif spoken == "agent_message":
             yield Turn(role=ROLE_ASSISTANT, at=at)
+    if spoken == BROKEN_OFF:
+        yield SessionAbandoned()
     failed = command_failure(payload, called)
     if failed is not None:
         yield ToolError(tool=failed)
@@ -309,7 +315,9 @@ class CodexStore:
     since: datetime.datetime | None = None
     project: str | None = None
     name: str = NAME
-    capabilities: Capabilities = Capabilities(text=True, structural=False)
+    capabilities: Capabilities = Capabilities(
+        text=True, structural=False, abandonment_signal=True
+    )
 
     def events(self) -> typing.Iterator[Event]:
         """Yield every session's normalized events, oldest log path first."""

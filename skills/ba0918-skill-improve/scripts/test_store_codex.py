@@ -120,6 +120,11 @@ class TestDeclaredCapabilities(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             self.assertFalse(store_codex.CodexStore(root=root).capabilities.structural)
 
+    def test_the_store_declares_that_it_records_abandonment_itself(self):
+        with tempfile.TemporaryDirectory() as root:
+            store = store_codex.CodexStore(root=root)
+            self.assertTrue(store.capabilities.abandonment_signal)
+
     def test_the_store_satisfies_the_adapter_contract(self):
         with tempfile.TemporaryDirectory() as root:
             self.assertIsInstance(store_codex.CodexStore(root=root), events.SessionStore)
@@ -350,23 +355,44 @@ class TestToolErrors(unittest.TestCase):
             self.assertEqual(_of_kind(_events_of(root), events.ToolError), [])
 
 
+def _turn_aborted(timestamp=NOW):
+    return _record("event_msg", {
+        "type": "turn_aborted",
+        "reason": "interrupted",
+        "turn_id": "t-1",
+        "started_at": timestamp,
+        "completed_at": timestamp,
+        "duration_ms": 10,
+    }, timestamp=timestamp)
+
+
 class TestAbandonedTurn(unittest.TestCase):
+    def test_an_aborted_turn_is_read_as_the_session_having_been_broken_off(self):
+        with tempfile.TemporaryDirectory() as root:
+            _write_rollout(root, [_session_meta(), _turn_aborted()])
+            collected = _events_of(root)
+            self.assertEqual(len(_of_kind(collected, events.SessionAbandoned)), 1)
+
     def test_an_aborted_turn_is_not_read_as_a_tool_failure(self):
         with tempfile.TemporaryDirectory() as root:
-            _write_rollout(root, [
-                _session_meta(),
-                _record("event_msg", {
-                    "type": "turn_aborted",
-                    "reason": "interrupted",
-                    "turn_id": "t-1",
-                    "started_at": NOW,
-                    "completed_at": NOW,
-                    "duration_ms": 10,
-                }),
-            ])
+            _write_rollout(root, [_session_meta(), _turn_aborted()])
             collected = _events_of(root)
             self.assertEqual(_of_kind(collected, events.ToolError), [])
             self.assertEqual(_of_kind(collected, events.Turn), [])
+
+    def test_a_session_that_ran_to_its_end_is_not_read_as_broken_off(self):
+        with tempfile.TemporaryDirectory() as root:
+            _write_rollout(root, [_session_meta(), _typed_user_message("hello")])
+            self.assertEqual(_of_kind(_events_of(root), events.SessionAbandoned), [])
+
+    def test_an_abort_recorded_before_the_period_is_left_out(self):
+        with tempfile.TemporaryDirectory() as root:
+            _write_rollout(root, [
+                _session_meta(), _turn_aborted(timestamp=LONG_AGO),
+                _typed_user_message("new"),
+            ])
+            collected = _events_of(root, since=CUTOFF)
+            self.assertEqual(_of_kind(collected, events.SessionAbandoned), [])
 
 
 class TestProjectFilter(unittest.TestCase):

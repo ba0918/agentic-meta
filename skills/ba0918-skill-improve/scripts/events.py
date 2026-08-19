@@ -3,10 +3,14 @@
 
 Each agent runtime stores its session history its own way, so a reader per store
 turns that storage into one shared vocabulary and the friction signals are computed
-over the vocabulary alone. The vocabulary is deliberately poor: it holds the five
-kinds the signals actually consume and nothing else. A richer common event would
-have to be produced by every adapter, so each store added later would drag all the
-existing ones along with it.
+over the vocabulary alone. The vocabulary is deliberately poor: it holds the kinds
+the signals actually consume and nothing else. A richer common event would have to
+be produced by every adapter, so each store added later would drag all the existing
+ones along with it.
+
+A kind earns its place only where at least one store records the thing directly. A
+store that does not is not asked to fake it: it declares the gap in its
+capabilities, and the aggregation decides what to do about the asymmetry.
 
 An adapter is only an ordered source of these events. It resolves paths, absorbs
 time units, and filters by period, but it counts nothing and correlates nothing —
@@ -113,6 +117,21 @@ class Turn:
 
 
 @dataclasses.dataclass(frozen=True)
+class SessionAbandoned:
+    """The session was broken off rather than run to its end.
+
+    One runtime writes this down itself; the other two keep no record of it at all,
+    and for them the aggregation infers abandonment from how much of the session
+    failed. The two are not the same measurement, so the store's own record is kept
+    as its own kind of event: an inference can then be confined to the stores that
+    need one, and a report can say which of the two a number came from.
+
+    It carries nothing beyond the fact. Why a session was broken off is not
+    something all three stores could answer, and nothing downstream divides by it.
+    """
+
+
+@dataclasses.dataclass(frozen=True)
 class SessionIdentity:
     """Which session the events that follow it belong to, and where it ran.
 
@@ -133,7 +152,14 @@ class SessionIdentity:
     utterances_are_superset: bool = False
 
 
-NORMALIZED_EVENT_TYPES = (UserText, SkillInvocation, ToolError, Turn, SessionIdentity)
+NORMALIZED_EVENT_TYPES = (
+    UserText,
+    SkillInvocation,
+    ToolError,
+    Turn,
+    SessionAbandoned,
+    SessionIdentity,
+)
 
 Event = typing.Union[NORMALIZED_EVENT_TYPES]
 
@@ -166,16 +192,23 @@ def project_slug(path: str) -> str:
 
 @dataclasses.dataclass(frozen=True)
 class Capabilities:
-    """Which of the two detection routes a store can actually be read along.
+    """What a store can actually be read for, declared by its own adapter.
 
     A store with no structural route is not a store that happens to find fewer
     invocations; it is one that cannot find them at all along that route. The
     declaration exists so the aggregation can carry the gap into the report
     instead of an adapter filling it with an inference of its own.
+
+    The record of abandonment is declared for the opposite reason. Here it is the
+    stores without one that get an inference — drawn from how much of a session
+    failed — so the declaration is what tells a reader which of two different
+    measurements produced an abandonment count, and what stops the inference from
+    being applied on top of a store that already said so itself.
     """
 
     text: bool
     structural: bool
+    abandonment_signal: bool = False
 
 
 @typing.runtime_checkable

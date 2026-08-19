@@ -139,6 +139,11 @@ class TestDeclaredCapabilities(unittest.TestCase):
             self.assertTrue(store.capabilities.text)
             self.assertTrue(store.capabilities.structural)
 
+    def test_the_store_declares_that_it_keeps_no_record_of_abandonment(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store = store_opencode.OpenCodeStore(db_path=os.path.join(directory, "x.db"))
+            self.assertFalse(store.capabilities.abandonment_signal)
+
     def test_the_store_satisfies_the_adapter_contract(self):
         with tempfile.TemporaryDirectory() as directory:
             store = store_opencode.OpenCodeStore(db_path=os.path.join(directory, "x.db"))

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Unit tests for events.py."""
 
+import dataclasses
 import datetime
 import os
 import sys
@@ -26,7 +27,7 @@ class FakeStore:
 
 
 class TestNormalizedEventVocabulary(unittest.TestCase):
-    def test_the_vocabulary_is_limited_to_the_five_kinds_the_friction_signals_need(self):
+    def test_the_vocabulary_is_limited_to_the_kinds_the_friction_signals_need(self):
         self.assertEqual(
             events.NORMALIZED_EVENT_TYPES,
             (
@@ -34,9 +35,20 @@ class TestNormalizedEventVocabulary(unittest.TestCase):
                 events.SkillInvocation,
                 events.ToolError,
                 events.Turn,
+                events.SessionAbandoned,
                 events.SessionIdentity,
             ),
         )
+
+
+class TestSessionAbandoned(unittest.TestCase):
+    def test_it_says_the_session_was_broken_off_and_nothing_more(self):
+        self.assertEqual(dataclasses.fields(events.SessionAbandoned), ())
+
+    def test_it_cannot_be_altered_once_an_adapter_has_produced_it(self):
+        broken_off = events.SessionAbandoned()
+        with self.assertRaises(Exception):
+            broken_off.reason = "interrupted"
 
 
 class TestUserText(unittest.TestCase):
@@ -146,6 +158,15 @@ class TestCapabilities(unittest.TestCase):
         declared = events.Capabilities(text=True, structural=False)
         self.assertTrue(declared.text)
         self.assertFalse(declared.structural)
+
+    def test_a_store_is_read_as_having_no_record_of_abandonment_unless_it_says_so(self):
+        self.assertFalse(events.Capabilities(text=True, structural=True).abandonment_signal)
+
+    def test_a_store_that_records_abandonment_itself_declares_that_it_does(self):
+        declared = events.Capabilities(
+            text=True, structural=False, abandonment_signal=True
+        )
+        self.assertTrue(declared.abandonment_signal)
 
 
 class TestAdapterContract(unittest.TestCase):
