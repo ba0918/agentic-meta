@@ -130,6 +130,11 @@ class Aggregate:
     Sessions whose utterances could only be read as a superset of what the operator
     said are counted per store, so a report can qualify the correction counts drawn
     from that store instead of presenting them as exact.
+
+    What each session showed is kept beside the totals. A caller wanting both the
+    totals and the spread behind them would otherwise have to read every store a
+    second time, and a store being written to while it is read can disagree with
+    its own earlier answer.
     """
 
     skills: dict[str, SkillFriction]
@@ -139,6 +144,7 @@ class Aggregate:
     turns: int
     tool_errors: int
     superset_utterance_sessions: dict[str, int] = dataclasses.field(default_factory=dict)
+    per_session: tuple[SessionSignals, ...] = ()
 
 
 def split_sessions(
@@ -346,11 +352,13 @@ def aggregate(stores) -> Aggregate:
     counted_sessions: set[tuple[str, str]] = set()
     projects: set[str] = set()
     superset: dict[str, int] = {}
+    read: list[SessionSignals] = []
     turns = 0
     tool_errors = 0
 
     for store in stores:
         for session in store_signals(store):
+            read.append(session)
             counted_sessions.add((session.store, session.session_id))
             if session.project != NO_PROJECT:
                 projects.add(session.project)
@@ -371,6 +379,7 @@ def aggregate(stores) -> Aggregate:
         turns=turns,
         tool_errors=tool_errors,
         superset_utterance_sessions=superset,
+        per_session=tuple(read),
     )
 
 

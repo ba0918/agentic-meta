@@ -18,9 +18,11 @@ SEPARATOR = "/"
 class FakeStore:
     """A store standing in for an adapter: a name, declared capabilities, events."""
 
-    def __init__(self, name, produced=(), structural=True, text=True):
+    def __init__(self, name, produced=(), structural=True, text=True, abandonment=False):
         self.name = name
-        self.capabilities = events.Capabilities(text=text, structural=structural)
+        self.capabilities = events.Capabilities(
+            text=text, structural=structural, abandonment_signal=abandonment
+        )
         self._produced = tuple(produced)
 
     def events(self):
@@ -171,6 +173,48 @@ class TestAbandonment(unittest.TestCase):
         self.assertEqual(aggregate.skills["commit"].abandoned_sessions, 0)
 
 
+class TestAbandonmentWhereTheStoreRecordsIt(unittest.TestCase):
+    def _direct_store(self, produced):
+        return signals.aggregate([FakeStore("codex", produced, abandonment=True)])
+
+    def test_the_store_own_record_of_a_break_off_is_what_counts(self):
+        aggregate = self._direct_store([
+            _identity(), _turn(), _fired("commit"), events.SessionAbandoned(),
+        ])
+        self.assertEqual(aggregate.skills["commit"].abandoned_sessions, 1)
+
+    def test_a_failing_session_the_store_never_called_broken_off_is_not_abandoned(self):
+        produced = [_identity()] + [_turn()] * 10 + [_failed()] * 4 + [_fired("commit")]
+        self.assertEqual(self._direct_store(produced).skills["commit"].abandoned_sessions, 0)
+
+    def test_a_break_off_recorded_twice_in_one_session_abandons_it_once(self):
+        aggregate = self._direct_store([
+            _identity(), _turn(), _fired("commit"),
+            events.SessionAbandoned(), events.SessionAbandoned(),
+        ])
+        self.assertEqual(aggregate.skills["commit"].abandoned_sessions, 1)
+
+    def test_a_store_with_no_such_record_has_its_abandonment_inferred(self):
+        aggregate = _one_store([_identity(), _turn(), _fired("commit")])
+        self.assertEqual(
+            aggregate.skills["commit"].stores_with_inferred_abandonment, ("claude",)
+        )
+
+    def test_a_skill_seen_only_where_break_offs_are_recorded_names_no_such_store(self):
+        aggregate = self._direct_store([_identity(), _turn(), _fired("commit")])
+        self.assertEqual(aggregate.skills["commit"].stores_with_inferred_abandonment, ())
+
+    def test_a_skill_seen_through_both_kinds_of_store_names_only_the_inferring_one(self):
+        claude = FakeStore("claude", [_identity("s-1"), _turn(), _fired("commit")])
+        codex = FakeStore("codex", [
+            _identity("s-2"), _turn(), _fired("commit", events.ROUTE_TEXT),
+        ], structural=False, abandonment=True)
+        aggregate = signals.aggregate([claude, codex])
+        self.assertEqual(
+            aggregate.skills["commit"].stores_with_inferred_abandonment, ("claude",)
+        )
+
+
 class TestWholeSessionCountsPerSkill(unittest.TestCase):
     def test_every_skill_of_a_session_carries_that_whole_session_error_count(self):
         aggregate = _one_store([
@@ -297,6 +341,21 @@ class TestProjects(unittest.TestCase):
         self.assertEqual(
             signals.aggregate([first, second]).projects, ("-w-notes", "-w-other")
         )
+
+
+class TestWhatEachSessionShowed(unittest.TestCase):
+    def test_every_session_read_is_kept_beside_the_totals(self):
+        aggregate = _one_store([_identity("s-1"), _turn(), _identity("s-2"), _turn()])
+        self.assertEqual([one.session_id for one in aggregate.per_session], ["s-1", "s-2"])
+
+    def test_each_kept_session_names_the_store_it_was_read_from(self):
+        claude = FakeStore("claude", [_identity("s-1"), _turn()])
+        codex = FakeStore("codex", [_identity("s-2"), _turn()], structural=False)
+        aggregate = signals.aggregate([claude, codex])
+        self.assertEqual([one.store for one in aggregate.per_session], ["claude", "codex"])
+
+    def test_reading_no_store_at_all_keeps_no_session(self):
+        self.assertEqual(signals.aggregate([]).per_session, ())
 
 
 class TestScorableSkills(unittest.TestCase):
