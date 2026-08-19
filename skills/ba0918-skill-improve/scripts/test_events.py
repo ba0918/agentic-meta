@@ -96,6 +96,19 @@ class TestSessionIdentity(unittest.TestCase):
         self.assertEqual(identity.project, "-home-someone-work")
 
 
+class TestProjectSlug(unittest.TestCase):
+    def test_a_working_directory_path_becomes_the_key_every_store_meets_on(self):
+        separator = "/"
+        path = separator + separator.join(("home", "someone", "develop", "notes"))
+        self.assertEqual(events.project_slug(path), "home-someone-develop-notes")
+
+    def test_a_hyphen_inside_a_directory_name_is_indistinguishable_from_a_separator(self):
+        separator = "/"
+        hyphenated = separator + separator.join(("home", "someone", "my-work"))
+        nested = separator + separator.join(("home", "someone", "my", "work"))
+        self.assertEqual(events.project_slug(hyphenated), events.project_slug(nested))
+
+
 class TestEventImmutability(unittest.TestCase):
     def test_an_event_cannot_be_altered_once_an_adapter_has_produced_it(self):
         turn = events.Turn(role=events.ROLE_USER, at=AT)

@@ -117,6 +117,20 @@ NORMALIZED_EVENT_TYPES = (UserText, SkillInvocation, ToolError, Turn, SessionIde
 Event = typing.Union[NORMALIZED_EVENT_TYPES]
 
 
+def project_slug(path: str) -> str:
+    """Convert a real working directory into the slug SessionIdentity carries.
+
+    Separators become hyphens and a leading hyphen is dropped. The conversion lives
+    here because the adapters holding a real path would otherwise each write it, and
+    two spellings of it do not fail loudly — they make one project read as two.
+
+    The conversion is one-way: a hyphen already inside a directory name becomes
+    indistinguishable from a converted separator, so the original path cannot be
+    recovered from the slug.
+    """
+    return path.replace("/", "-").lstrip("-")
+
+
 @dataclasses.dataclass(frozen=True)
 class Capabilities:
     """Which of the two detection routes a store can actually be read along.
