@@ -280,21 +280,38 @@ class TestTurns(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             database = (Database(directory).session()
                         .message(identifier="m-1", role="user")
-                        .message(identifier="m-2", role="assistant"))
+                        .text_part("p-1", "ask", message="m-1")
+                        .message(identifier="m-2", role="assistant")
+                        .text_part("p-2", "answer", message="m-2"))
             database.close()
             turns = _of_kind(_events_of(database), events.Turn)
             self.assertEqual([one.role for one in turns], ["user", "assistant"])
 
     def test_a_message_in_neither_role_is_not_a_turn(self):
         with tempfile.TemporaryDirectory() as directory:
-            database = Database(directory).session().message(role="system")
+            database = (Database(directory).session().message(role="system")
+                        .text_part("p-1", "a system note"))
+            database.close()
+            self.assertEqual(_of_kind(_events_of(database), events.Turn), [])
+
+    def test_a_message_built_only_of_tool_parts_is_not_a_turn(self):
+        with tempfile.TemporaryDirectory() as directory:
+            database = (Database(directory).session().message(role="assistant")
+                        .skill_part("p-1", "commit").failed_part("p-2"))
+            database.close()
+            self.assertEqual(_of_kind(_events_of(database), events.Turn), [])
+
+    def test_a_message_with_no_parts_at_all_is_not_a_turn(self):
+        with tempfile.TemporaryDirectory() as directory:
+            database = Database(directory).session().message(role="user")
             database.close()
             self.assertEqual(_of_kind(_events_of(database), events.Turn), [])
 
     def test_a_tool_part_does_not_add_a_turn_of_its_own(self):
         with tempfile.TemporaryDirectory() as directory:
             database = (Database(directory).session().message(role="assistant")
-                        .skill_part("p-1", "commit").failed_part("p-2"))
+                        .text_part("p-1", "running it now")
+                        .skill_part("p-2", "commit").failed_part("p-3"))
             database.close()
             self.assertEqual(len(_of_kind(_events_of(database), events.Turn)), 1)
 

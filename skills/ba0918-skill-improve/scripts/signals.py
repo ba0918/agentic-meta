@@ -24,10 +24,12 @@ A session's error and turn counts are attributed whole to every skill fired in i
 rather than divided among them. What is being measured is the friction around a
 skill, and a session that failed throughout failed around each of them.
 
-One attribution is deliberately not inherited. Corrections count what the operator
-said, not every turn wearing the operator's role: one runtime records a tool answer
-as a message in that role, so counting turns would read each tool run following a
-skill as the operator correcting it.
+One attribution is deliberately not inherited. A correction is an utterance, not a
+turn wearing the operator's role. The two sets are close, now that an adapter
+raises a turn only where something was said, but they answer different questions: a
+turn is the boundary the retry window is measured in, and an utterance is a body
+that was spoken. Counting utterances keeps the correction count right whatever a
+store later decides to file under a speaking role.
 """
 
 import dataclasses

@@ -17,10 +17,10 @@ keeping it would let a record from any time into a bounded reading. The runtime
 does timestamp its message records, so what this drops in practice is malformed
 lines.
 
-A record wearing the user role is a turn even when its body is a tool result
-rather than an utterance, because that is how the runtime records a tool answer.
-Utterances are read separately from turns for that reason: a tool answer is a turn
-but is not something the operator said.
+A record wearing a speaker's role is not by itself a turn. This runtime files a
+tool answer as a message in the operator's role, and a tool call or a block of the
+agent's private thinking as a message in the agent's, so what a record holds — not
+the role it wears — decides whether anything was said in it.
 """
 
 import dataclasses
@@ -62,6 +62,9 @@ NAME = "claude"
 UNNAMED_TOOL = "unknown"
 
 SKILL_TOOL_NAMES = ("Skill", "skill")
+
+# The one block type that holds something a side actually said.
+SPEECH_BLOCK = "text"
 
 # "<plugin>:<skill-name>" or a bare "<skill-name>" in the Skill tool's input.
 SKILL_INPUT_RE = re.compile(r"^(?:([a-z][a-z0-9-]*):)?([a-z][a-z0-9-]*)$")
@@ -134,6 +137,24 @@ def role_of(record: dict) -> str | None:
     return role if role in TURN_ROLES else None
 
 
+def carries_speech(record: dict) -> bool:
+    """Whether anything was actually said in this record.
+
+    A body written as a plain string is always something said; a body written as
+    blocks is something said only where one of those blocks is spoken text. The
+    rest of what this runtime files under the two speaking roles — a tool answer
+    under the operator's, a tool call or a block of private thinking under the
+    agent's — is the runtime working, and counting it as a turn would put the
+    store's bookkeeping into the denominator of every rate computed downstream.
+    """
+    message = record.get("message")
+    if not isinstance(message, dict):
+        return False
+    if isinstance(message.get("content"), str):
+        return True
+    return any(block.get("type") == SPEECH_BLOCK for block in _blocks(record))
+
+
 def utterance_of(record: dict) -> str | None:
     """The whole body the operator wrote in one message, or None if it wrote none.
 
@@ -150,7 +171,7 @@ def utterance_of(record: dict) -> str | None:
     fragments = [
         block["text"]
         for block in _blocks(record)
-        if block.get("type") == "text" and isinstance(block.get("text"), str)
+        if block.get("type") == SPEECH_BLOCK and isinstance(block.get("text"), str)
     ]
     if not fragments:
         return None
@@ -224,7 +245,7 @@ def record_events(
     if at is None or (since is not None and at < since):
         return
     role = role_of(record)
-    if role is not None:
+    if role is not None and carries_speech(record):
         yield Turn(role=role, at=at)
     if role == ROLE_USER:
         said = utterance_of(record)

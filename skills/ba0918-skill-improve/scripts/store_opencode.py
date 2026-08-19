@@ -56,6 +56,11 @@ MESSAGES_SQL = (
 )
 PARTS_SQL = "SELECT data FROM part WHERE message_id = ? ORDER BY time_created"
 
+# The one kind of part that holds something a side actually said. A message built
+# only of the other kinds — a tool call and its result — is the runtime working,
+# not a turn.
+TEXT_PART = "text"
+
 SKILL_TOOL = "skill"
 ERROR_STATUS = "error"
 UNNAMED_TOOL = "unknown"
@@ -96,9 +101,22 @@ def _decoded(raw: typing.Any) -> dict | None:
     return body if isinstance(body, dict) else None
 
 
+def carries_speech(parts: list[dict]) -> bool:
+    """Whether anything was actually said in the message these parts build.
+
+    This runtime keeps tool calls out of the message row and in parts of their
+    own, so a message row exists for work as well as for speech. Counting every
+    row would put the runtime's bookkeeping into the denominator of every rate
+    computed downstream, and would do it by a different amount than the runtimes
+    that file their tool calls as messages — leaving the three stores' numbers
+    incomparable.
+    """
+    return any(part.get("type") == TEXT_PART for part in parts)
+
+
 def part_text(part: dict) -> str | None:
     """The body of a text part, or None for any other part."""
-    if part.get("type") != "text":
+    if part.get("type") != TEXT_PART:
         return None
     text = part.get("text")
     return text if isinstance(text, str) and text else None
@@ -141,7 +159,7 @@ def _message_events(
     emitting one each would make a single thing said read as several, which the
     correction count divides by.
     """
-    if role is not None:
+    if role is not None and carries_speech(parts):
         yield Turn(role=role, at=at)
     if role == ROLE_USER:
         fragments = [text for text in (part_text(part) for part in parts) if text]

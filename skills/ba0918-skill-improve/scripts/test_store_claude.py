@@ -273,10 +273,49 @@ class TestTurns(unittest.TestCase):
             ])
             self.assertEqual(_of_kind(_events_of(root), events.Turn), [])
 
+    def test_a_record_holding_only_a_tool_answer_is_not_a_turn(self):
+        with tempfile.TemporaryDirectory() as root:
+            _write_session(root, "-w-notes", "a.jsonl", [
+                _message("user", [
+                    {"type": "tool_result", "tool_use_id": "t-1", "content": "ok"},
+                ]),
+            ])
+            self.assertEqual(_of_kind(_events_of(root), events.Turn), [])
+
+    def test_a_record_holding_only_a_tool_call_is_not_a_turn(self):
+        with tempfile.TemporaryDirectory() as root:
+            _write_session(root, "-w-notes", "a.jsonl", [
+                _message("assistant", [
+                    {"type": "tool_use", "id": "t-1", "name": "Bash", "input": {}},
+                ]),
+            ])
+            self.assertEqual(_of_kind(_events_of(root), events.Turn), [])
+
+    def test_a_record_holding_only_the_agents_own_thinking_is_not_a_turn(self):
+        with tempfile.TemporaryDirectory() as root:
+            _write_session(root, "-w-notes", "a.jsonl", [
+                _message("assistant", [
+                    {"type": "thinking", "thinking": "weighing it up", "signature": "s"},
+                ]),
+            ])
+            self.assertEqual(_of_kind(_events_of(root), events.Turn), [])
+
+    def test_a_record_that_speaks_alongside_a_tool_call_is_a_turn(self):
+        with tempfile.TemporaryDirectory() as root:
+            _write_session(root, "-w-notes", "a.jsonl", [
+                _message("assistant", [
+                    {"type": "text", "text": "running it now"},
+                    {"type": "tool_use", "id": "t-1", "name": "Bash", "input": {}},
+                ]),
+            ])
+            turns = _of_kind(_events_of(root), events.Turn)
+            self.assertEqual([one.role for one in turns], ["assistant"])
+
     def test_the_turn_precedes_what_was_detected_inside_it(self):
         with tempfile.TemporaryDirectory() as root:
             _write_session(root, "-w-notes", "a.jsonl", [
                 _message("assistant", [
+                    {"type": "text", "text": "firing it"},
                     {"type": "tool_use", "name": "Skill", "input": {"skill": "commit"}},
                 ]),
             ])

@@ -84,13 +84,23 @@ class ToolError:
 
 @dataclasses.dataclass(frozen=True)
 class Turn:
-    """One message by the operator or the agent — the unit the error rate divides by.
+    """One thing said by the operator or the agent — the unit the error rate divides by.
 
-    Only these two roles are turns. Attachments, system records, and generated
-    titles are stored as messages by some runtimes and not by others, so counting
-    them would make the denominator a property of the store rather than of the
-    session. Rejecting any other role here is what keeps that out of an adapter's
-    discretion.
+    A turn is speech, not every record wearing a speaker's role. Each runtime files
+    its own working records under the same two roles it files speech under: a tool
+    answer is written as a message in the operator's role, and a tool call or a
+    block of the agent's private thinking as a message in the agent's. Counting
+    those makes the denominator a property of the store rather than of the
+    conversation — in one runtime's history, records holding nothing but a tool
+    answer are 86% of everything wearing the operator's role, while another runtime
+    keeps tool calls in a table of their own and so does not swell at all. Numbers
+    divided by denominators that differ that much cannot be compared across stores,
+    which is the whole reason the reading was split from the counting.
+
+    Attachments, system records and generated titles are left out for the same
+    reason, and rejecting any other role here keeps that out of an adapter's
+    discretion. Which of a store's records count as speech is that store's
+    adapter's business; that a turn is speech is settled here.
     """
 
     role: str
