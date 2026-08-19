@@ -129,6 +129,25 @@ dropping the artifact. Output placement and the working-copy discipline for the 
 rewrites its target were already fixed by `fixture-contract`, so the skill declares that
 contract instead of restating either rule.
 
+The acceptance run happened on 2026-08-19. The ported skill was run *as a skill* against
+`ba0918-trigger-eval`'s `SKILL.md` — two scenarios, five requirements each, executor and
+checker held apart in separate processes so neither saw what would have biased it. Both
+scenarios passed every critical requirement at a precision of 1.0, and the convergence
+functions returned `continue`: fourteen friction points remained, and convergence needs two
+consecutive clean rounds, so a single iteration cannot reach it. The run, its conditions and
+its limits are recorded under `.agents/artifacts/results/20260819_wave3a-acceptance/`.
+
+Saturated precision beside fourteen friction points is the state the skill's own doctrine
+warns about — the instruction can be followed, but following it costs the executor a string
+of judgment calls it had to make alone. Three of those became a finding against
+`ba0918-trigger-eval` itself: a completion condition that a report can talk its way out of,
+in three separate places. That finding is what the port bought.
+
+What this run did not reach: the executor and checker were a flash-tier model rather than a
+session model, only one iteration ran, and the executor was handed `SKILL.md` alone without
+the `references/` beside it. The Gate below inherits the first of those, which wave 2 also
+left open.
+
 ### Wave 3b — Regression harness ⬜
 
 - [ ] Port `skill-regression` as `ba0918-skill-regression`
