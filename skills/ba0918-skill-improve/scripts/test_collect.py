@@ -77,6 +77,29 @@ def _codex_root(parent, said="/claude-skills:commit please", name="codex-store")
     return root
 
 
+def _codex_mirrored_root(parent, said="hello", name="codex-mirrored"):
+    """A store of the third kind holding no record of the operator having typed.
+
+    Its utterances can only be read from the recording that also carries tool
+    output, so the session it holds is one whose utterances are a superset.
+    """
+    root = os.path.join(parent, name)
+    directory = os.path.join(root, "2026", "08", "19")
+    os.makedirs(directory, exist_ok=True)
+    records = [
+        {"timestamp": NOW, "type": "session_meta",
+         "payload": {"id": "rollout-2", "session_id": "rollout-2", "cwd": WORKTREE}},
+        {"timestamp": NOW, "type": "response_item",
+         "payload": {"type": "message", "role": "user",
+                     "content": [{"type": "input_text", "text": said}]}},
+    ]
+    path = os.path.join(directory, "rollout-2026-08-19T13-00-00-0000.jsonl")
+    with open(path, "w", encoding="utf-8") as handle:
+        for record in records:
+            handle.write(json.dumps(record) + "\n")
+    return root
+
+
 def _run(parent, *arguments, claude=None, codex=None, opencode=None):
     """Run the collector over the given stores and read back what it wrote.
 
@@ -206,10 +229,27 @@ class TestWhatEachStoreCouldBeReadFor(unittest.TestCase):
             self.assertEqual(read[store_claude.NAME]["abandonment"],
                              collect.ABANDONMENT_INFERRED)
 
-    def test_sessions_whose_utterances_are_a_superset_are_counted_per_store(self):
+    def test_a_store_reading_only_real_utterances_counts_no_superset_session(self):
         with tempfile.TemporaryDirectory() as parent:
             read = self._read(parent)["summary"]["stores"]
             self.assertEqual(read[store_codex.NAME]["superset_utterance_sessions"], 0)
+
+    def test_a_session_read_as_a_superset_of_what_was_said_is_counted_per_store(self):
+        with tempfile.TemporaryDirectory() as parent:
+            _, result = _run(parent, "--store", store_codex.NAME,
+                             codex=_codex_mirrored_root(parent))
+            self.assertEqual(
+                result["summary"]["stores"][store_codex.NAME][
+                    "superset_utterance_sessions"
+                ],
+                1,
+            )
+
+    def test_a_session_read_that_way_says_so_on_its_own_row(self):
+        with tempfile.TemporaryDirectory() as parent:
+            _, result = _run(parent, "--store", store_codex.NAME,
+                             codex=_codex_mirrored_root(parent))
+            self.assertTrue(result["sessions"][0]["utterances_are_superset"])
 
     def test_a_skill_seen_only_where_no_structure_is_read_carries_the_downgrade(self):
         with tempfile.TemporaryDirectory() as parent:
