@@ -87,8 +87,10 @@ def render_prompt(skill, scenario, *, skill_md, work_dir, output_file, env=None,
     `skill_md_text` inlines the skill body instead of leaving only its path. A backend
     with no file access cannot follow the path at all, so the path-only prompt hands a
     tool-using backend knowledge the other one cannot reach; measured, that asymmetry
-    alone decided a expectation in a parallel run. References are deliberately not
-    inlined — one level, and any extension has to be argued from a measurement.
+    alone decided an expectation in a parallel run. When the body is inlined the path is
+    left out entirely, because an executor that sees one follows it. References are
+    deliberately not inlined — one level, and any extension has to be argued from a
+    measurement.
 
     `empty_work_dir` says the scenario staged nothing on disk. Such a fixture carries its
     evidence in the Situation text by design, but only a backend that can list the
@@ -102,15 +104,18 @@ def render_prompt(skill, scenario, *, skill_md, work_dir, output_file, env=None,
         "",
         "## Target skill",
         "",
-        f"{skill_md}",
-        "",
     ]
     if skill_md_text is None:
-        lines += ["Read it, and follow any references it points to.", ""]
+        lines += [f"{skill_md}", "", "Read it, and follow any references it points to.", ""]
     else:
+        # No path here. Inlining is for a backend that cannot read the file, and
+        # printing the location invites it to try: measured, an executor followed
+        # the path, had the read refused by its sandbox, and stopped without
+        # producing anything — with the body already in front of it.
         lines += [
-            "Its full text is inlined below, so you do not have to read it from disk. "
-            "The files it references are not inlined; work from what is here.",
+            f"`{skill}`. Its full text is inlined below and is everything you get: "
+            "the files it references are not inlined, and nothing outside the working "
+            "directory is available to you. Work from what is here.",
             "",
             SKILL_MD_OPEN,
             skill_md_text.rstrip("\n"),

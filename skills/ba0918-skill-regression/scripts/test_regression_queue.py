@@ -233,8 +233,13 @@ class TestRenderPrompt(unittest.TestCase):
         self.assertIn(rq.SKILL_MD_OPEN, prompt)
         self.assertIn(rq.SKILL_MD_CLOSE, prompt)
         self.assertIn("# Body", prompt)
-        # The path stays: the same prompt has to serve a backend that can read it.
-        self.assertIn("/s.md", prompt)
+        # The path is dropped. It used to stay, so that one prompt shape could serve a
+        # backend that can read files as well; but inlining already makes a batch
+        # non-comparable with one built without it, so a tool-using backend would be run
+        # without the flag anyway. What the path actually bought was an executor
+        # following it into a refused read and stopping — measured, in the wave 3b
+        # acceptance run.
+        self.assertNotIn("/s.md", prompt)
         self.assertNotIn("Read it, and follow any references it points to", prompt)
 
     def test_does_not_fence_the_inlined_body(self):
@@ -1072,3 +1077,38 @@ class TestCli(_Harness):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestInlinedPromptCarriesNoPathToFollow(_Harness):
+    """With the body inlined, the prompt must not lead with a path.
+
+    A backend without file access is exactly the case `--inline-skill` exists for,
+    and printing the SKILL.md's location invites it to read the file anyway.
+    Measured: an executor followed the path, had the read refused by its sandbox,
+    and stopped without producing anything — while the body it needed was already
+    in front of it.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.prompt = rq.render_prompt(
+            "demo-skill", _scenario(),
+            skill_md=SKILL_MD_PATH,
+            work_dir=STAGED_PATH,
+            output_file=REPORT_PATH,
+            skill_md_text="---\nname: demo-skill\n---\nthe body\n",
+        )
+
+    def test_the_skill_md_path_is_absent(self):
+        self.assertNotIn(SKILL_MD_PATH, self.prompt)
+
+    def test_the_body_is_still_there(self):
+        self.assertIn("the body", self.prompt)
+        self.assertIn(rq.SKILL_MD_OPEN, self.prompt)
+
+    def test_the_skill_is_still_named(self):
+        self.assertIn("demo-skill", self.prompt)
+
+    def test_the_report_path_survives(self):
+        # The one path the executor does need is the one it writes to.
+        self.assertIn(REPORT_PATH, self.prompt)

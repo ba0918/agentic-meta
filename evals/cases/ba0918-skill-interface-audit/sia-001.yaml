@@ -1,0 +1,48 @@
+skill: ba0918-skill-interface-audit
+id: sia-001
+title: Median case — auditing a two-skill tree reports every skill and cites its rules
+source: wave-3b-acceptance
+executor_tier: standard
+isolation: worktree
+
+files:
+  - tree/skills/acme-notes/SKILL.md
+  - tree/skills/acme-review/SKILL.md
+
+env:
+  SHELL_COMMANDS_AVAILABLE: 'no'
+  FILE_READ_AND_WRITE_AVAILABLE: 'yes'
+
+exercises:
+  - skills/ba0918-skill-interface-audit/SKILL.md
+
+prompt: |
+  A colleague has a small collection of skills in this directory, under `tree/skills/`.
+  They want to know what each skill's contract leaves unstated before anyone else picks
+  the skills up.
+
+  Audit them and report what you find.
+
+expected_output: |
+  A report covering both skills in the tree, where each finding names the rule it comes
+  from and where it was found, and nothing in the audited tree has been modified.
+
+expectations:
+  - text: |
+      The report covers both skills in the tree, naming acme-notes and acme-review,
+      and neither is silently left out
+    critical: true
+  - text: |
+      Every finding names an identifier for the rule it comes from and the place it was
+      found, rather than being an unattributed remark
+    critical: true
+  - text: |
+      The audited SKILL.md files are left unmodified — findings are reported, not applied
+    critical: true
+  - text: |
+      The report distinguishes what a machine established from what was judged by reading
+    critical: false
+  - text: |
+      acme-review's undeclared side effect — step 3 deletes files the description never
+      mentions — appears among the findings
+    critical: false
