@@ -454,6 +454,83 @@ def coverage(root, state):
     }
 
 
+_JUDGMENT_FIELDS = ("skill", "diff_sha256", "model", "scenarios")
+
+
+def semantic_diff_sha256(recorded_hashes, current_hashes):
+    """A canonical hash of the diff a judgment was made about.
+
+    Only the files that moved are folded in. Including unchanged ones would let
+    an unrelated addition to the surface invalidate a judgment made about exactly
+    the same change.
+
+    It is determined by the lock entry and the current file state alone, so the
+    side that issues a judgment and the side that checks it reach the same value
+    without sharing any reading of git history.
+    """
+    digest = hashlib.sha256()
+    for rel in sorted(set(recorded_hashes) | set(current_hashes)):
+        before = recorded_hashes.get(rel, MISSING)
+        after = current_hashes.get(rel, MISSING)
+        if before == after:
+            continue
+        digest.update(f"{rel}\n{before}\n{after}\n".encode("utf-8"))
+    return digest.hexdigest()
+
+
+def validate_judgment(judgment, skill, recorded_hashes, current_hashes,
+                      gate_reason, known_ids=None):
+    """Why a judgment file may not be used, in one line, or None when it may.
+
+    Every check runs against the whole file: one failure refuses the record
+    entirely. What the verdicts say is not examined here — this decides only
+    whether the file can be believed at all, and which verdicts may be recorded
+    is the update rule's business.
+
+    Binding the diff hash is what stops an old judgment about a different change
+    being reused. The calibration gate is what stops a judge whose error rate was
+    never measured from reaching the record at all. Types are checked rather than
+    mere presence because the file can be written by hand.
+
+    `known_ids` is the set of scenarios that actually exist. Dropping a verdict
+    for an unknown id silently would leave a typo showing up only as a missing
+    verdict, with no trace of the mistake.
+    """
+    if not isinstance(judgment, dict):
+        return "the judgment file is not a JSON object"
+    missing = [field for field in _JUDGMENT_FIELDS if field not in judgment]
+    if missing:
+        return "the judgment file is missing: " + ", ".join(missing)
+    if judgment["skill"] != skill:
+        return (f"the judgment names skill {judgment['skill']}, "
+                f"but the target is {skill}")
+    if judgment["diff_sha256"] != semantic_diff_sha256(recorded_hashes, current_hashes):
+        return ("the judgment was made about a different change "
+                "(its diff hash does not match this one)")
+    model = judgment["model"]
+    if not isinstance(model, str) or not model.strip():
+        return ("the judgment names no model — calibration is specific to one, "
+                "so a verdict without an identifier cannot be recorded")
+    scenarios = judgment["scenarios"]
+    if not isinstance(scenarios, dict):
+        return "the judgment's scenarios is not a mapping of scenario id to verdict"
+    if known_ids is not None:
+        unknown = sorted(set(scenarios) - set(known_ids))
+        if unknown:
+            return "the judgment names scenarios that do not exist: " + ", ".join(unknown)
+    for scenario_id in sorted(scenarios):
+        verdict = scenarios[scenario_id]
+        if not isinstance(verdict, dict):
+            return f"{scenario_id}: the verdict is not a verdict/rationale mapping"
+        if verdict.get("verdict") not in VERDICTS:
+            return (f"{scenario_id}: not one of the three verdicts: "
+                    f"{verdict.get('verdict')!r}")
+        rationale = verdict.get("rationale")
+        if not isinstance(rationale, str) or not rationale.strip():
+            return f"{scenario_id}: no rationale — a verdict nobody can audit is not evidence"
+    return gate_reason
+
+
 def carried_note(prev_entry, note):
     """The note a rebuilt entry inherits. There is one slot, holding one generation.
 
@@ -525,7 +602,8 @@ def update_accept(root, state, skill, today, note=None):
     return state["skills"][skill]
 
 
-def partial_update(root, state, skill, ran_ids, today, note=None):
+def partial_update(root, state, skill, ran_ids, today, note=None, semantic=None,
+                   gate_reason=None):
     """Record the scenarios that ran and carry the rest, or refuse and change nothing.
 
     Returns the (scenario id, reason) pairs that could not be carried. A
@@ -533,6 +611,12 @@ def partial_update(root, state, skill, ran_ids, today, note=None):
     would leave it claiming verification for a scenario whose dependency moved
     underneath it. Running nothing is legitimate — an edit that reaches no
     scenario advances the lock with no run at all.
+
+    `semantic` is a judgment file whose `unaffected` verdicts are recorded as
+    judged rather than run. It is checked in full before anything is written, and
+    a judgment that cannot be used stops the update rather than being ignored.
+    A judged scenario keeps the date of its last real run, for the same reason an
+    acceptance does: a record must not read as a run.
     """
     prev_entry = (state.get("skills") or {}).get(skill) or {}
     scenarios = load_scenarios(root, skill)
@@ -546,9 +630,28 @@ def partial_update(root, state, skill, ran_ids, today, note=None):
     current_hashes = file_hashes(root, surface)
     recorded_scenarios = prev_entry.get("scenarios") or {}
 
+    judged = {}
+    if semantic is not None:
+        reason = validate_judgment(semantic, skill, recorded_hashes, current_hashes,
+                                   gate_reason, known_ids=known)
+        if reason is not None:
+            raise LockError(f"{skill}: the judgment cannot be used: {reason}")
+        # Only `unaffected` reaches the record. `unclear` is the answer that
+        # sends the question to a human, and `affected` asks for the run.
+        judged = {sid for sid, verdict in semantic["scenarios"].items()
+                  if verdict.get("verdict") == VERDICT_UNAFFECTED}
+
     records = {}
     refused = []
     for scenario in scenarios:
+        if scenario["id"] in judged and scenario["id"] not in set(ran_ids):
+            records[scenario["id"]] = {
+                "scenario_sha256": scenario_sha256(scenario),
+                "result": RESULT_ACCEPTED_SEMANTIC,
+                "verified": (recorded_scenarios.get(scenario["id"], {}).get("verified")
+                             or prev_entry.get("verified") or today),
+            }
+            continue
         if scenario["id"] in set(ran_ids):
             records[scenario["id"]] = {
                 "scenario_sha256": scenario_sha256(scenario),

@@ -515,3 +515,134 @@ class TestPartialUpdate(unittest.TestCase):
             lock.update(root, state, "acme", "2026-08-01")
             with self.assertRaises(lock.LockError):
                 lock.partial_update(root, state, "acme", ["ac-999"], TODAY)
+
+
+class TestSemanticDiffHash(unittest.TestCase):
+    def test_only_the_files_that_moved_count(self):
+        # An unrelated addition to the surface must not invalidate a judgment
+        # made about the same diff.
+        first = lock.semantic_diff_sha256({"a": "1", "b": "2"}, {"a": "1", "b": "3"})
+        second = lock.semantic_diff_sha256({"a": "1", "b": "2", "c": "9"},
+                                           {"a": "1", "b": "3", "c": "9"})
+        self.assertEqual(first, second)
+
+    def test_a_different_change_gives_a_different_hash(self):
+        self.assertNotEqual(lock.semantic_diff_sha256({"b": "2"}, {"b": "3"}),
+                            lock.semantic_diff_sha256({"b": "2"}, {"b": "4"}))
+
+
+class TestValidateJudgment(unittest.TestCase):
+    def _judgment(self, recorded, current, **over):
+        judgment = {
+            "skill": "acme",
+            "diff_sha256": lock.semantic_diff_sha256(recorded, current),
+            "model": "some-judge",
+            "scenarios": {"ac-001": {"verdict": lock.VERDICT_UNAFFECTED,
+                                     "rationale": "the edit is a wording change"}},
+        }
+        judgment.update(over)
+        return judgment
+
+    def test_a_well_formed_judgment_is_accepted(self):
+        recorded, current = {"a": "1"}, {"a": "2"}
+        self.assertIsNone(lock.validate_judgment(
+            self._judgment(recorded, current), "acme", recorded, current,
+            gate_reason=None, known_ids={"ac-001"}))
+
+    def test_a_judgment_about_another_change_is_refused(self):
+        # This is what stops an old judgment being reused for a new diff.
+        recorded, current = {"a": "1"}, {"a": "2"}
+        judgment = self._judgment(recorded, current)
+        self.assertIsNotNone(lock.validate_judgment(
+            judgment, "acme", recorded, {"a": "3"}, gate_reason=None,
+            known_ids={"ac-001"}))
+
+    def test_a_judgment_for_another_skill_is_refused(self):
+        recorded, current = {"a": "1"}, {"a": "2"}
+        self.assertIsNotNone(lock.validate_judgment(
+            self._judgment(recorded, current, skill="other"), "acme", recorded,
+            current, gate_reason=None, known_ids={"ac-001"}))
+
+    def test_an_uncalibrated_judge_is_refused(self):
+        recorded, current = {"a": "1"}, {"a": "2"}
+        self.assertIsNotNone(lock.validate_judgment(
+            self._judgment(recorded, current), "acme", recorded, current,
+            gate_reason="a behaviour-changing case was called unaffected",
+            known_ids={"ac-001"}))
+
+    def test_a_judgment_without_a_model_name_is_refused(self):
+        recorded, current = {"a": "1"}, {"a": "2"}
+        self.assertIsNotNone(lock.validate_judgment(
+            self._judgment(recorded, current, model="  "), "acme", recorded,
+            current, gate_reason=None, known_ids={"ac-001"}))
+
+    def test_a_verdict_without_a_rationale_is_refused(self):
+        # A verdict nobody can audit is not evidence.
+        recorded, current = {"a": "1"}, {"a": "2"}
+        judgment = self._judgment(recorded, current)
+        judgment["scenarios"]["ac-001"]["rationale"] = ""
+        self.assertIsNotNone(lock.validate_judgment(
+            judgment, "acme", recorded, current, gate_reason=None,
+            known_ids={"ac-001"}))
+
+    def test_a_verdict_for_an_unknown_scenario_is_refused(self):
+        # Dropping it silently would leave a typo looking like a missing verdict.
+        recorded, current = {"a": "1"}, {"a": "2"}
+        self.assertIsNotNone(lock.validate_judgment(
+            self._judgment(recorded, current), "acme", recorded, current,
+            gate_reason=None, known_ids={"ac-002"}))
+
+
+class TestPartialUpdateWithJudgment(unittest.TestCase):
+    def _prepare(self, root):
+        _repo(root, exercises=["skills/acme/references/guide.md"])
+        _write(root, "evals/cases/acme/ac-002.yaml",
+               _scenario_yaml("acme", "ac-002", exercises=["skills/acme/references/guide.md"]))
+        state = lock.load(root)
+        lock.update(root, state, "acme", "2026-08-01")
+        recorded = dict(state["skills"]["acme"]["file_sha256"])
+        _write(root, "skills/acme/references/guide.md", "guide, reworked")
+        current = lock.file_hashes(root, lock.skill_surface(root, "acme"))
+        return state, recorded, current
+
+    def _judgment(self, recorded, current, ids, verdict=None):
+        return {
+            "skill": "acme",
+            "diff_sha256": lock.semantic_diff_sha256(recorded, current),
+            "model": "some-judge",
+            "scenarios": {sid: {"verdict": verdict or lock.VERDICT_UNAFFECTED,
+                                "rationale": "the wording changed, the steps did not"}
+                          for sid in ids},
+        }
+
+    def test_an_unaffected_verdict_is_recorded_as_judged(self):
+        with tempfile.TemporaryDirectory() as root:
+            state, recorded, current = self._prepare(root)
+            refused = lock.partial_update(
+                root, state, "acme", ["ac-001"], TODAY,
+                semantic=self._judgment(recorded, current, ["ac-002"]))
+            self.assertEqual(refused, [])
+            scenarios = state["skills"]["acme"]["scenarios"]
+            self.assertEqual(scenarios["ac-002"]["result"], lock.RESULT_ACCEPTED_SEMANTIC)
+            self.assertEqual(state["skills"]["acme"]["result"],
+                             lock.RESULT_ACCEPTED_SEMANTIC)
+
+    def test_an_unclear_verdict_records_nothing_and_still_needs_a_run(self):
+        with tempfile.TemporaryDirectory() as root:
+            state, recorded, current = self._prepare(root)
+            refused = lock.partial_update(
+                root, state, "acme", ["ac-001"], TODAY,
+                semantic=self._judgment(recorded, current, ["ac-002"],
+                                        verdict=lock.VERDICT_UNCLEAR))
+            self.assertEqual([sid for sid, _ in refused], ["ac-002"])
+
+    def test_a_judgment_that_does_not_validate_stops_the_update(self):
+        with tempfile.TemporaryDirectory() as root:
+            state, recorded, current = self._prepare(root)
+            before = json.dumps(state, sort_keys=True)
+            with self.assertRaises(lock.LockError):
+                lock.partial_update(
+                    root, state, "acme", ["ac-001"], TODAY,
+                    semantic=self._judgment(recorded, current, ["ac-002"]),
+                    gate_reason="the judge was not calibrated")
+            self.assertEqual(json.dumps(state, sort_keys=True), before)
