@@ -1,6 +1,7 @@
 ---
 name: ba0918-skill-interface-audit
 description: Audit each SKILL.md statically as an API specification and report what its contract is missing — undeclared side effects, completion conditions that cannot be verified, undefined failure handling — alongside structural violations. Every finding carries a patch candidate, and none is ever applied automatically. Use when the user says "skill-interface-audit", "audit the interfaces", "check the skill contracts", "audit SKILL.md", or "check the API specification".
+license: MIT
 metadata:
   contracts:
     - fixture-contract
