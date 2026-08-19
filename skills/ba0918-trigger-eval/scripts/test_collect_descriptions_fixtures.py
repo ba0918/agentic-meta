@@ -24,6 +24,17 @@ _REPO_ROOT = Path(__file__).resolve().parents[3]
 _FIXTURES = _REPO_ROOT / "fixtures"
 
 
+# These cases verify the collector against this repository's own fixture trees, so
+# they need the repository around them. A standalone copy of the skill has no
+# `fixtures/`; there the cases skip with that reason rather than failing, which is
+# the same degrade-and-say-so the skill itself applies to a missing dependency.
+_needs_repository_fixtures = unittest.skipUnless(
+    _FIXTURES.is_dir(),
+    "repository fixtures absent - these cases verify the collector against this "
+    "repository's own trees",
+)
+
+
 def _skill_dir(fixture: str) -> Path:
     d = _FIXTURES / fixture / "skills"
     if not d.is_dir():
@@ -38,6 +49,7 @@ def _declared_names(fixture: str) -> list[str]:
     return json.loads(declaration.read_text(encoding="utf-8"))["skills"]
 
 
+@_needs_repository_fixtures
 class TestStandardLayoutFixture(unittest.TestCase):
     def test_reads_every_skill_with_its_description(self):
         skills = cd.collect_from_dir(_skill_dir("skillset-alpha"))
@@ -54,6 +66,7 @@ class TestStandardLayoutFixture(unittest.TestCase):
         )
 
 
+@_needs_repository_fixtures
 class TestHeterogeneousLayoutFixture(unittest.TestCase):
     def setUp(self):
         self.skills = cd.collect_from_dir(_skill_dir("skillset-beta"))
@@ -83,6 +96,7 @@ class TestHeterogeneousLayoutFixture(unittest.TestCase):
         self.assertEqual(len(self.skills), 2)
 
 
+@_needs_repository_fixtures
 class TestAgreementWithFixtureDeclaration(unittest.TestCase):
     """The fixture contract judges a run complete when the skills reported match
     the declaration exactly, counted with multiplicity."""
