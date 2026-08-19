@@ -58,3 +58,14 @@ pre-push:
             exit 1
           }
         fi
+        # The copy routes install by searching the tree for skills/ directories,
+        # so a skill the Agent Skills specification rejects reaches a consumer
+        # even though the plugin manifest never named it. This is the check that
+        # notices. `gh skill` is a preview command, so a failure here can mean
+        # the tool changed rather than the tree — read the reported rule before
+        # editing a skill to satisfy it.
+        if ! command -v gh >/dev/null 2>&1; then
+          echo "lefthook: gh not found - skipping the distributable skills validation"
+        else
+          gh skill publish . --dry-run
+        fi

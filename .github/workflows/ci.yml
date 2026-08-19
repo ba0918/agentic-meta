@@ -84,6 +84,21 @@ jobs:
             exit 1
           }
 
+      # The plugin manifest is not the only way these skills reach a consumer:
+      # the copy routes search the tree for skills/ directories of their own.
+      # This step is what notices a skill such a route would pick up but the
+      # Agent Skills specification rejects — the condition the .fixtures/ layout
+      # exists to keep out of the distributable surface. A violating tree exits
+      # non-zero here; a clean one is silent.
+      #
+      # `gh skill` is documented as a preview command, subject to change without
+      # notice. It is a step of its own so a change on that side can be dropped
+      # without disturbing the checks around it.
+      - name: Validate the distributable skills against the Agent Skills specification
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh skill publish . --dry-run
+
       # pytest is fetched per run rather than pinned, matching how the sister
       # repository installs it. uv resolves the interpreter itself, so the
       # workflow needs no separate Python setup step.
