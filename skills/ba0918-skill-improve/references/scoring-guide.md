@@ -120,8 +120,9 @@ so in the report.
 Only one of the three stores writes down that a session was broken off. For the other
 two it is inferred: a session whose failed tool runs exceed 30% of its turns is read as
 having been broken off. That inference and a recorded fact are not the same
-measurement, and `abandonment_rate` carries the heaviest weight in the formula, so a
-score dominated by an inferred term deserves the qualification.
+measurement, and `abandonment_rate` ties with `retry_rate` for the heaviest weight the
+formula gives any term, so a score dominated by an inferred term deserves the
+qualification.
 
 The inference also became easier to trip than the calibration behind it assumed. Turns
 are now counted as speech only — a runtime's own bookkeeping no longer swells the
