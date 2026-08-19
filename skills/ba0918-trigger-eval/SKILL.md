@@ -1,6 +1,7 @@
 ---
 name: ba0918-trigger-eval
 description: A meta skill that mechanically measures how accurately a skill set's descriptions fire (recall / precision / stability / confusion matrix) by judging from the descriptions alone, identifies colliding pairs, and runs the rewrite then re-evaluation loop to convergence. The target is this repository's skills/, any skill directory, or the user scope. Use when the user says "trigger-eval", "firing accuracy", "measure skill firing", "trigger evaluation", "rewrite the descriptions", or "show me skill collisions with a confusion matrix". Sister skill of `ba0918-empirical-prompt-tuning`, which covers the quality of body execution; this one measures the selection layer, description to firing.
+license: MIT
 metadata:
   contracts:
     - fixture-contract

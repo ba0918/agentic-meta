@@ -19,19 +19,20 @@ are therefore the toolchains the checks themselves need; lefthook, which runs th
 a push, is installed separately per clone.
 
 The distributed plugin's version lives in exactly one canonical place: the `version` field of
-`.claude-plugin/plugin.json`. The copy in `.claude-plugin/marketplace.json` is a follower of
-that value, never a second source of it.
+`.claude-plugin/plugin.json`. `.claude-plugin/marketplace.json` and `package.json` repeat it
+for the routes that read them; both are followers, never a second source of the value.
 
 | Path | What it holds |
 |---|---|
 | `skills/` | The skills themselves, one directory each. A skill is self-contained: the contracts it declares are expanded under its own `references/vendor/`, and its Python scripts sit beside their tests in `scripts/` |
 | `contracts/` | The output-contract conventions (`contracts/README.md`) and the canonical text of each contract: `fixture-contract`, `severity-and-verdicts`, `fix-action-taxonomy` |
 | `vendor-lock.json` | Which contract text each skill has currently adopted. Derived — the tool's `gen` rewrites it from the canonical text; it is never edited by hand |
-| `fixtures/` | Synthetic skill trees the machinery runs against; `skillset-alpha` and `skillset-beta` differ in structure, vocabulary and log format on purpose |
+| `.fixtures/` | Synthetic skill trees the machinery runs against; `skillset-alpha` and `skillset-beta` differ in structure, vocabulary and log format on purpose. The leading dot keeps them out of the copy routes' default discovery: they hold deliberately malformed skills, which a distribution surface must not carry |
 | `.claude-plugin/` | Distribution metadata: `plugin.json`, which declares the canonical version, and `marketplace.json`, which follows it |
+| `.opencode/` | The OpenCode route's plugin entry. It registers `skills/` with the runtime and does nothing else |
 | `docs/spec/` | Design decisions (Japanese) |
-| `package.json`, `bun.lock` | The vendoring tool's version pin |
-| `.github/workflows/ci.yml` | CI: frozen install, the tool's self-test, then `verify` + `lint-selfcontain` over both fixture trees and the repository root, the plugin version check, and the skills' script suites |
+| `package.json`, `bun.lock` | The vendoring tool's version pin, the OpenCode route's entry declaration (`main`, `files`), and one of the two version followers |
+| `.github/workflows/ci.yml` | CI: frozen install, the tool's self-test, then `verify` + `lint-selfcontain` over both fixture trees and the repository root, the version-declaration check, the Agent Skills specification validation, and the skills' script suites |
 | `lefthook.yml` | Local pre-push gates mirroring CI (activated per clone with `lefthook install`) |
 
 ## Commands
@@ -44,7 +45,8 @@ that value, never a second source of it.
 | Regenerate vendored copies | `bun ./node_modules/.bin/agentic-skill-vendor gen --root <tree>` |
 | Self-containment lint | `bun ./node_modules/.bin/agentic-skill-vendor lint-selfcontain --root <tree>` |
 | Run the skills' script suites | `PYTHONDONTWRITEBYTECODE=1 uv run --with pytest pytest skills -q` |
-| Check the plugin version declarations agree | `test "$(jq -r .version .claude-plugin/plugin.json)" = "$(jq -r '.plugins[0].version' .claude-plugin/marketplace.json)"` |
+| Validate the distributable skills | `gh skill publish . --dry-run` |
+| Check the version declarations agree | `c=$(jq -r .version .claude-plugin/plugin.json); test "$c" = "$(jq -r '.plugins[0].version' .claude-plugin/marketplace.json)" && test "$c" = "$(jq -r .version package.json)"` |
 | Enable pre-push hooks (once per clone) | `lefthook install` |
 
 `<tree>` is `.` for this repository itself as well as either fixture tree. Run the lint before

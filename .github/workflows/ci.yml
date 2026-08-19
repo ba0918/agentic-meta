@@ -58,8 +58,8 @@ jobs:
       # canonical text.
       - name: Verify the fixture trees and the repository root against their locks
         run: |
-          bun ./node_modules/.bin/agentic-skill-vendor verify --root fixtures/skillset-alpha
-          bun ./node_modules/.bin/agentic-skill-vendor verify --root fixtures/skillset-beta
+          bun ./node_modules/.bin/agentic-skill-vendor verify --root .fixtures/skillset-alpha
+          bun ./node_modules/.bin/agentic-skill-vendor verify --root .fixtures/skillset-beta
           bun ./node_modules/.bin/agentic-skill-vendor verify --root .
 
       # This runs before the Python suites below, not after. lint-selfcontain
@@ -68,21 +68,40 @@ jobs:
       # absolute-path violations.
       - name: Lint the fixture trees and the repository root for self-containment
         run: |
-          bun ./node_modules/.bin/agentic-skill-vendor lint-selfcontain --root fixtures/skillset-alpha
-          bun ./node_modules/.bin/agentic-skill-vendor lint-selfcontain --root fixtures/skillset-beta
+          bun ./node_modules/.bin/agentic-skill-vendor lint-selfcontain --root .fixtures/skillset-alpha
+          bun ./node_modules/.bin/agentic-skill-vendor lint-selfcontain --root .fixtures/skillset-beta
           bun ./node_modules/.bin/agentic-skill-vendor lint-selfcontain --root .
 
-      # marketplace.json repeats the version canonically declared in plugin.json,
-      # so it can only ever follow. A disagreement between the two is otherwise
-      # invisible until a consumer installs the published plugin.
+      # plugin.json declares the version; marketplace.json and package.json
+      # repeat it for the routes that read them, so both can only ever follow.
+      # A disagreement is otherwise invisible until a consumer installs by
+      # whichever route holds the stale copy.
       - name: Check the plugin version declarations agree
         run: |
           canonical=$(jq -r .version .claude-plugin/plugin.json)
-          follower=$(jq -r '.plugins[0].version' .claude-plugin/marketplace.json)
-          test "$canonical" = "$follower" || {
-            echo "plugin.json declares $canonical, marketplace.json declares $follower"
-            exit 1
-          }
+          for follower in \
+            "marketplace.json:$(jq -r '.plugins[0].version' .claude-plugin/marketplace.json)" \
+            "package.json:$(jq -r .version package.json)"; do
+            test "$canonical" = "${follower#*:}" || {
+              echo "plugin.json declares $canonical, ${follower%%:*} declares ${follower#*:}"
+              exit 1
+            }
+          done
+
+      # The plugin manifest is not the only way these skills reach a consumer:
+      # the copy routes search the tree for skills/ directories of their own.
+      # This step is what notices a skill such a route would pick up but the
+      # Agent Skills specification rejects — the condition the .fixtures/ layout
+      # exists to keep out of the distributable surface. A violating tree exits
+      # non-zero here; a clean one is silent.
+      #
+      # `gh skill` is documented as a preview command, subject to change without
+      # notice. It is a step of its own so a change on that side can be dropped
+      # without disturbing the checks around it.
+      - name: Validate the distributable skills against the Agent Skills specification
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh skill publish . --dry-run
 
       # pytest is fetched per run rather than pinned, matching how the sister
       # repository installs it. uv resolves the interpreter itself, so the

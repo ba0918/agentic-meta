@@ -86,11 +86,29 @@ neither run needed a rewrite; and every cell ran once.
 
 Runs after wave 2, revisited after each later wave. Decides with measurements, not intuition.
 
-- [ ] Individual-install (copy-route) support: first-class or plugin-only, judged on
-      standalone install success rate, co-change count per contract update, review load
-- [ ] Layout migration thresholds (generated lines per contract update, average fan-out)
-- [ ] Autopsy of deletion candidates (`generate-review-rules`: generator only;
-      the `review-rules.md` contract stays with workflow)
+The first pass ran on 2026-08-19 and settled all three items. The decisions themselves live
+in [docs/spec/repository-design.md](docs/spec/repository-design.md); what follows is what
+each item resolved to.
+
+- [x] Individual-install support: **first-class**. Every route is supported equally rather
+      than one being primary — the sibling `agentic-rules` supports all of them, and a
+      repository missing one takes the choice away from whoever installs it. Coverage is
+      judged per route as pass or fail; the `standalone install success rate` metric this
+      item once named is retired, since a rate answers nothing a per-route check does not
+- [x] Layout migration thresholds: **none kept**. The action a threshold would trigger — the
+      dist layout — is already ruled out by the self-containment invariant, so no threshold
+      has anywhere to fire, and the generated line count is not this repository's to control.
+      What remains is the discipline of keeping contract text short, amplified by fan-out:
+      one line cut from a contract is one line cut per skill that declares it
+- [x] Deletion candidates: `review-rules.md` is being retired, so `generate-review-rules`
+      dies with it when workflow is ported. What falls to this repository is removing the
+      `review-rules.md` references from `context-audit` at wave 5, so the port does not
+      carry a pointer to a contract that no longer exists
+
+Carried into the next pass, from what wave 2's acceptance did not reach: the executor was a
+flash-tier model rather than a session model, Tier 2 live firing is impossible against
+fixtures no session has installed, the mutating-instrument clause has never fired, and every
+cell ran once.
 
 ### Wave 3 — Harnesses ⬜
 
@@ -107,7 +125,8 @@ Runs after wave 2, revisited after each later wave. Decides with measurements, n
 ### Wave 5 — Auditor ⬜
 
 - [ ] Port `context-audit` as `ba0918-context-audit` (its read-only observation
-      of this repo starts back in wave 1)
+      of this repo starts back in wave 1). Drop its `review-rules.md` references while
+      porting: that contract is being retired along with `generate-review-rules`
 
 ## Out of scope here
 

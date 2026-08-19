@@ -2,7 +2,7 @@
 """Target-resolution tests for collect_descriptions.py against the repository's
 heterogeneous fixture skill trees.
 
-The synthetic trees under `fixtures/` differ from one another on purpose --
+The synthetic trees under `.fixtures/` differ from one another on purpose --
 directory vocabulary, naming style and frontmatter shape -- so collecting from
 both is what shows the collector reads an unfamiliar tree rather than one
 lucky layout. `expected-skills.json` at each fixture root is the
@@ -21,12 +21,12 @@ import collect_descriptions as cd
 
 # scripts -> ba0918-trigger-eval -> skills -> repository root
 _REPO_ROOT = Path(__file__).resolve().parents[3]
-_FIXTURES = _REPO_ROOT / "fixtures"
+_FIXTURES = _REPO_ROOT / ".fixtures"
 
 
 # These cases verify the collector against this repository's own fixture trees, so
 # they need the repository around them. A standalone copy of the skill has no
-# `fixtures/`; there the cases skip with that reason rather than failing, which is
+# `.fixtures/`; there the cases skip with that reason rather than failing, which is
 # the same degrade-and-say-so the skill itself applies to a missing dependency.
 _needs_repository_fixtures = unittest.skipUnless(
     _FIXTURES.is_dir(),
