@@ -313,6 +313,30 @@ class TestFrictionReported(unittest.TestCase):
             )
 
 
+class TestOneFiringSeenOnBothRoutes(unittest.TestCase):
+    def _both_routes(self, parent):
+        """A session where the operator typed the command and the tool call followed."""
+        records = [
+            _claude_record("user", "run /demo:tidy-up on this repo"),
+            _claude_record("assistant", [
+                {"type": "tool_use", "name": "Skill", "input": {"skill": "demo:tidy-up"}},
+            ]),
+        ]
+        return _run(parent, "--store", store_claude.NAME,
+                    claude=_claude_root(parent, records))[1]
+
+    def test_a_command_typed_and_the_tool_call_it_produced_are_counted_once(self):
+        with tempfile.TemporaryDirectory() as parent:
+            reported = self._both_routes(parent)["friction_signals"]["tidy-up"]
+            self.assertEqual(reported["invocation_count"], 1)
+            self.assertEqual(reported["retry_count"], 0)
+
+    def test_the_measurement_says_how_many_firings_both_routes_showed(self):
+        with tempfile.TemporaryDirectory() as parent:
+            reported = self._both_routes(parent)["friction_signals"]["tidy-up"]
+            self.assertEqual(reported["merged_route_pairs"], 1)
+
+
 class TestSessionsReported(unittest.TestCase):
     def test_the_sessions_read_are_reported_without_anything_naming_them(self):
         with tempfile.TemporaryDirectory() as parent:

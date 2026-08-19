@@ -105,6 +105,72 @@ class TestRetries(unittest.TestCase):
         self.assertEqual(aggregate.skills["commit"].retries, 3)
 
 
+class TestOneFiringSeenOnBothRoutes(unittest.TestCase):
+    """A slash command and the tool call it produced are one firing, not two."""
+
+    def _pair(self):
+        return _one_store([
+            _identity(), _turn(), _said("/demo:tidy-up now"),
+            _fired("tidy-up", events.ROUTE_TEXT), _fired("tidy-up"),
+        ])
+
+    def test_a_command_typed_and_the_tool_call_it_produced_are_one_firing(self):
+        self.assertEqual(self._pair().skills["tidy-up"].invocations, 1)
+
+    def test_a_firing_seen_along_both_routes_is_not_a_retry_of_itself(self):
+        self.assertEqual(self._pair().skills["tidy-up"].retries, 0)
+
+    def test_a_firing_seen_along_both_routes_is_kept_as_the_structural_one(self):
+        self.assertEqual(self._pair().skills["tidy-up"].routes, ("structural",))
+
+    def test_the_folding_is_counted_so_a_report_can_say_it_happened(self):
+        self.assertEqual(self._pair().skills["tidy-up"].merged_route_pairs, 1)
+
+    def test_a_firing_only_the_tool_record_shows_is_one_firing_folding_nothing(self):
+        aggregate = _one_store([_identity(), _turn(), _fired("tidy-up")])
+        self.assertEqual(aggregate.skills["tidy-up"].invocations, 1)
+        self.assertEqual(aggregate.skills["tidy-up"].merged_route_pairs, 0)
+
+    def test_a_firing_only_the_typed_command_shows_is_one_firing_folding_nothing(self):
+        aggregate = _one_store([
+            _identity(), _turn(), _said("/demo:tidy-up now"),
+            _fired("tidy-up", events.ROUTE_TEXT),
+        ])
+        self.assertEqual(aggregate.skills["tidy-up"].invocations, 1)
+        self.assertEqual(aggregate.skills["tidy-up"].merged_route_pairs, 0)
+
+    def test_a_tool_call_further_away_than_the_window_is_a_second_firing(self):
+        aggregate = _one_store([
+            _identity(), _turn(), _fired("tidy-up", events.ROUTE_TEXT),
+            _turn(), _turn(), _turn(), _turn(), _fired("tidy-up"),
+        ])
+        self.assertEqual(aggregate.skills["tidy-up"].invocations, 2)
+        self.assertEqual(aggregate.skills["tidy-up"].merged_route_pairs, 0)
+
+    def test_another_skill_firing_in_between_leaves_the_two_detections_apart(self):
+        aggregate = _one_store([
+            _identity(), _turn(), _fired("tidy-up", events.ROUTE_TEXT),
+            _fired("commit"), _fired("tidy-up"),
+        ])
+        self.assertEqual(aggregate.skills["tidy-up"].invocations, 2)
+
+    def test_a_command_typed_after_a_tool_call_is_a_second_firing_and_a_retry(self):
+        aggregate = _one_store([
+            _identity(), _turn(), _fired("tidy-up"),
+            _turn(), _said("/demo:tidy-up now"), _fired("tidy-up", events.ROUTE_TEXT),
+        ])
+        self.assertEqual(aggregate.skills["tidy-up"].invocations, 2)
+        self.assertEqual(aggregate.skills["tidy-up"].retries, 2)
+
+    def test_the_two_routes_are_never_folded_across_a_session_boundary(self):
+        aggregate = _one_store([
+            _identity("s-1"), _turn(), _fired("tidy-up", events.ROUTE_TEXT),
+            _identity("s-2"), _turn(), _fired("tidy-up"),
+        ])
+        self.assertEqual(aggregate.skills["tidy-up"].invocations, 2)
+        self.assertEqual(aggregate.skills["tidy-up"].merged_route_pairs, 0)
+
+
 class TestCorrections(unittest.TestCase):
     def test_what_the_operator_says_after_a_skill_fires_is_a_correction(self):
         aggregate = _one_store([

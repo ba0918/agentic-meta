@@ -28,6 +28,16 @@ whole class of them. That is a different measurement, not a smaller number, so t
 route travels with every invocation and the store's declaration travels into the
 report.
 
+Where a store reads both, the two routes can name the same firing. A slash command the
+operator typed is seen along the text route, and the tool call that command produced is
+seen along the structural route moments later — one firing observed twice, not two
+firings. The pair is folded into one firing, keeping the runtime's own record as the
+surviving route, and the count of foldings is reported per skill. The folding is done
+in the aggregation and never in an adapter: an adapter is only an ordered source of
+events, and deciding that two detections are one firing is a judgement about the order
+they arrived in. What that folding is worth, measured, is in
+[friction-schema.md](friction-schema.md).
+
 ## What each store supports
 
 | Store | Layout | text | structural | Session abandonment | Tool errors |

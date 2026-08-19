@@ -130,6 +130,7 @@ def friction_report(friction: signals.SkillFriction) -> dict[str, typing.Any]:
         "sessions": friction.sessions,
         "stores": list(friction.stores),
         "routes": list(friction.routes),
+        "merged_route_pairs": friction.merged_route_pairs,
         "stores_without_structural": list(friction.stores_without_structural),
         "confidence_downgraded": friction.confidence_downgraded,
         "stores_with_inferred_abandonment": list(friction.stores_with_inferred_abandonment),

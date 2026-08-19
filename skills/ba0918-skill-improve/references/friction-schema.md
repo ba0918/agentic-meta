@@ -61,6 +61,7 @@ enumerated below.
       "sessions": "integer — sessions this skill was seen in",
       "stores": ["string — the stores it was seen through"],
       "routes": ["string — text | structural, the routes it was seen along"],
+      "merged_route_pairs": "integer — firings both routes showed, folded into one",
       "stores_without_structural": ["string — of those stores, the ones with no structural route"],
       "confidence_downgraded": "boolean — true when that list is not empty",
       "stores_with_inferred_abandonment": ["string — of those stores, the ones whose abandonment was inferred"]
@@ -94,6 +95,27 @@ read the same clean result.
 `analysis.proceed` is false when the reading found no firing at all. Every friction
 rate divides by the number of firings, so an analysis of nothing produces scores out of
 nothing. Stop at the measurement and say so.
+
+### A firing both routes showed is counted once
+
+Where a store reads both routes, one firing can be detected twice: the operator types a
+slash command, and the runtime then records the tool call that command produced. The
+measurement folds that pair into a single firing and keeps the runtime's own record as
+its route, so `routes` reads `structural` for it. `merged_route_pairs` counts the
+firings folded that way, which is what lets a report say that an invocation count drawn
+from a store reading both routes is a count of firings rather than of detections.
+
+Counting both detections is not extra coverage. Measured on one synthetic session
+holding exactly one such firing, counting them separately reported `invocation_count` 2
+and `retry_count` 2 — the second detection lands inside the retry window of the first —
+so `retry_rate` came out at 1.0, the heaviest weighted term of the score, for a firing
+that succeeded in one attempt. Every skill fired by slash command therefore ranked as
+maximally frictional.
+
+Only a typed command followed by a tool call is folded, never the reverse. A tool call
+the runtime recorded first, with the operator then typing the command, is the operator
+firing the skill again after the agent had already fired it — a real repeat, and
+exactly what the retry count exists to catch.
 
 ### Two things the collector this replaces emitted, and this one does not
 

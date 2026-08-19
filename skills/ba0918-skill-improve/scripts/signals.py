@@ -12,6 +12,12 @@ and tool runs inside that session failed. The first two are attributed to the
 skill; the last two are properties of the session, and every skill fired in that
 session carries them.
 
+One firing can be observed twice. Where a store reads both routes, an operator
+typing a slash command leaves a text detection and then the runtime's own record of
+the call that command produced. The pair is folded into one firing, and the record
+the runtime kept is the route that survives; the measurement behind that, and the
+reason counting both is not coverage, is on one_firing_seen_twice.
+
 Being broken off is read two ways, because only one of the three stores writes it
 down. Where a store does, its own record decides and nothing is inferred. Where a
 store does not, it is inferred from the share of the session's turns that failed.
@@ -46,6 +52,7 @@ import typing
 from events import (
     Capabilities,
     Event,
+    ROUTE_STRUCTURAL,
     ROUTE_TEXT,
     SessionAbandoned,
     SessionIdentity,
@@ -59,6 +66,12 @@ from events import (
 # A firing this many turns or fewer after the previous firing of the same skill is
 # the same attempt being made again rather than the skill being used afresh.
 RETRY_WINDOW_TURNS = 3
+
+# A typed command and the tool call it produced are this many turns or fewer apart;
+# further apart than that they are two firings. It is deliberately the retry window: a
+# pair falling outside a narrower window would land inside the retry window instead,
+# and be counted as the immediate repeat this folding exists to stop it being read as.
+PAIRED_ROUTE_WINDOW_TURNS = RETRY_WINDOW_TURNS
 
 # Where a store keeps no record of a session being broken off, a session whose
 # failed tool runs exceed this share of its turns is read as having been broken off
@@ -78,6 +91,7 @@ class SkillInSession:
     retries: int
     corrections: int
     routes: tuple[str, ...]
+    merged_route_pairs: int = 0
 
 
 @dataclasses.dataclass(frozen=True)
@@ -118,6 +132,7 @@ class SkillFriction:
     turns: int = 0
     stores: tuple[str, ...] = ()
     routes: tuple[str, ...] = ()
+    merged_route_pairs: int = 0
     stores_without_structural: tuple[str, ...] = ()
     confidence_downgraded: bool = False
     stores_with_inferred_abandonment: tuple[str, ...] = ()
@@ -184,6 +199,44 @@ def broken_off(
     return turns > 0 and tool_errors > turns * ABANDONMENT_ERROR_SHARE
 
 
+def one_firing_seen_twice(
+    previous_skill: str | None,
+    previous_route: str | None,
+    skill: str,
+    route: str,
+    turns_since: int,
+) -> bool:
+    """Whether this detection is the previous one seen again rather than a new firing.
+
+    A store reading both routes sees one firing twice whenever the operator types the
+    command: the utterance names the skill, and the runtime then records the tool call
+    that utterance produced. Counted as written, that single firing arrives as two
+    invocations of the same skill no turns apart — which is also what the retry rule
+    reads as an immediate repeat. Measured on one synthetic session holding exactly one
+    such firing, the reading was invocation_count 2 and retry_count 2, making
+    retry_rate 1.0 on a firing that succeeded in one attempt. Since retry_rate carries
+    the heaviest weight in the friction score, every skill fired by slash command was
+    ranked as maximally frictional.
+
+    Counting both and calling it coverage is the tempting alternative and is wrong.
+    The two detections are not two observations to be added up; they are one firing
+    observed along two routes. Adding them inflates the numerator of every rate while
+    the denominator stays one session, so the skills the score points at are the ones
+    the operator typed rather than the ones that went badly.
+
+    Only a typed command followed by a tool call is folded, never the reverse. A tool
+    call the runtime recorded first, with the operator then typing the command, is the
+    operator firing the skill again after the agent had already fired it — a real
+    second firing, and exactly the repeat the retry signal exists to catch.
+    """
+    return (
+        previous_skill == skill
+        and previous_route == ROUTE_TEXT
+        and route == ROUTE_STRUCTURAL
+        and turns_since <= PAIRED_ROUTE_WINDOW_TURNS
+    )
+
+
 def session_signals(
     store: str,
     identity: SessionIdentity | None,
@@ -201,14 +254,20 @@ def session_signals(
     the firing it carries, so the utterance is discounted here when the firing
     arrives by the text route — otherwise every switch of skill by slash command
     would add a correction to the skill being switched away from.
+
+    The route each firing was counted under is kept per firing rather than as a set,
+    because folding a pair re-labels the firing already counted: what the operator
+    typed is superseded by the runtime's own record of the call it produced.
     """
     turns = 0
     tool_errors = 0
     invocations: dict[str, int] = {}
     retries: dict[str, int] = {}
     corrections: dict[str, int] = {}
-    routes: dict[str, set[str]] = {}
+    firing_routes: dict[str, list[str]] = {}
+    folded: dict[str, int] = {}
     last_skill: str | None = None
+    last_route: str | None = None
     last_skill_turn = 0
     said_since_skill = 0
     its_own_record = False
@@ -222,8 +281,16 @@ def session_signals(
             tool_errors += 1
         elif isinstance(event, SkillInvocation):
             skill = event.skill
+            if one_firing_seen_twice(
+                last_skill, last_route, skill, event.route, turns - last_skill_turn
+            ):
+                folded[skill] = folded.get(skill, 0) + 1
+                firing_routes[skill][-1] = ROUTE_STRUCTURAL
+                last_route = ROUTE_STRUCTURAL
+                last_skill_turn = turns
+                continue
             invocations[skill] = invocations.get(skill, 0) + 1
-            routes.setdefault(skill, set()).add(event.route)
+            firing_routes.setdefault(skill, []).append(event.route)
             if event.route == ROUTE_TEXT and said_since_skill > 0:
                 said_since_skill -= 1
             if last_skill == skill and (turns - last_skill_turn) <= RETRY_WINDOW_TURNS:
@@ -233,6 +300,7 @@ def session_signals(
                     corrections.get(last_skill, 0) + said_since_skill
                 )
             last_skill = skill
+            last_route = event.route
             last_skill_turn = turns
             said_since_skill = 0
         elif isinstance(event, UserText) and last_skill is not None:
@@ -257,7 +325,8 @@ def session_signals(
                 invocations=count,
                 retries=retries.get(skill, 0),
                 corrections=corrections.get(skill, 0),
-                routes=tuple(sorted(routes.get(skill, ()))),
+                routes=tuple(sorted(set(firing_routes.get(skill, ())))),
+                merged_route_pairs=folded.get(skill, 0),
             )
             for skill, count in sorted(invocations.items())
         ),
@@ -281,6 +350,7 @@ class _Running:
     invocations: int = 0
     retries: int = 0
     corrections: int = 0
+    merged_route_pairs: int = 0
     abandoned_sessions: int = 0
     tool_errors: int = 0
     turns: int = 0
@@ -296,6 +366,7 @@ def _add_session(running: dict[str, _Running], session: SessionSignals) -> None:
         totals.invocations += entry.invocations
         totals.retries += entry.retries
         totals.corrections += entry.corrections
+        totals.merged_route_pairs += entry.merged_route_pairs
         totals.tool_errors += session.tool_errors
         totals.turns += session.turns
         totals.abandoned_sessions += 1 if session.abandoned else 0
@@ -333,6 +404,7 @@ def _finished(
         turns=totals.turns,
         stores=tuple(sorted(totals.stores)),
         routes=tuple(sorted(totals.routes)),
+        merged_route_pairs=totals.merged_route_pairs,
         stores_without_structural=unreadable,
         confidence_downgraded=bool(unreadable),
         stores_with_inferred_abandonment=inferred,
