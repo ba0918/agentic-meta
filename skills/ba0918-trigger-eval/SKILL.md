@@ -55,7 +55,11 @@ python3 skills/ba0918-trigger-eval/scripts/collect_descriptions.py --dir skills 
 
 ### Phase 1: Harvest real-data seeds (optional)
 
-Real-data seeds come from the prompt harvest of `ba0918-skill-improve`. **When that skill is absent from the environment, record "no real-data seeds — synthetic cases only" in the report and go straight to Phase 1.5.** The absence is stated, never silent.
+Real-data seeds come from the prompt harvest of `ba0918-skill-improve` and from nowhere else. **When that harvest does not run — the skill is absent, or it is present and its own guards refuse — record "no real-data seeds — synthetic cases only" in the report and go straight to Phase 1.5.** The absence is stated, never silent.
+
+Presence means the skill is installed where this environment's skills live. A copy found in a package cache, another repository's checkout, or a vendor directory is not presence.
+
+Do not substitute a harvest of your own. A guard that refuses is an answer, not an obstacle, and session histories and other projects on the machine are outside what this run may read — see the read scope clause of [references/vendor/fixture-contract.md](references/vendor/fixture-contract.md).
 
 When it is present, harvest the triggering record (the `slash_fired` signal) and the missed-triggering candidates (the `correction_after_skill` signal plus the masked `user_text_masked`) into `.agents/tmp/trigger-eval-{ts}/prompts.jsonl` and nowhere else:
 

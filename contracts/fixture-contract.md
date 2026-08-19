@@ -63,6 +63,19 @@ digest verification proves against a lock, and would dirty the `git status` that
 post-run cleanliness check relies on. The same discipline protects a real target from
 being polluted by its own measurement.
 
+## Read scope
+
+An instrument reads three places: the directory it is installed in, the target tree, and
+the output area it writes to. Anything else — the executing user's session history, other
+projects on the machine — requires an explicit grant from the run that invoked it, stated
+in the invocation. Without that grant, an instrument that cannot obtain something it needs
+says what is missing and continues in a reduced form; it does not go looking for a
+substitute of its own.
+
+This is the write placement above read from the other side. A measurement whose reach is
+not bounded stops being a measurement of its target, and when the instrument delegates,
+whatever it gathered travels into another model's context.
+
 ## Mutating instruments
 
 An instrument whose procedure rewrites its target — for example, a phase that edits
