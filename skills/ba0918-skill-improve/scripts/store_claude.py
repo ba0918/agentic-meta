@@ -32,7 +32,19 @@ import pathlib
 import re
 import typing
 
-import events
+from events import (
+    Capabilities,
+    Event,
+    ROLE_USER,
+    ROUTE_STRUCTURAL,
+    ROUTE_TEXT,
+    SessionIdentity,
+    SkillInvocation,
+    TURN_ROLES,
+    ToolError,
+    Turn,
+    UserText,
+)
 
 NAME = "claude"
 
@@ -165,7 +177,7 @@ def role_of(record: dict) -> str | None:
     if not isinstance(message, dict):
         return None
     role = message.get("role")
-    return role if role in events.TURN_ROLES else None
+    return role if role in TURN_ROLES else None
 
 
 def utterance_of(record: dict) -> str | None:
@@ -257,7 +269,7 @@ def failed_tool(record: dict, called: dict[str, str]) -> str | None:
 
 def record_events(
     record: dict, called: dict[str, str], since: datetime.datetime | None
-) -> typing.Iterator[events.Event]:
+) -> typing.Iterator[Event]:
     """The normalized events one record yields, in the order they occurred in it."""
     called.update(called_tool_names(record))
     at = record_time(record)
@@ -265,19 +277,19 @@ def record_events(
         return
     role = role_of(record)
     if role is not None:
-        yield events.Turn(role=role, at=at)
-    if role == events.ROLE_USER:
+        yield Turn(role=role, at=at)
+    if role == ROLE_USER:
         said = utterance_of(record)
         if said is not None:
-            yield events.UserText(text=said, at=at)
+            yield UserText(text=said, at=at)
             fired = slash_skill_in(said)
             if fired is not None:
-                yield events.SkillInvocation(skill=fired, route=events.ROUTE_TEXT)
+                yield SkillInvocation(skill=fired, route=ROUTE_TEXT)
     for name in structural_skills(record):
-        yield events.SkillInvocation(skill=name, route=events.ROUTE_STRUCTURAL)
+        yield SkillInvocation(skill=name, route=ROUTE_STRUCTURAL)
     failed = failed_tool(record, called)
     if failed is not None:
-        yield events.ToolError(tool=failed)
+        yield ToolError(tool=failed)
 
 
 def _parsed_records(handle: typing.Iterable[str]) -> typing.Iterator[dict]:
@@ -296,7 +308,7 @@ def _parsed_records(handle: typing.Iterable[str]) -> typing.Iterator[dict]:
 
 def _session_events(
     path: pathlib.Path, project: str, since: datetime.datetime | None
-) -> typing.Iterator[events.Event]:
+) -> typing.Iterator[Event]:
     """One session file's events, its identity announced before them."""
     try:
         handle = open(path, "r", encoding="utf-8", errors="replace")
@@ -309,7 +321,7 @@ def _session_events(
         except StopIteration:
             return
         identifier = first.get("sessionId")
-        yield events.SessionIdentity(
+        yield SessionIdentity(
             session_id=identifier if isinstance(identifier, str) else path.stem,
             project=project,
         )
@@ -326,9 +338,9 @@ class ClaudeCodeStore:
     since: datetime.datetime | None = None
     project: str | None = None
     name: str = NAME
-    capabilities: events.Capabilities = events.Capabilities(text=True, structural=True)
+    capabilities: Capabilities = Capabilities(text=True, structural=True)
 
-    def events(self) -> typing.Iterator[events.Event]:
+    def events(self) -> typing.Iterator[Event]:
         """Yield every session's normalized events, oldest file path first."""
         pairs = session_files(pathlib.Path(self.root), self.project)
         readable = set(files_written_since([path for _, path in pairs], self.since))
