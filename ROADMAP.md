@@ -12,7 +12,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · 🔁 recurring gate
 |---|------|------|--------|
 | 0 | Scaffolding | Repository skeleton, agent instructions, artifact store, design spec | ✅ |
 | 1 | Foundation | Declaration-driven vendoring (now an external tool), verification, synthetic fixtures, CI | ✅ |
-| 2 | Contrast pilots | Port `trigger-eval` and `skill-interface-audit` through the machinery | ⬜ |
+| 2 | Contrast pilots | Port `trigger-eval` and `skill-interface-audit` through the machinery | 🚧 |
 | G | Gate | Re-evaluate remaining ports with pilot measurements | 🔁 |
 | 3 | Harnesses | Port `empirical-prompt-tuning`, `skill-regression` | ⬜ |
 | 4 | Improver | Port `skill-improve` (depends on harnesses; workflow delegation stripped) | ⬜ |
@@ -49,26 +49,30 @@ consumes it now instead of owning it.
 - [x] Local pre-push gate (lefthook, a reduced mirror of CI) and repo hygiene
       (.gitattributes LF, .gitignore)
 
-### Wave 2 — Contrast pilots ⬜
+### Wave 2 — Contrast pilots 🚧
 
 Two skills with opposite characteristics validate the machinery from both ends.
 `skill-reviewer`, the original generic-leaning pick, was adjudicated out of this
 repository's responsibility (see "Out of scope here"); `trigger-eval` — already
 generic — takes its seat.
 
-- [ ] Define the generic fixture contract first (do not freeze the old structure —
-      pulled forward from wave 3, since `trigger-eval` is the first harness to land)
-- [ ] Port `trigger-eval` as `ba0918-trigger-eval` (generic-leaning)
-- [ ] Port `skill-interface-audit` as `ba0918-skill-interface-audit`
+- [x] Define the generic fixture contract first (do not freeze the old structure —
+      pulled forward from wave 3, since `trigger-eval` is the first harness to land):
+      `contracts/fixture-contract.md`
+- [x] Port `trigger-eval` as `ba0918-trigger-eval` (generic-leaning)
+- [x] Port `skill-interface-audit` as `ba0918-skill-interface-audit`
       (target-resolution-heavy)
-- [ ] `.claude-plugin/` distribution metadata (arrives with the first ported skill)
+- [x] `.claude-plugin/` distribution metadata (arrives with the first ported skill)
 - [ ] Both skills pass: self-containment lint, heterogeneous-fixture run
-- [ ] Point CI and the pre-push gate at the repository root too. Both name only the
-      fixture trees today, so the first skill landing in `skills/` would go unchecked;
-      the wiring waits for wave 2 because `lint-selfcontain` errors on a tree with no
-      `skills/` directory. Root `verify` is held back only by the root
-      `vendor-lock.json` not being committed yet, so it could be wired ahead of
-      the first skill if that were done first
+- [x] Point CI and the pre-push gate at the repository root too. Both named only the
+      fixture trees, so a skill landing in `skills/` went unchecked; `verify --root .`
+      and `lint-selfcontain --root .` now run beside them, along with the two skills'
+      Python script suites
+
+The acceptance item above is the one still open, and it is open in half: the
+self-containment lint passes over both skills, but neither has been run *as a skill*
+against `skillset-alpha` and `skillset-beta`. That run is an LLM run rather than a
+command, and it has not happened. **Wave 2 is not complete until it has.**
 
 ### Gate — Re-evaluation 🔁
 
