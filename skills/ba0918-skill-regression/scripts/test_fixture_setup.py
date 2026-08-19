@@ -300,3 +300,58 @@ class TestMaterialize(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestMaterializeIsDeterministic(unittest.TestCase):
+    """The same declaration has to produce the same tree, every time and anywhere.
+
+    A scenario that seeds a commit and then names its hash in a document only works
+    if that hash is reproducible: rerunning a unit re-materializes it and demands a
+    byte-for-byte match against what was recorded. Anything drawn from the clock or
+    from the surrounding machine's git configuration breaks that.
+    """
+
+    def _materialize(self, root, name, env=None):
+        inputs = _inputs(root, {"a.md": "x\n", "note.md": "base {{fixture:sha:baseline}}\n"})
+        dest = os.path.join(root, name)
+        scenario = _minimal(files=["a.md", "note.md"],
+                            git={"init": True, "commit": ["a.md"]})
+        previous = dict(os.environ)
+        if env:
+            os.environ.update(env)
+        try:
+            return fixture_setup.materialize(scenario, dest, inputs)
+        finally:
+            os.environ.clear()
+            os.environ.update(previous)
+
+    def test_the_commit_carries_a_fixed_time_rather_than_the_clock(self):
+        # Two materializations in the same second would agree by accident, so the
+        # assertion is on the recorded time itself.
+        with tempfile.TemporaryDirectory() as root:
+            self._materialize(root, "one")
+            dest = os.path.join(root, "one")
+            self.assertEqual(_git(dest, "log", "--format=%aI", "-1"),
+                             fixture_setup.FIXED_COMMIT_TIME)
+            self.assertEqual(_git(dest, "log", "--format=%cI", "-1"),
+                             fixture_setup.FIXED_COMMIT_TIME)
+
+    def test_two_materializations_agree_on_every_hash(self):
+        with tempfile.TemporaryDirectory() as root:
+            first = self._materialize(root, "one")
+            second = self._materialize(root, "two")
+            self.assertEqual(first["git"]["baseline"], second["git"]["baseline"])
+            self.assertEqual(first["baseline"], second["baseline"])
+
+    def test_an_inherited_git_environment_does_not_redirect_the_run(self):
+        # Inside a git hook the environment names the caller's repository. Carried
+        # in, `git init` would point at it instead of the isolated area.
+        with tempfile.TemporaryDirectory() as root:
+            outer = os.path.join(root, "outer")
+            os.makedirs(outer)
+            subprocess.run(["git", "init", "-q", outer], check=True, capture_output=True)
+            out = self._materialize(root, "inner",
+                                    env={"GIT_DIR": os.path.join(outer, ".git"),
+                                         "GIT_WORK_TREE": outer})
+            self.assertTrue(os.path.isdir(os.path.join(root, "inner", ".git")))
+            self.assertEqual(len(out["git"]["baseline"]), 40)

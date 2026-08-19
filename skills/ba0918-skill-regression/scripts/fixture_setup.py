@@ -63,18 +63,41 @@ DEFAULT_MESSAGE = "fixture baseline"
 # file, which happens when the runtime shadows a sensitive-looking name.
 NOT_A_REGULAR_FILE = "NOT-A-REGULAR-FILE"
 
+# The time a commit carries is fixed, not taken from the clock. A scenario that
+# seeds a commit and names its hash in a document is only reproducible if that
+# hash is; rerunning a unit re-materializes it and demands a byte-for-byte match
+# against what was recorded, so a clock-dependent hash makes such a scenario
+# impossible to rerun at all.
+FIXED_COMMIT_TIME = "2026-01-01T00:00:00+00:00"
+
 # Committing needs an identity, and the surrounding machine's configuration would
 # otherwise decide the branch name, the signing setting and the hook path — all
 # of which would make the same declaration materialize differently elsewhere.
 _GIT_ENV = {
+    "GIT_CONFIG_NOSYSTEM": "1",
     "GIT_CONFIG_GLOBAL": os.devnull,
     "GIT_CONFIG_SYSTEM": os.devnull,
     "GIT_AUTHOR_NAME": "fixture",
     "GIT_AUTHOR_EMAIL": "fixture@invalid",
+    "GIT_AUTHOR_DATE": FIXED_COMMIT_TIME,
     "GIT_COMMITTER_NAME": "fixture",
     "GIT_COMMITTER_EMAIL": "fixture@invalid",
+    "GIT_COMMITTER_DATE": FIXED_COMMIT_TIME,
     "GIT_TERMINAL_PROMPT": "0",
 }
+
+# Inside a git hook these name the caller's repository. Carried in, `git init`
+# would point at it instead of the isolated area, and the caller's hooks and
+# exclusion rules would take effect during materialization.
+_GIT_INHERITED = (
+    "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY",
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_COMMON_DIR", "GIT_PREFIX",
+    "GIT_CONFIG_COUNT", "GIT_TEMPLATE_DIR",
+)
+
+# The numbered pairs behind GIT_CONFIG_COUNT grow with the caller's settings, so
+# they cannot be listed; they are dropped by prefix.
+_GIT_INHERITED_PREFIXES = ("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_")
 
 
 class MaterializeError(Exception):
@@ -335,7 +358,9 @@ def load_scenario(path):
 
 
 def _run_git(args, cwd):
-    env = dict(os.environ)
+    env = {name: value for name, value in os.environ.items()
+           if name not in _GIT_INHERITED
+           and not name.startswith(_GIT_INHERITED_PREFIXES)}
     env.update(_GIT_ENV)
     return subprocess.run(["git"] + list(args), cwd=cwd, capture_output=True,
                           text=True, env=env)
