@@ -87,7 +87,9 @@ pinned install, and says so plainly when that install is missing.
   and the declaration travels into the report beside the numbers. And it never fills the gap
   by inference: a friction score built on invented firings recommends fixing a skill nobody
   ran, which is worse than a report saying the route could not be read.
-  `ba0918-skill-improve` is the current case; the reasoning is in `docs/spec/`.
+  `ba0918-skill-improve` and `ba0918-context-audit` are the current cases — one reads an
+  agent's session history, the other a project's memory — and the reasoning is in
+  `docs/spec/`.
 - Licensing: the repository is MIT and `LICENSE` at the root covers it. A skill derived from
   someone else's work carries an additional `LICENSE` in its own directory, holding that
   author's copyright notice — MIT requires the notice to travel with every copy, and a skill
