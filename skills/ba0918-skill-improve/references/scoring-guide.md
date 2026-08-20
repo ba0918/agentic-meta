@@ -151,12 +151,24 @@ measurement, and `abandonment_rate` ties with `retry_rate` for the heaviest weig
 formula gives any term, so a score dominated by an inferred term deserves the
 qualification.
 
-The inference also became easier to trip than the calibration behind it assumed. Turns
-are now counted as speech only — a runtime's own bookkeeping no longer swells the
-denominator — so the same session has fewer turns than the collector this replaces
-would have counted, while its failed runs are unchanged. The 30% share is reached
-sooner. Treat an inferred abandonment as a reason to read the session rows, not as a
-number to rank on.
+**The 30% share has no measurement behind it, and this document is the record of that.**
+It came over from the collector this replaces, and neither that collector nor this one
+recorded what was measured to arrive at it. There is nothing here to recalibrate
+against. It is left where it is rather than moved: a share chosen now would read like a
+decision and would carry no more evidence than this one does, and every threshold in the
+table above was set against verdicts this inference already fed.
+
+The inference also became easier to trip. Turns are now counted as speech only — a
+runtime's own bookkeeping no longer swells the denominator — so the same session has
+fewer turns than the collector this replaces would have counted, while its failed runs
+are unchanged. The 30% share is reached sooner, and by how much is unknown for the same
+reason the share itself is.
+
+What would settle it: the share of failed runs per turn, taken separately over sessions
+known to have been broken off and sessions known to have finished. Codex records
+`turn_aborted`, so its sessions carry that label without an inference, and a threshold
+for the other two stores can be set against them. Until that is measured, treat an
+inferred abandonment as a reason to read the session rows, not as a number to rank on.
 
 ### 2. Utterances that could only be read as a superset
 
