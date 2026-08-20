@@ -9,6 +9,7 @@ Sample paths are assembled rather than written whole: the self-containment lint
 reads a rooted home path in any file as an escape from the skill directory.
 """
 
+import contextlib
 import datetime
 import json
 import os
@@ -475,6 +476,51 @@ class TestContainment(unittest.TestCase):
     def test_a_missing_root_is_read_as_an_empty_store(self):
         with tempfile.TemporaryDirectory() as parent:
             self.assertEqual(_events_of(os.path.join(parent, "absent")), [])
+
+
+# A superuser reads whatever a mode denies, so a test that holds a path unreadable
+# would show nothing there.
+_a_mode_refuses_this_user = unittest.skipIf(
+    hasattr(os, "geteuid") and os.geteuid() == 0,
+    "a superuser is not refused by a file mode",
+)
+
+
+@contextlib.contextmanager
+def _held_unreadable(path):
+    """Hold one path at a mode that denies reading, restoring it afterwards."""
+    previous = os.stat(path).st_mode
+    os.chmod(path, 0)
+    try:
+        yield
+    finally:
+        os.chmod(path, previous)
+
+
+class TestAStoreThatIsThereAndCannotBeRead(unittest.TestCase):
+    def test_a_root_that_cannot_be_listed_is_refused_as_unreadable(self):
+        with tempfile.TemporaryDirectory() as parent:
+            root = os.path.join(parent, "sessions")
+            with open(root, "w", encoding="utf-8") as handle:
+                handle.write("this is not a directory of rollout logs\n")
+            with self.assertRaises(events.StoreUnreadable):
+                _events_of(root)
+
+    @_a_mode_refuses_this_user
+    def test_a_dated_directory_that_cannot_be_listed_is_refused_as_unreadable(self):
+        with tempfile.TemporaryDirectory() as root:
+            _write_rollout(root, [_session_meta(), _typed_user_message("hidden")])
+            with _held_unreadable(os.path.join(root, *DATED)):
+                with self.assertRaises(events.StoreUnreadable):
+                    _events_of(root)
+
+    @_a_mode_refuses_this_user
+    def test_a_rollout_log_that_cannot_be_opened_is_refused_as_unreadable(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = _write_rollout(root, [_session_meta(), _typed_user_message("hidden")])
+            with _held_unreadable(path):
+                with self.assertRaises(events.StoreUnreadable):
+                    _events_of(root)
 
 
 if __name__ == "__main__":

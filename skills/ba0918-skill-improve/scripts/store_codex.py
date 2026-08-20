@@ -62,7 +62,6 @@ the same thing under the same name.
 import dataclasses
 import datetime
 import json
-import os
 import pathlib
 import typing
 
@@ -75,6 +74,7 @@ from events import (
     SessionAbandoned,
     SessionIdentity,
     SkillInvocation,
+    StoreUnreadable,
     TURN_ROLES,
     ToolError,
     Turn,
@@ -83,6 +83,7 @@ from events import (
 )
 from store_shared import (
     files_written_since,
+    log_files_under,
     resolve_within,
     slash_skill_in,
     zoned_time,
@@ -124,18 +125,20 @@ def default_root() -> pathlib.Path:
 
 
 def rollout_files(root: pathlib.Path) -> list[pathlib.Path]:
-    """Every readable rollout log under the date hierarchy, oldest path first."""
+    """Every rollout log under the date hierarchy, oldest path first.
+
+    A root that is not there yields no logs, and the caller reports the absence. A
+    directory of the hierarchy that is there and cannot be listed refuses the
+    reading instead of yielding fewer logs: a store the operator cannot open would
+    otherwise report exactly what a store holding no friction reports.
+    """
     resolved_root = resolve_within(root, root)
     if resolved_root is None:
         return []
-    try:
-        candidates = sorted(resolved_root.rglob("*.jsonl"))
-    except (OSError, PermissionError):
-        return []
     found: list[pathlib.Path] = []
-    for candidate in candidates:
+    for candidate in log_files_under(resolved_root):
         log = resolve_within(candidate, resolved_root)
-        if log is None or not os.access(log, os.R_OK):
+        if log is None:
             continue
         found.append(log)
     return found
@@ -157,11 +160,15 @@ def read_records(path: pathlib.Path) -> list[dict]:
     A whole log is held at once because the channel to read cannot be chosen until
     the log has been looked over. These logs are short — under a hundred records
     each across the measured history — so holding one costs little.
+
+    A log that is listed and cannot be opened refuses the reading where it broke,
+    rather than being stepped over: the logs already read stay counted, and the
+    caller reports that the store's counts are a floor rather than a total.
     """
     try:
         handle = open(path, "r", encoding="utf-8", errors="replace")
-    except (OSError, PermissionError):
-        return []
+    except OSError as unreadable:
+        raise StoreUnreadable(str(unreadable)) from unreadable
     records: list[dict] = []
     with handle:
         for line in handle:

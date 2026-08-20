@@ -27,7 +27,6 @@ import dataclasses
 import datetime
 import itertools
 import json
-import os
 import pathlib
 import re
 import typing
@@ -40,6 +39,7 @@ from events import (
     ROUTE_TEXT,
     SessionIdentity,
     SkillInvocation,
+    StoreUnreadable,
     TURN_ROLES,
     ToolError,
     Turn,
@@ -47,6 +47,7 @@ from events import (
 )
 from store_shared import (
     files_written_since,
+    log_files_under,
     resolve_within,
     slash_skill_in,
     zoned_time,
@@ -82,10 +83,15 @@ def default_root() -> pathlib.Path:
 def session_files(
     root: pathlib.Path, project: str | None = None
 ) -> list[tuple[str, pathlib.Path]]:
-    """Pair every readable session file under root with the project it belongs to.
+    """Pair every session file under root with the project it belongs to.
 
     The project is matched whole rather than by substring, because the key extends
     by suffix — one project's key is a substring of every key that extends it.
+
+    A root that is not there yields no pairs, and the caller reports the absence. A
+    root or a project directory that is there and cannot be listed refuses the
+    reading instead of yielding fewer pairs: a store the operator cannot open would
+    otherwise report exactly what a store holding no friction reports.
     """
     resolved_root = resolve_within(root, root)
     if resolved_root is None:
@@ -93,21 +99,17 @@ def session_files(
     found: list[tuple[str, pathlib.Path]] = []
     try:
         entries = sorted(resolved_root.iterdir())
-    except (OSError, PermissionError):
-        return []
+    except OSError as unreadable:
+        raise StoreUnreadable(str(unreadable)) from unreadable
     for entry in entries:
         if project is not None and entry.name != project:
             continue
         directory = resolve_within(entry, resolved_root)
         if directory is None or not directory.is_dir():
             continue
-        try:
-            candidates = sorted(directory.rglob("*.jsonl"))
-        except (OSError, PermissionError):
-            continue
-        for candidate in candidates:
+        for candidate in log_files_under(directory):
             session = resolve_within(candidate, resolved_root)
-            if session is None or not os.access(session, os.R_OK):
+            if session is None:
                 continue
             found.append((entry.name, session))
     return found
@@ -278,11 +280,16 @@ def _parsed_records(handle: typing.Iterable[str]) -> typing.Iterator[dict]:
 def _session_events(
     path: pathlib.Path, project: str, since: datetime.datetime | None
 ) -> typing.Iterator[Event]:
-    """One session file's events, its identity announced before them."""
+    """One session file's events, its identity announced before them.
+
+    A file that is listed and cannot be opened refuses the reading where it broke,
+    rather than being stepped over: the sessions already read stay counted, and the
+    caller reports that the store's counts are a floor rather than a total.
+    """
     try:
         handle = open(path, "r", encoding="utf-8", errors="replace")
-    except (OSError, PermissionError):
-        return
+    except OSError as unreadable:
+        raise StoreUnreadable(str(unreadable)) from unreadable
     with handle:
         records = _parsed_records(handle)
         try:

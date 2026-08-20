@@ -2,9 +2,9 @@
 """What every store adapter needs before it can produce a single event.
 
 Three runtimes keep their history three ways, but each adapter has to answer the
-same four questions first: does this path stay inside what the caller allowed, was
-this file touched inside the period, what time is this record, and does this
-utterance fire a skill by slash command.
+same five questions first: does this path stay inside what the caller allowed,
+which log files does this location hold, was this file touched inside the period,
+what time is this record, and does this utterance fire a skill by slash command.
 
 These live in one place rather than in each adapter for two different reasons. The
 containment check is a security boundary, and a boundary check kept in three copies
@@ -16,9 +16,12 @@ An adapter depends on this module; no adapter depends on another adapter.
 """
 
 import datetime
+import os
 import pathlib
 import re
 import typing
+
+from events import StoreUnreadable
 
 # /<plugin>:<skill-name> in an utterance, with no whitelist of plugin names.
 SLASH_SKILL_RE = re.compile(r"/([a-z][a-z0-9-]*):([a-z][a-z0-9-]*)")
@@ -39,6 +42,34 @@ def resolve_within(path: pathlib.Path, root: pathlib.Path) -> pathlib.Path | Non
     if not resolved.is_relative_to(resolved_root):
         return None
     return resolved
+
+
+LOG_SUFFIX = ".jsonl"
+
+
+def log_files_under(root: pathlib.Path) -> list[pathlib.Path]:
+    """Every log file anywhere under root, path order, refusing what cannot be listed.
+
+    A directory that is here and cannot be listed is neither absence nor emptiness.
+    Reading it as empty would let a store the operator cannot open report the same
+    clean measurement as a store holding no friction, which is what
+    `StoreUnreadable` exists to keep apart.
+
+    The walk is written out rather than left to `rglob`, which drops a directory it
+    may not list without saying so — the silence this refusal exists to end. The
+    caller checks that the root is there first, so a walk that cannot even begin is
+    a root that turned unreadable rather than one that was never there.
+    """
+    found: list[pathlib.Path] = []
+
+    def refuse(unreadable: OSError) -> typing.NoReturn:
+        raise StoreUnreadable(str(unreadable)) from unreadable
+
+    for base, _, names in os.walk(root, onerror=refuse):
+        found.extend(
+            pathlib.Path(base) / name for name in names if name.endswith(LOG_SUFFIX)
+        )
+    return sorted(found)
 
 
 def files_written_since(
