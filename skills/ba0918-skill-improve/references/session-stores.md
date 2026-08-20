@@ -99,7 +99,10 @@ Two properties are structural rather than advisory:
 
 - **The connection is opened read-only**, through a URI rather than a promise not to
   issue writes. A stray write fails instead of altering the operator's own history, and
-  the database can be read while the runtime is writing to it.
+  the database can be read while the runtime is writing to it. The location is escaped
+  into that URI rather than pasted into it: the URI's own punctuation is ordinary inside
+  a file name, and pasted, a location holding one of those characters can turn the
+  read-only mode off or point the connection at a different file than the one named.
 - **The set of tables read is fixed and named in the module**: `session`, `message`,
   `part` — and every one of them is read, so what is declared and what is queried are
   the same set rather than an upper bound over it. A table declared and never read
