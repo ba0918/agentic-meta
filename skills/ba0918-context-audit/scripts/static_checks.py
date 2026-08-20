@@ -622,21 +622,28 @@ def check_ca_m001(targets, ctx):
                 findings.append(make_finding(
                     "CA-M001", "WARN", "NEEDS_JUDGMENT",
                     f"{t['rel']}:{_line_of(t['content'], raw)}",
-                    what=f"unknown memory type `{value}`",
+                    what=f"frontmatter names a type outside the known set: "
+                         f"{MEMORY_LINE_WITHHELD}",
                     why="the type follows the runtime's own convention, so a value "
                         "outside it may mean the runtime has moved on",
-                    how="correct it to a known type, or accept it where the runtime "
-                        "has genuinely gained one (judge conservatively)"))
+                    how=f"correct it to one of "
+                        f"{', '.join(sorted(_KNOWN_MEMORY_TYPES))}, or accept it where "
+                        f"the runtime has genuinely gained one (judge conservatively)"))
             canonical = f"{key}: {value}" if value != "" else f"{key}:"
             if raw == canonical or raw.rstrip() == canonical:
                 continue
             findings.append(make_finding(
                 "CA-M001", "WARN", "AUTO_FIX",
                 f"{t['rel']}:{_line_of(t['content'], raw)}",
-                what=f"frontmatter entry is not in canonical form: `{raw}`",
+                what=f"frontmatter entry `{key}` is not in canonical form: "
+                     f"{MEMORY_LINE_WITHHELD}",
                 why="drift in how keys are written hinders both reading and "
                     "machine processing",
-                how=f"rewrite `{raw}` as `{canonical}`, leaving the body untouched",
+                how=f"rewrite the `{key}` entry with one space after the colon and "
+                    f"nothing trailing, leaving its value and the body untouched",
+                # The line itself travels here and nowhere else: the report does not
+                # print a fix, the contradiction reading is not handed one, and this is
+                # the one string apply_fixes.py needs to know what it is replacing.
                 fix_action={"path": t["path"], "old": raw, "new": canonical}))
     return findings
 
@@ -657,7 +664,8 @@ def check_ca_m101(targets, ctx):
                 continue
             findings.append(make_finding(
                 "CA-M101", "WARN", "NEEDS_JUDGMENT", f"{t['rel']}:{lineno}",
-                what=f"memory names a path that does not exist `{ref}`",
+                what=f"memory names a path that does not exist: "
+                     f"{MEMORY_LINE_WITHHELD}",
                 why="a memory carrying a stale reference is trusted as much as the "
                     "rest of it, so the stale part spreads",
                 how="update the reference, or revisit the memory that holds it"))

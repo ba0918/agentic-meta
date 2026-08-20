@@ -478,9 +478,42 @@ class TestMemoryFrontmatterShape(unittest.TestCase):
     def test_an_unknown_memory_type_is_left_to_a_human(self):
         t = target("memory", "---\nname: n\ndescription: d\ntype: invented\n---\nbody",
                    path="note.md")
-        f = [x for x in findings_for("CA-M001", [t], ctx()) if "invented" in x["what"]]
+        f = [x for x in findings_for("CA-M001", [t], ctx()) if "type" in x["what"]]
         self.assertEqual(len(f), 1)
         self.assertEqual(f[0]["action"], "NEEDS_JUDGMENT")
+
+    def _leaky(self):
+        # What a memory accumulates while nobody reviews it: a customer's name and an
+        # internal hostname, sitting in an entry that also misses the canonical spacing.
+        return target("memory",
+                      "---\nname: n\ndescription:   acmecorp internal-db-01 note\n"
+                      "---\nbody", path="n.md")
+
+    def _canonical_form_finding(self, memory):
+        found = [x for x in findings_for("CA-M001", [memory], ctx())
+                 if x["action"] == "AUTO_FIX"]
+        self.assertEqual(len(found), 1)
+        return found[0]
+
+    def test_the_entry_a_memory_holds_is_named_without_its_value_being_transcribed(self):
+        f = self._canonical_form_finding(self._leaky())
+        self.assertIn("description", f["what"])
+        described = " ".join(f[key] for key in ("where", "what", "why", "how"))
+        self.assertNotIn("acmecorp", described)
+        self.assertNotIn("internal-db-01", described)
+
+    def test_the_fix_offered_still_carries_the_line_it_would_replace(self):
+        fix = self._canonical_form_finding(self._leaky())["fix_action"]
+        self.assertEqual(fix["old"], "description:   acmecorp internal-db-01 note")
+        self.assertEqual(fix["new"], "description: acmecorp internal-db-01 note")
+
+    def test_the_type_a_memory_names_is_not_transcribed_into_the_finding(self):
+        t = target("memory", "---\nname: n\ndescription: d\ntype: acmecorp-session\n"
+                             "---\nbody", path="n.md")
+        f = [x for x in findings_for("CA-M001", [t], ctx()) if "type" in x["what"]]
+        self.assertEqual(len(f), 1)
+        self.assertNotIn("acmecorp", repr(f))
+        self.assertIn("reference", f[0]["how"])  # the known types the fix may choose from
 
     def test_a_memory_written_in_the_expected_form_is_not_reported(self):
         t = target("memory", "---\nname: note\ndescription: a note\ntype: reference\n"
@@ -507,6 +540,15 @@ class TestMemoryReference(unittest.TestCase):
                                  "see `skills/ghost/SKILL.md`", path="n.md")
             f = findings_for("CA-M101", [t], ctx(root=tmp))
             self.assertIsNone(f[0]["fix_action"])
+
+    def test_the_path_a_memory_names_is_not_transcribed_into_the_finding(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            t = target("memory", "---\nname: n\ndescription: d\n---\n"
+                                 "see `docs/acmecorp/migration-runbook.md`", path="n.md")
+            f = findings_for("CA-M101", [t], ctx(root=tmp))
+            self.assertEqual(len(f), 1)
+            self.assertIn("n.md:5", f[0]["where"])
+            self.assertNotIn("acmecorp", repr(f))
 
     def test_a_path_a_memory_names_that_exists_is_not_reported(self):
         with tempfile.TemporaryDirectory() as tmp:

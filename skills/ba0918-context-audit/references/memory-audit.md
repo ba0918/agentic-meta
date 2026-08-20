@@ -88,6 +88,11 @@ finding at once.
   exact line it replaces and is applied **inside the frontmatter block only**, so a body
   holding the same characters is untouched and its bytes come out as they went in.
 
+What the findings of this rule say is **the key, never its value**. A key is the format's
+own structure; a value is what the memory's author wrote, and an unknown `type` is
+unconstrained by definition. The line itself travels only inside the fix, which the report
+does not print and the contradiction reading is never handed.
+
 ### CA-M101 — the paths a memory names
 
 The references extracted are markdown links and code spans whose text reads as a path: made
@@ -101,6 +106,10 @@ project's paths; resolving them beside the memory would check a location nobody 
 A path that is not there is left to a person. A memory is never rewritten automatically:
 the reference may be stale, or the thing it names may have been renamed and the memory be
 the record of why — and telling those apart is a reading.
+
+The finding names **the place, not the path**. A path a memory writes carries the same
+vocabulary the rest of it does — a customer's name sits as readily in a directory name as
+in a sentence — and the line is one `where` away for whoever acts on the finding.
 
 ### CA-M301 — suspected secrets
 
@@ -128,10 +137,13 @@ worse off than it was while looking better.
 - **The mask is a blocklist, so it is not complete.** A credential shaped unlike every
   pattern it holds passes straight through. Wherever masked text is handed onward — into a
   report, into a reading, to a person — that limitation is stated alongside it.
-- **A line out of a memory is never transcribed into a finding.** CA-M301 already reported
-  only the kind and the place. Two further rules read memories alongside the instruction
-  files — CA-U001 and CA-C001 — and neither quotes a line it took from a memory: it names
-  the place and the kind of what it found instead. **Only the memory's side is held back.**
+- **A line out of a memory is never transcribed into a finding.** It holds of all five
+  rules that read one. The three that read nothing else report the place and the kind:
+  CA-M301 the kind of value it suspects, CA-M001 the frontmatter key at fault, CA-M101 that
+  a path is missing. The two that read memories alongside the instruction files — CA-U001
+  and CA-C001 — quote no line they took from a memory either. What a memory's author wrote
+  travels in one place only, the line a fix replaces, which the report does not print and
+  the contradiction reading is never handed. **Only the memory's side is held back.**
   Where CA-C001 pairs a memory's line with an instruction file's, the instruction file's
   line stays quoted — dropping that one too would cost the reading the one side it was free
   to see, and buy nothing. The mask guards what an instruction file holds; a memory's line
