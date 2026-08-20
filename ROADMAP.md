@@ -307,9 +307,10 @@ split in two — `AGENTS.md` routes, `PROJECT.md` carries the project's own circ
 an audit reading only the first sees half the layer. `PROJECT.md` joined the allowlist, and
 joined the check for one runtime's tool vocabulary leaking into a file meant to hold for any
 of them; `CLAUDE.md`, being the file one runtime reads, stays outside that check as it
-always did. Two conditions came off with the retired contract: the `review-rules.md` audit,
-and a skip that fired whenever the source repository's own validation script was present.
-The reasoning is in [docs/spec/repository-design.md](docs/spec/repository-design.md).
+always did. Two conditions came off besides: the `review-rules.md` audit, which goes with
+the retired contract, and a skip that fired whenever the source repository's own validation
+script was present, which has no counterpart here. The reasoning behind the target set is in
+[docs/spec/repository-design.md](docs/spec/repository-design.md).
 
 Reading became a parameter. The source built the memory location out of the home directory
 inside the resolution itself, which the read-scope clause of `fixture-contract` does not
@@ -321,11 +322,12 @@ finding names is redacted and a home-relative location is one of the shapes the 
 replaces.
 
 The five links into the source's shared directory could not survive the self-containment
-invariant. Three had canonical text here and are declared as contracts and expanded into the
-skill; the rest were written out in the body — the completion conditions, the behaviour when
-the run is headless, and where output goes. Severity and fix wording follows this
-repository's canonical text rather than the source's, which had drifted apart during the
-split.
+invariant. Two of them had canonical text here and are declared as contracts and expanded
+into the skill, joined by a third the source never cited — the clause bounding what an
+instrument may read, which is what lets this one read a memory store at all. The other three
+were written out in the body: the completion conditions, the behaviour when the run is
+headless, and where output goes. Severity and fix wording follows this repository's
+canonical text rather than the source's, which had drifted apart during the split.
 
 Two things the port fixed rather than carried. The rule catalogue named a subject-overlap
 threshold neither implementation used — at the documented value the test pinning a partially
