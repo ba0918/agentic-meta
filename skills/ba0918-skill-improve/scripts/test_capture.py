@@ -282,6 +282,16 @@ class TestWritingTheHarvest(unittest.TestCase):
             self.assertEqual(len(path.read_text(encoding="utf-8").splitlines()), 2)
 
 
+    def test_a_name_already_taken_beside_the_harvest_is_refused(self):
+        with tempfile.TemporaryDirectory() as parent:
+            path = pathlib.Path(parent) / "prompts.jsonl"
+            with open(str(path) + ".tmp", "w", encoding="utf-8") as handle:
+                handle.write("someone else was here\n")
+            with self.assertRaises(OSError):
+                capture.write_records(self._records(), path)
+            self.assertFalse(path.exists())
+
+
 class TestARunOfTheHarvest(unittest.TestCase):
     def _argv(self, parent, output):
         return [
@@ -303,6 +313,20 @@ class TestARunOfTheHarvest(unittest.TestCase):
             written = json.loads(pathlib.Path(output).read_text(encoding="utf-8"))
             self.assertEqual(written["fired_skill"], "commit")
             self.assertEqual(written["signals"], [capture.SLASH_FIRED])
+
+    def test_a_link_planted_where_the_write_lands_carries_no_body_outside(self):
+        with tempfile.TemporaryDirectory() as parent:
+            allowed = _repository(parent)
+            outside = os.path.join(parent, "outside")
+            os.makedirs(outside)
+            elsewhere = os.path.join(outside, "stolen.jsonl")
+            output = os.path.join(allowed, "prompts.jsonl")
+            os.symlink(elsewhere, output + ".tmp")
+            with contextlib.chdir(parent), contextlib.redirect_stderr(io.StringIO()):
+                code = capture.main(self._argv(parent, output))
+            self.assertNotEqual(code, 0)
+            self.assertFalse(os.path.exists(elsewhere))
+            self.assertFalse(os.path.islink(output))
 
     def test_a_run_refuses_an_output_outside_the_allowed_directory(self):
         with tempfile.TemporaryDirectory() as parent:

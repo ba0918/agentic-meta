@@ -17,7 +17,7 @@ recognises — keys, tokens, private keys, addresses, home paths — and a crede
 shaped like none of those survives it. A harvested file is sensitive material even
 after masking, and whoever reads one is told to treat it that way and delete it.
 
-Three guards stand between a run and a written body, and all three fail closed:
+Four guards stand between a run and a written body, and all four fail closed:
 
 The output must resolve to a path inside `.agents/tmp` under the working directory.
 Containment is decided on the resolved parent, not on the spelling of the path: a
@@ -33,8 +33,11 @@ to do about it. The repository's ignore file is never read as text: anchoring,
 negation and the directory a pattern is relative to all make a hand-rolled reading
 wrong in the permissive direction.
 
-The write itself replaces the file in one step, so a reader never sees a partly
-written harvest and a failed run never destroys a previous one.
+The write lands on a neighbouring name and replaces the file in one step, so a
+reader never sees a partly written harvest and a failed run never destroys a
+previous one. That neighbour is created new or the run refuses: containment is
+decided on the name the harvest is finally given, and a link left waiting under the
+neighbour's name would otherwise carry the bodies wherever it points.
 """
 
 import argparse
@@ -134,8 +137,11 @@ def validate_output_path(output: str, base: pathlib.Path) -> pathlib.Path | None
     resolved, and resolving it is what makes a link inside the allowed directory
     unable to lead out of it. Containment is then decided by path components rather
     than by string prefix, because a neighbour whose name extends the allowed one
-    shares its prefix. The sibling the atomic write lands beside has the same
-    parent, so it is covered by the same decision.
+    shares its prefix.
+
+    This decides a name and nothing else. The neighbouring name the atomic write
+    lands on first is never resolved here, so whatever may already sit at that name
+    is decided where it is opened rather than here.
 
     A name that would resolve to a directory rather than to a new file is refused:
     the containment decision is lexical and would otherwise accept the allowed
@@ -188,18 +194,34 @@ def output_is_git_ignored(path: pathlib.Path) -> bool:
 
 
 def write_records(records: list[dict[str, typing.Any]], path: pathlib.Path) -> None:
-    """Write the harvest as one line per record, replacing the file in one step."""
+    """Write the harvest as one line per record, replacing the file in one step.
+
+    The neighbour the write lands on before the replacement is created new or not at
+    all. Refusing to follow a link stops one planted under that name from carrying
+    the bodies wherever it points, and refusing an existing file stops one planted
+    there from being written through — neither is covered by the containment
+    decision, which is made on the name the harvest is finally given.
+
+    Anything already at the neighbour's name is refused rather than unlinked first.
+    Removing it would let a planted link be replaced and the run go on looking
+    ordinary, and a gate over message bodies must not end in an ordinary-looking
+    run. A leftover from a killed run is refused for the same reason, and the
+    refusal says what to remove.
+    """
     partial = str(path) + ".tmp"
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW
+    opened = os.open(partial, flags, 0o600)
     try:
-        with open(partial, "w", encoding="utf-8") as handle:
+        with os.fdopen(opened, "w", encoding="utf-8") as handle:
             for record in records:
                 handle.write(json.dumps(record, ensure_ascii=False) + "\n")
         os.replace(partial, str(path))
-    finally:
+    except BaseException:
         try:
             os.unlink(partial)
         except FileNotFoundError:
             pass
+        raise
 
 
 def parse_arguments(argv: list[str] | None) -> argparse.Namespace:
@@ -284,7 +306,17 @@ def main(argv: list[str] | None = None) -> int:
             )
         harvested.extend(capture_records(reading.store.events()))
 
-    write_records(harvested, resolved)
+    try:
+        write_records(harvested, resolved)
+    except OSError as refusal:
+        print(
+            f"error: refusing to write message bodies to {resolved}: the neighbouring"
+            f" name it is written through could not be created ({refusal.strerror})."
+            " Whatever is already at that name is not written through — remove it and"
+            " run again.",
+            file=sys.stderr,
+        )
+        return EXIT_REFUSED
     print(
         f"[capture] wrote {len(harvested)} masked records to {resolved}."
         " The masking is a blocklist and is not complete: treat the file as"
