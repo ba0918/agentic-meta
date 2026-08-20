@@ -24,7 +24,7 @@ than estimated.
 | Term | Meaning |
 |---|---|
 | store | One agent runtime's session history, in whatever form that runtime keeps it. Three are supported: [references/session-stores.md](references/session-stores.md) |
-| detection route | How a skill firing becomes visible. **text** — a slash command in what the operator typed. **structural** — the runtime's own record of the tool call |
+| detection route | How a skill firing becomes visible. **text** — a slash command written `/<plugin>:<skill>` in what the operator typed. **structural** — the runtime's own record of the tool call |
 | friction signal | A counted trace of a skill going badly: a retry, a correction, an abandoned session, a failed tool run |
 | measurement | The JSON `collect.py` writes. Counts, classifications and declarations only — never a body |
 | friction report | The Markdown a run composes from the measurement. The deliverable |
@@ -70,6 +70,13 @@ wrote a skill's files, not one that fired the skill. The same holds for the olde
 generation of Codex logs, where a failure sits in the body of a call's output with no
 exit status beside it, and for the second copy of every Codex utterance, which is a
 superset holding tool output rather than a second source.
+
+**The text route reads a slash command written `/<plugin>:<skill>`, and only that
+form.** A command typed without a plugin prefix — how a skill installed in the
+operator's own scope is normally typed — is not a firing along this route; requiring
+the prefix is what keeps an ordinary absolute path from being read as one. Where the
+skills being measured are installed that way, say so in the report: on Codex, whose
+only route is this one, none of their firings can be counted at all.
 
 The full evidence — every measurement behind those three refusals, plus how turns are
 counted the same way in all three stores — is in

@@ -20,8 +20,19 @@ substitute.
 
 | Route | What it reads | Why it exists |
 |---|---|---|
-| text | The body of what the operator typed. A slash command in it names the skill it fired | The only route that survives in a runtime with no skill tool at all |
+| text | The body of what the operator typed. A slash command written `/<plugin>:<skill>` in it names the skill it fired | The only route that survives in a runtime with no skill tool at all |
 | structural | The runtime's own record of a tool call, carrying the skill name as an argument | The only route that sees a skill fired by the agent rather than typed by the operator |
+
+**The text route reads one written form, `/<plugin>:<skill>`, and no other.** A slash
+command typed without a plugin prefix — `/some-skill`, which is how a skill installed in
+the operator's own scope is normally typed — is not read as a firing here. The prefix is
+required rather than optional because a bare word after a leading slash is also every
+absolute path an operator types, and reading `/tmp is full` as a firing of a skill named
+`tmp` would invent exactly the firing this document refuses to invent everywhere else.
+The cost runs the other way: where the skills being measured are installed in the
+operator's own scope, this route finds none of them. That is a limit to state in the
+report, not one to widen the pattern out of — and it falls hardest on Codex, where this
+route is the only one there is.
 
 A store reading only one of the two does not find fewer firings — it cannot find one
 whole class of them. That is a different measurement, not a smaller number, so the
@@ -69,7 +80,7 @@ Default location: `.claude/projects` under the operator's home directory. Read b
   store meets on the bare name. A value fitting no naming pattern is kept as written
   rather than dropped — the call was observed, and dropping it would undercount a
   firing that happened.
-- **Text route**: a slash command inside what the operator typed.
+- **Text route**: a slash command, in the form above, inside what the operator typed.
 - **Tool errors**: a `tool_result` block with `is_error` set, or a `toolUseResult`
   recorded beside the message with the same flag. The runtime writes the same failure
   in both places, so one record contributes at most one failure; reading each place
@@ -119,7 +130,7 @@ Reading details:
 - **Structural route**: a part with `type == "tool"` and `tool == "skill"`, whose
   `state.input.name` holds the skill name. Names are stored without a plugin prefix
   here, so nothing is stripped.
-- **Text route**: a slash command inside the text parts of a message in the operator's
+- **Text route**: a slash command, in the form above, inside the text parts of a message in the operator's
   role.
 - **Tool errors**: a tool part whose `state.status` is `error`.
 - **Project**: `session.directory` holds a real path, converted to the same slug key

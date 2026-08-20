@@ -178,7 +178,7 @@ One JSONL file, one line per utterance, in the order the utterances were made:
 
 | Signal | Meaning |
 |---|---|
-| `slash_fired` | The utterance fired a skill by slash command. `fired_skill` names it |
+| `slash_fired` | The utterance fired a skill by a slash command written `/<plugin>:<skill>`, the one form the text route reads ([session-stores.md](session-stores.md)). `fired_skill` names it |
 | `correction_after_skill` | The utterance was made after a skill had fired, so it may be the operator correcting what that skill did |
 
 An utterance carries at most one of the two: one that fires a skill is that firing, not
