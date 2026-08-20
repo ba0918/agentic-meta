@@ -3,7 +3,9 @@
 Skills that measure a skill set. They answer the questions an author cannot answer by
 reading their own work: does each skill fire when it should, does each `SKILL.md` say
 enough to be executed correctly, do the instructions themselves survive contact with an
-agent, and does a skill still behave the way it did before the last edit?
+agent, does a skill still behave the way it did before the last edit, how did a skill
+actually go when somebody used it, and has the instruction layer the agent works from
+rotted?
 
 - **`ba0918-trigger-eval`** measures how accurately a set of skills fires. It judges from
   the descriptions alone — the model's field of view at real triggering time — and reports
@@ -22,8 +24,21 @@ agent, and does a skill still behave the way it did before the last edit?
   and re-runs only the ones a change actually reaches. A lock records what was verified
   against which content, so editing one shared contract cannot silently change every skill
   citing it. Every batch is sized before it starts.
+- **`ba0918-skill-improve`** reads the session logs an agent already left behind and turns
+  them into per-skill friction scores: the same skill invoked again moments later, a user
+  restating the request right after an invocation, a tool call that failed. Reading is
+  split from analysis, so three runtimes' stores feed one measurement, and a store that
+  cannot see a route reports it as undetectable rather than filling it with a guess.
+- **`ba0918-context-audit`** takes stock of the instruction layer itself — `CLAUDE.md`,
+  `AGENTS.md`, `PROJECT.md`, the rules directory, and the project memory nothing else
+  reaches. It reports stale references, contradictions, wording that permits destruction,
+  and credentials left in a note, and it sorts every finding into what may be fixed
+  automatically, what a human has to decide, and what is reported and nothing more.
+  Deleting and rewriting prose are never automated.
 
-All of them take any skill directory as their target, not only this repository's.
+Each of them measures something outside itself, and none is limited to this repository:
+a skill directory for most, an agent's own session history for `ba0918-skill-improve`,
+and a project's instruction layer for `ba0918-context-audit`.
 
 ## Install
 
