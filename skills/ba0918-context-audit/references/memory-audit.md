@@ -157,5 +157,11 @@ worse off than it was while looking better.
   taken from a memory the description carries which way it points and how far the two
   overlap, and nothing more — **the subjects are not offered in the line's place**, because
   they are cut from the line itself and would hand over the same words.
+- **The confirmation before an automatic fix is the one declared exception.** The line a
+  fix replaces is put in front of the person the fix is offered to, and there is no way
+  around that: a change nobody may look at is a change nobody can weigh, and asking for
+  approval is the whole reason an automatic fix is not applied on sight. It is the one
+  frontmatter line the fix names, it reaches a person rather than a reading, and it goes
+  nowhere else — not into the report, not into the contradiction reading.
 - **The only automatic fix against a memory is the frontmatter formatting above.** Deleting
   a memory, and rewriting what one says, are not automated by any route.
