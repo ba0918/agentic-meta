@@ -137,6 +137,18 @@ def shown_location(location: pathlib.Path | str) -> str:
     return secret_detect.mask_secrets(str(location))
 
 
+def shown_project(key: str | None) -> str | None:
+    """A project key as the result may show it, with the operator's home masked.
+
+    A key is the working directory a session ran in with its separators turned into
+    hyphens, which is the same fact the locations are masked for and merely spelled
+    another way. Masking the locations and not the keys would leave the operator's
+    name in the field that appears on every session row of a result written to be
+    pasted into a report.
+    """
+    return None if key is None else secret_detect.mask_project_key(key)
+
+
 def store_report(
     reading: stores.Reading,
     capabilities: dict[str, Capabilities],
@@ -184,7 +196,7 @@ def session_report(session: signals.SessionSignals) -> dict[str, typing.Any]:
     """What one session showed, with nothing in it that names the session."""
     return {
         "store": session.store,
-        "project": session.project,
+        "project": shown_project(session.project),
         "turns": session.turns,
         "tool_errors": session.tool_errors,
         "abandoned": session.abandoned,
@@ -249,9 +261,9 @@ def build_result(
         "summary": {
             "collection_timestamp": now.isoformat(),
             "days": arguments.days,
-            "project_filter": project,
+            "project_filter": shown_project(project),
             "all_projects": arguments.all_projects,
-            "projects_scanned": list(aggregate.projects),
+            "projects_scanned": [shown_project(one) for one in aggregate.projects],
             "stores": {
                 reading.name: store_report(
                     reading, aggregate.capabilities, aggregate.superset_utterance_sessions

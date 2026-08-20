@@ -28,6 +28,8 @@ import store_opencode
 NOW = "2026-08-19T12:00:00.000Z"
 LONG_AGO = "2026-01-01T00:00:00.000Z"
 PROJECT = "-w-notes"
+OPERATOR = "someone"
+HOME_PROJECT = "-".join(("", "home", OPERATOR, "develop", "notes"))
 SEPARATOR = "/"
 WORKTREE = SEPARATOR + SEPARATOR.join(("w", "notes"))
 
@@ -454,6 +456,39 @@ class TestTheProjectThatIsRead(unittest.TestCase):
             with open(output, "r", encoding="utf-8") as handle:
                 result = json.load(handle)
             self.assertEqual(result["summary"]["projects_scanned"], [PROJECT])
+
+
+class TestWhatTheResultShowsOfTheOperator(unittest.TestCase):
+    def _over_a_home_project(self, parent):
+        root = _claude_root(parent, project=HOME_PROJECT)
+        return _run(parent, claude=root)[1]
+
+    def test_a_project_key_naming_the_operators_home_is_masked_on_a_session_row(self):
+        with tempfile.TemporaryDirectory() as parent:
+            shown = self._over_a_home_project(parent)["sessions"][0]["project"]
+            self.assertNotIn(OPERATOR, shown)
+            self.assertIn("[REDACTED:home_path]", shown)
+
+    def test_such_a_key_is_masked_where_the_projects_read_are_listed(self):
+        with tempfile.TemporaryDirectory() as parent:
+            listed = self._over_a_home_project(parent)["summary"]["projects_scanned"]
+            self.assertEqual(len(listed), 1)
+            self.assertNotIn(OPERATOR, listed[0])
+
+    def test_such_a_key_is_masked_where_the_project_asked_for_is_named(self):
+        with tempfile.TemporaryDirectory() as parent:
+            root = _claude_root(parent, project=HOME_PROJECT)
+            output = os.path.join(parent, "friction.json")
+            collect.main(["--output", output, "--store", store_claude.NAME,
+                          "--claude-root", root, "--project=" + HOME_PROJECT])
+            with open(output, "r", encoding="utf-8") as handle:
+                result = json.load(handle)
+            self.assertNotIn(OPERATOR, result["summary"]["project_filter"])
+
+    def test_a_project_key_naming_no_home_is_shown_as_it_is(self):
+        with tempfile.TemporaryDirectory() as parent:
+            result = _run(parent, claude=_claude_root(parent))[1]
+            self.assertEqual(result["sessions"][0]["project"], PROJECT)
 
 
 class TestThePeriodThatIsRead(unittest.TestCase):

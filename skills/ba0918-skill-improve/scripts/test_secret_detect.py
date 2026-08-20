@@ -42,6 +42,22 @@ class TestDetectSecrets(unittest.TestCase):
         self.assertEqual(findings, [{"type": "aws_key", "masked": "[REDACTED:aws_key]"}])
 
 
+class TestMaskProjectKey(unittest.TestCase):
+    def test_a_key_beginning_at_the_operators_home_has_that_part_masked(self):
+        key = "-".join(("", "home", "someone", "develop", "notes"))
+        masked = secret_detect.mask_project_key(key)
+        self.assertNotIn("someone", masked)
+        self.assertTrue(masked.endswith("-develop-notes"), masked)
+
+    def test_a_key_naming_no_home_is_returned_as_it_is(self):
+        key = "-".join(("", "srv", "work", "notes"))
+        self.assertEqual(secret_detect.mask_project_key(key), key)
+
+    def test_a_home_root_appearing_later_in_a_key_is_not_masked(self):
+        key = "-".join(("", "srv", "home", "someone", "notes"))
+        self.assertEqual(secret_detect.mask_project_key(key), key)
+
+
 class TestMaskSecrets(unittest.TestCase):
     def test_masks_an_aws_access_key_id(self):
         masked = secret_detect.mask_secrets(f"x {SAMPLE_AWS} y")

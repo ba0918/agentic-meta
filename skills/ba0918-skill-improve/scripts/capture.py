@@ -17,6 +17,12 @@ recognises — keys, tokens, private keys, addresses, home paths — and a crede
 shaped like none of those survives it. A harvested file is sensitive material even
 after masking, and whoever reads one is told to treat it that way and delete it.
 
+A record's project key is left as the stores spell it, the operator's home included.
+Two things follow from this file being sensitive material rather than a report: it
+is handled under that instruction and deleted, and the key is what another skill
+joins these records to a measurement by. The measurement's own copy of the key is
+masked instead, because that one is written to be pasted where this file may not go.
+
 Four guards stand between a run and a written body, and all four fail closed:
 
 The output must resolve to a path inside `.agents/tmp` under the working directory.

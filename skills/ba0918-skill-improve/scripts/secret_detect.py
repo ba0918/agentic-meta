@@ -51,6 +51,13 @@ SECRET_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
 ]
 
 
+# The same two roots as they appear inside a project key, where the path a session
+# ran in has had every character outside the key alphabet turned into a hyphen.
+# Assembled for the same reason as the roots above.
+_HOME_SLUG_ROOTS = "|".join(("-" + "home", "-" + "Users"))
+PROJECT_KEY_HOME = re.compile(r"^(?:" + _HOME_SLUG_ROOTS + r")-[A-Za-z0-9]+")
+
+
 def redact(kind: str) -> str:
     """Full-mask placeholder. No partial disclosure (no first4/last4)."""
     return f"[REDACTED:{kind}]"
@@ -63,6 +70,22 @@ def detect_secrets(text: str) -> list[dict[str, str]]:
         for _match in pattern.finditer(text):
             findings.append({"type": name, "masked": redact(name)})
     return findings
+
+
+def mask_project_key(key: str) -> str:
+    """A project key with the operator's home masked, where the key names one.
+
+    A project key is a working directory with every separator turned into a hyphen,
+    so the home directory — whose name is the operator — survives inside it, and
+    survives the patterns above as well: those look for the separators the
+    conversion removed. The kind is reported as the home path it is, since it is
+    the same fact in another spelling.
+
+    The match is anchored at the start. Only a key beginning at the home root names
+    the operator, and an unanchored pattern would mask a hyphenated word sitting in
+    the middle of a project's own name.
+    """
+    return PROJECT_KEY_HOME.sub(redact("home_path"), key)
 
 
 def mask_secrets(text: str) -> str:
