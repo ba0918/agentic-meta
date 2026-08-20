@@ -88,9 +88,12 @@ patterns.
    utterances are reacting to.
 3. Compute each skill's friction score by the formula in scoring-guide.md. Do not
    invent a formula of your own, and do not adjust the weights.
-4. Assign a confidence by the same guide, applying every downgrade that holds: sample
-   size, `confidence_downgraded` / `stores_without_structural`, and
-   `stores_with_inferred_abandonment`. Name each downgrade you applied.
+4. Assign a confidence by the same guide, applying both downgrades that hold: sample
+   size, and `confidence_downgraded` / `stores_without_structural`. Name each one you
+   applied. `stores_with_inferred_abandonment` and
+   `summary.stores[*].superset_utterance_sessions` are qualifications rather than
+   downgrades: name them against the term each one weakens and leave the confidence
+   where the downgrades left it.
 5. Answer the pressure question for each skill you score.
 
 ## Output
@@ -102,7 +105,7 @@ Write the result to {output_path} as the following JSON:
       "skill": "string",
       "friction_score": "number (0-10)",
       "confidence": "string (High | Medium | Low)",
-      "confidence_notes": ["string — each downgrade applied, and why"],
+      "confidence_notes": ["string — each downgrade and qualification applied, and why"],
       "retry_pattern": "string (classification)",
       "correction_pattern": "string (classification)",
       "pressure_risk": "string (the constraint most likely to be rationalised away, or none)",

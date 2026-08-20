@@ -90,8 +90,13 @@ score. That is reporting, not a gate before an edit — there is no edit.
 ## Confidence
 
 Confidence is not a smaller score. It says how much the score itself can be relied on,
-and it is reported beside every score. Three downgrades apply, and they stack: apply
-each one that holds, and name every one applied in the report.
+and it is reported beside every score. Two downgrades apply, and they stack: apply each
+one that holds, and name every one applied in the report.
+
+Two further **qualifications** follow the downgrades. A qualification holds one of the
+four terms up to question without moving the confidence, so it is stated where that term
+is reported. The division between the two kinds is reach: what reaches every rate is a
+downgrade, what reaches a single term is a qualification. Both are named in the report.
 
 **Confidence outranks the band above.** A skill whose confidence comes out Low is
 recorded with its numbers and its size estimate, and the report says to re-measure rather
@@ -127,7 +132,12 @@ inference for a reason recorded with its evidence in
 invented number would do its damage: it drives a recommendation to change a skill that
 was never used.
 
-### 3. Abandonment that was inferred rather than recorded
+## Qualifications
+
+Neither of these moves the confidence. `confidence_downgraded` in the measurement is
+tied to the structural-route downgrade alone, and nothing below feeds it.
+
+### 1. Abandonment that was inferred rather than recorded
 
 Read from `stores_with_inferred_abandonment`; `summary.stores[*].abandonment` says the
 same thing per store. Where a skill's `session_abandoned_count` includes sessions from
@@ -148,13 +158,12 @@ would have counted, while its failed runs are unchanged. The 30% share is reache
 sooner. Treat an inferred abandonment as a reason to read the session rows, not as a
 number to rank on.
 
-### A fourth qualification, not a confidence downgrade
+### 2. Utterances that could only be read as a superset
 
 `summary.stores[*].superset_utterance_sessions` counts sessions whose utterances could
 only be read as a superset of what the operator actually said — tool output and
 harness-injected text filed under the operator's role, with no field separating them.
 `correction_turns` counts utterances, so in those sessions it is an over-count.
 
-This qualifies one term rather than the whole score, so it is stated where the
-correction rate is reported instead of moving the confidence. If the correction term
-dominates a skill's score and its sessions were read that way, say so plainly.
+State it where the correction rate is reported. If the correction term dominates a
+skill's score and its sessions were read that way, say so plainly.

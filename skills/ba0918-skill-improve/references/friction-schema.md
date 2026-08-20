@@ -215,7 +215,8 @@ figures, classifications and scores.
 ### {skill_name}
 - **Friction Score:** {0 to 10}
 - **Invocations:** {count}
-- **Confidence:** High / Medium / Low {and every downgrade applied, with its reason}
+- **Confidence:** High / Medium / Low {and every downgrade applied, with its reason.
+  A qualification is named against the term it weakens, not here}
 - **Retry Rate:** {retry_count / invocation_count}
 - **Correction Rate:** {correction_turns / invocation_count} — the raw ratio, followed by
   the scored contribution in parentheses. The score divides the same count by five times
