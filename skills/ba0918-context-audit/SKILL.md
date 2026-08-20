@@ -168,8 +168,30 @@ A project audited for the first time has no baseline, so every finding it has ac
 since it began arrives at once. Do not simply hand that over. Ask which of three:
 
 - **(a) Take the current state as the baseline**, and report only what appears after it.
-- **(b) Triage** — present the heaviest findings now, and baseline the rest.
+- **(b) Triage** — go on reporting from one severity upward, and baseline everything under
+  it.
 - **(c) The full report**, with no baseline written.
+
+**The answer is acted on in Phase 3, not here.** A baseline is written over findings and
+there are none until Phase 1 has run, so what (a) and (b) amount to is one extra invocation
+ahead of the Phase 3 report, over that same findings file:
+
+```bash
+# (a) — every current finding goes into the baseline
+python3 {skill_dir}/scripts/aggregate_report.py \
+  .agents/tmp/context-audit/findings-{ts}.json \
+  --update-baseline .agents/config/context-audit-baseline.json
+
+# (b) — only what is less grave than the named severity does, and the rest keeps reporting
+python3 {skill_dir}/scripts/aggregate_report.py \
+  .agents/tmp/context-audit/findings-{ts}.json \
+  --update-baseline .agents/config/context-audit-baseline.json \
+  --baseline-below WARN
+```
+
+Given `--update-baseline` the script writes the baseline and stops, producing no report of
+its own; Phase 3 then runs as written and suppresses against what was just fixed. Under (c)
+neither invocation happens.
 
 ### Phase 1 — Static checks
 

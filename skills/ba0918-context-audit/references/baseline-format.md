@@ -73,6 +73,25 @@ wrote and how many identifiers the file holds, and it produces no report in that
 reporting arguments have nothing left to act on. A run that wants both a baseline and a
 report runs the script twice over the same findings.
 
+### Fixing only part of what was found
+
+`--baseline-below` names a severity and puts **only the findings less grave than it** into
+the file, leaving the graver ones to keep being reported:
+
+```bash
+python3 {skill_dir}/scripts/aggregate_report.py \
+  .agents/tmp/context-audit/findings-{ts}.json \
+  --update-baseline .agents/config/context-audit-baseline.json \
+  --baseline-below WARN
+```
+
+A finding *at* the named severity stays out of the baseline; the cut is strict. So the
+invocation above fixes the INFO findings and goes on reporting WARN and BLOCK.
+
+This is what makes the first run's middle option real. Facing a project's whole accumulated
+history at once, a reader can settle the noise and keep the serious findings in front of
+them, instead of choosing between accepting everything and reading everything.
+
 Writing is a re-fixing rather than an appending: the file is built from the findings in
 hand, whatever it held before. Run twice over the same findings, it produces the same file.
 

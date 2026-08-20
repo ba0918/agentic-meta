@@ -234,5 +234,34 @@ class TestBaselineWriting(unittest.TestCase):
                          ar.build_baseline(list(reversed(findings))))
 
 
+class TestBaselineOverPartOfWhatWasFound(unittest.TestCase):
+    """A first run may keep reporting the heaviest findings and settle for baselining
+    the rest, so a baseline has to be writable over a part of what was found."""
+
+    def test_a_finding_as_grave_as_the_cut_stays_out_of_the_baseline(self):
+        self.assertEqual(ar.findings_below([finding(severity="WARN")], "WARN"), [])
+
+    def test_a_baseline_cut_at_a_severity_withholds_only_the_lighter_findings(self):
+        heavy, light = finding(severity="BLOCK", where="a.md:1"), \
+            finding(severity="INFO", where="a.md:2")
+        written = ar.build_baseline(ar.findings_below([heavy, light], "WARN"))
+        kept, suppressed = ar.apply_suppression([heavy, light], written)
+        self.assertEqual([f["severity"] for f in kept], ["BLOCK"])
+        self.assertEqual(suppressed, 1)
+
+    def test_the_baseline_the_script_writes_honours_the_cut_it_was_given(self):
+        heavy, light = finding(severity="BLOCK", where="a.md:1"), \
+            finding(severity="INFO", where="a.md:2")
+        with tempfile.TemporaryDirectory() as work:
+            findings = Path(work) / "findings.json"
+            findings.write_text(json.dumps({"findings": [heavy, light]}),
+                                encoding="utf-8")
+            baseline = Path(work) / "baseline.json"
+            ar.main([str(findings), "--update-baseline", str(baseline),
+                     "--baseline-below", "WARN"])
+            written = json.loads(baseline.read_text(encoding="utf-8"))
+            self.assertEqual(written["suppressions"], [ar.finding_id(light)])
+
+
 if __name__ == "__main__":
     unittest.main()

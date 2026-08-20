@@ -51,6 +51,18 @@ def apply_suppression(findings: list[dict],
     return kept, withheld
 
 
+def findings_below(findings: list[dict], severity: str) -> list[dict]:
+    """The findings less grave than the given severity, by the severity ordering.
+
+    Separate from build_baseline rather than an argument to it: a baseline is written
+    over whatever list it is handed, and which findings a project chooses to keep
+    reporting is not the baseline's decision to make.
+    """
+    cut = _SEVERITY_RANK.get(severity, 9)
+    return [f for f in findings
+            if _SEVERITY_RANK.get(f.get("severity"), 9) > cut]
+
+
 def build_baseline(findings: list[dict]) -> dict:
     """A baseline over the current findings, holding opaque identifiers and nothing else."""
     return {
@@ -167,6 +179,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--update-baseline", default=None, metavar="PATH",
                         help="Write the current findings out as the new baseline "
                              "(identifiers only) to PATH and stop")
+    parser.add_argument("--baseline-below", default=None, metavar="SEVERITY",
+                        help="With --update-baseline, put only the findings less grave "
+                             "than SEVERITY into the baseline, so the graver ones go on "
+                             "being reported")
     args = parser.parse_args(argv)
 
     data = _read_json(args.findings_json)
@@ -174,7 +190,9 @@ def main(argv: list[str] | None = None) -> int:
     rules_run = data.get("rules_run") if isinstance(data, dict) else None
 
     if args.update_baseline:
-        baseline_doc = build_baseline(findings)
+        recorded = findings_below(findings, args.baseline_below) \
+            if args.baseline_below else findings
+        baseline_doc = build_baseline(recorded)
         Path(args.update_baseline).write_text(
             json.dumps(baseline_doc, indent=2) + "\n", encoding="utf-8")
         print(json.dumps({"baseline_written": args.update_baseline,
