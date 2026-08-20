@@ -38,8 +38,11 @@ three turns** of its own previous firing; further apart than that, it is the ski
 used afresh rather than the same attempt made again. The count starts at 2 for the first
 repeat and rises by one for each later one — including a repeat in a separate run later
 in the same session, so a session holding two runs of two firings reports 3 rather than
-2. The thresholds below were calibrated against that counting, and changing the counting
-without recalibrating them would move every verdict silently.
+2. The thresholds below assume that counting. No calibration stands behind them — they
+came over from the collector this replaces, which recorded no measurement they were fitted
+to — so what changing the counting would move is not a fitted boundary but an inherited
+one, silently and for every skill at once. Treat the pair as one thing until something is
+measured that could set either.
 
 That three-turn window is also the window that decides which pairs of detections are
 folded into one firing, described in [friction-schema.md](friction-schema.md). One
