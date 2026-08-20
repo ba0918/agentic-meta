@@ -16,6 +16,7 @@ that get written out. The masking happens in one place, finalize_findings.
 import argparse
 import json
 import os
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -68,11 +69,332 @@ def finalize_findings(findings: list[dict]) -> list[dict]:
     return masked
 
 
+
+# ---------------------------------------------------------------------------
+# Reading references out of instruction text
+# ---------------------------------------------------------------------------
+
+_LINK_RE = re.compile(r"\]\(([^)\s#]+)\)")
+_CODE_SPAN_RE = re.compile(r"`([^`\n]+)`")
+_GENERATED_NAME_RE = re.compile(r"^\d{8,}")
+_PATH_ALPHABET_RE = re.compile(r"^[A-Za-z0-9_./-]+$")
+_EXTENSION_RE = re.compile(r"\.[A-Za-z0-9]+$")
+
+
+def _is_pathish(ref: str) -> bool:
+    """Whether the text reads as a path this audit can check for existence."""
+    if not _PATH_ALPHABET_RE.match(ref):
+        return False
+    if ref.startswith(("http://", "https://", "mailto:", "#", "/")):
+        return False
+    if "{" in ref or "*" in ref:
+        return False
+    if _GENERATED_NAME_RE.match(os.path.basename(ref)):
+        return False
+    if "/" not in ref:
+        return False
+    return bool(_EXTENSION_RE.search(os.path.basename(ref))) or ref.endswith("/")
+
+
+def _extract_path_refs(content: str) -> list[tuple[str, int, str]]:
+    """Every path-shaped reference as (ref, line number, how it was written).
+
+    A markdown link and a code span are told apart because they carry different
+    intent: a link is written to be followed, while a code span is as often an
+    illustration in prose. Consumers filter the two differently.
+    """
+    refs: list[tuple[str, int, str]] = []
+    for lineno, line in enumerate(content.splitlines(), start=1):
+        for match in _LINK_RE.finditer(line):
+            if _is_pathish(match.group(1)):
+                refs.append((match.group(1), lineno, "link"))
+        for match in _CODE_SPAN_RE.finditer(line):
+            ref = match.group(1).strip()
+            if _is_pathish(ref):
+                refs.append((ref, lineno, "code_span"))
+    return refs
+
+
+_INDEX_SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv",
+                    "vendor", ".claude", "target", "dist", "build"}
+_INDEX_MAX_FILES = 20000
+
+
+def _basename_index(root: str) -> tuple[frozenset[str], bool]:
+    """Every filename in the tree, and whether the walk got through all of it.
+
+    The walk is bounded, so a huge tree cannot stall the audit. An incomplete index
+    makes the caller fail safe: an unknown name is treated as one that exists.
+    """
+    names: set[str] = set()
+    complete = True
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in _INDEX_SKIP_DIRS]
+        names.update(filenames)
+        if len(names) > _INDEX_MAX_FILES:
+            complete = False
+            break
+    return frozenset(names), complete
+
+
+def _code_span_is_checkable(root: str, ref: str,
+                            basename_index: tuple[frozenset[str], bool]) -> bool:
+    """Whether a reference written as a code span is a claim about a real file.
+
+    Precision is chosen over recall here, because a code span is as often prose. A
+    reference without a file extension names a directory in passing. A reference whose
+    parent directory is missing while its filename exists elsewhere in the tree is
+    shorthand for that file. Only a name found nowhere is the deleted-directory case,
+    which has to stay checkable or the rule misses what it exists for.
+    """
+    if not _EXTENSION_RE.search(os.path.basename(ref)):
+        return False
+    parent = os.path.normpath(os.path.join(root, os.path.dirname(ref)))
+    if os.path.isdir(parent):
+        return True
+    names, complete = basename_index
+    if not complete:
+        return False
+    return os.path.basename(ref) not in names
+
+
+def _ref_exists(root: str, ref: str) -> bool:
+    return os.path.exists(os.path.normpath(os.path.join(root, ref)))
+
+
+def _within_one_edit(a: str, b: str) -> bool:
+    if a == b:
+        return True
+    if abs(len(a) - len(b)) > 1:
+        return False
+    if len(a) == len(b):
+        return sum(1 for x, y in zip(a, b) if x != y) == 1
+    shorter, longer = (a, b) if len(a) < len(b) else (b, a)
+    i = j = 0
+    edited = False
+    while i < len(shorter) and j < len(longer):
+        if shorter[i] != longer[j]:
+            if edited:
+                return False
+            edited = True
+            j += 1
+        else:
+            i += 1
+            j += 1
+    return True
+
+
+def _unique_near_neighbour(root: str, ref: str) -> str | None:
+    """The one existing file beside the reference whose name is a single edit away."""
+    parent = os.path.dirname(ref)
+    parent_abs = os.path.normpath(os.path.join(root, parent))
+    if not os.path.isdir(parent_abs):
+        return None
+    base = os.path.basename(ref)
+    candidates = [name for name in os.listdir(parent_abs) if _within_one_edit(base, name)]
+    if len(candidates) != 1:
+        return None
+    return os.path.join(parent, candidates[0]).replace(os.sep, "/") if parent \
+        else candidates[0]
+
+
+# ---------------------------------------------------------------------------
+# CA-S001: a reference to a file that is not there
+# ---------------------------------------------------------------------------
+
+_STALE_REF_WHY = ("an instruction file pointing at a file that is not there "
+                  "misleads the agent that reads it")
+
+
+def check_ca_s001(targets, ctx):
+    findings = []
+    root = ctx["root"]
+    basename_index = None
+    for t in targets:
+        if t["category"] != "instruction":
+            continue
+        for ref, lineno, written_as in _extract_path_refs(t["content"]):
+            if written_as == "code_span":
+                if basename_index is None:
+                    basename_index = _basename_index(root)
+                if not _code_span_is_checkable(root, ref, basename_index):
+                    continue
+            if _ref_exists(root, ref):
+                continue
+            where = f"{t['rel']}:{lineno}"
+            neighbour = _unique_near_neighbour(root, ref)
+            if neighbour is not None:
+                findings.append(make_finding(
+                    "CA-S001", "WARN", "AUTO_FIX", where,
+                    what=f"reference to a path that does not exist `{ref}`, "
+                         f"with one near neighbour that does",
+                    why=_STALE_REF_WHY,
+                    how=f"replace `{ref}` with `{neighbour}`",
+                    fix_action={"path": t["path"], "old": ref, "new": neighbour}))
+            else:
+                findings.append(make_finding(
+                    "CA-S001", "WARN", "NEEDS_JUDGMENT", where,
+                    what=f"reference to a path that does not exist `{ref}`",
+                    why=_STALE_REF_WHY,
+                    how="correct the path, or remove the reference"))
+    return findings
+
+
+
+# ---------------------------------------------------------------------------
+# CA-S002: a reference to a skill directory that is not there
+# ---------------------------------------------------------------------------
+
+_SKILL_DIR_REF_RE = re.compile(r"\bskills/([a-z][a-z0-9-]*)/")
+
+# The directory skills share holds helpers, not a skill, so it is never a name the
+# audit can look up among the skills.
+_NOT_A_SKILL_NAME = {"shared"}
+
+
+def check_ca_s002(targets, ctx):
+    findings = []
+    known = ctx["skill_names"]
+    for t in targets:
+        if t["category"] != "instruction":
+            continue
+        for lineno, line in enumerate(t["content"].splitlines(), start=1):
+            for match in _SKILL_DIR_REF_RE.finditer(line):
+                name = match.group(1)
+                if name in _NOT_A_SKILL_NAME or name in known:
+                    continue
+                findings.append(make_finding(
+                    "CA-S002", "WARN", "NEEDS_JUDGMENT", f"{t['rel']}:{lineno}",
+                    what=f"reference to a skill directory that does not exist "
+                         f"`skills/{name}/`",
+                    why="a mention of a skill that is not there is a sign the "
+                        "instructions have gone stale",
+                    how="correct the skill name, or remove the mention"))
+    return findings
+
+
+
+# ---------------------------------------------------------------------------
+# CA-U001: wording that permits skipping a confirmation or destroying something
+# ---------------------------------------------------------------------------
+
+# The vocabulary is matched in the language instruction files are written in, so the
+# Japanese phrasings sit beside the English ones rather than being translated away.
+_UNSAFE_PATTERNS = [
+    ("skipped confirmation",
+     re.compile(r"確認(?:なし|せず|を省略|不要|を飛ば)")),
+    ("destructive operation",
+     re.compile(r"rm\s+-rf|--force\b|--no-verify\b|force\s*push"
+                r"|強制(?:削除|プッシュ|的に削除)")),
+    ("unconditional permission",
+     re.compile(r"無条件で|without confirmation|skip confirmation|auto-?approve"
+                r"|bypass(?:ing)?\s+permission", re.IGNORECASE)),
+]
+
+
+def check_ca_u001(targets, ctx):
+    findings = []
+    for t in targets:
+        for lineno, line in enumerate(t["content"].splitlines(), start=1):
+            for label, pattern in _UNSAFE_PATTERNS:
+                if not pattern.search(line):
+                    continue
+                findings.append(make_finding(
+                    "CA-U001", "WARN", "REPORT_ONLY", f"{t['rel']}:{lineno}",
+                    what=f"wording that permits a {label}: {line.strip()}",
+                    why="permitting unconfirmed or destructive operations raises the "
+                        "risk of an accident, so the intent behind it needs checking",
+                    how="keep it where it is deliberate, otherwise state the "
+                        "confirmation step the instruction leaves out"))
+                break  # one line, one finding: the rest of the line says the same thing
+    return findings
+
+
+
+# ---------------------------------------------------------------------------
+# CA-D001: one runtime's tool vocabulary in a file meant to hold none
+# ---------------------------------------------------------------------------
+
+_CLAUDE_TOOLS = ("Edit", "Write", "MultiEdit", "NotebookEdit", "TodoWrite")
+_TOOL_NAMES = "|".join(_CLAUDE_TOOLS)
+_CLAUDE_TOOL_RE = re.compile(
+    r"`(" + _TOOL_NAMES + r")`"
+    r"|\b(" + _TOOL_NAMES + r")\s+tool\b"
+    # The same phrase in Japanese, which the English form above does not cover.
+    r"|\b(" + _TOOL_NAMES + r")\s*ツール"
+)
+
+# The files whose instructions are supposed to hold for any runtime. The file a
+# specific runtime reads is left out: its own tool names belong there.
+_TOOL_INDEPENDENT_KINDS = ("agents_md", "project_md")
+
+
+def check_ca_d001(targets, ctx):
+    findings = []
+    for t in targets:
+        if t["kind"] not in _TOOL_INDEPENDENT_KINDS:
+            continue
+        for lineno, line in enumerate(t["content"].splitlines(), start=1):
+            match = _CLAUDE_TOOL_RE.search(line)
+            if not match:
+                continue
+            tool = match.group(1) or match.group(2) or match.group(3)
+            findings.append(make_finding(
+                "CA-D001", "INFO", "REPORT_ONLY", f"{t['rel']}:{lineno}",
+                what=f"tool vocabulary specific to one runtime `{tool}` in "
+                     f"{t['rel']}, which is meant to hold for any of them",
+                why="another runtime names its own tools differently, so an "
+                    "instruction written around one runtime's tool does not carry",
+                how="reword it in terms of the operation rather than one runtime's "
+                    "tool name"))
+    return findings
+
+
+
+# ---------------------------------------------------------------------------
+# CA-D002: a skill the instruction files never mention
+# ---------------------------------------------------------------------------
+
+def check_ca_d002(targets, ctx):
+    known = ctx["skill_names"]
+    if not known:
+        return []
+    instructions = "\n".join(
+        t["content"] for t in targets if t["category"] == "instruction")
+    findings = []
+    for name in sorted(known):
+        # A skill name may hold hyphens, so the boundary excludes them as well: without
+        # that, 'planning' would count as a mention of a skill called 'plan'.
+        mentioned = re.search(
+            r"(?<![A-Za-z0-9-])" + re.escape(name) + r"(?![A-Za-z0-9-])", instructions)
+        if mentioned:
+            continue
+        findings.append(make_finding(
+            "CA-D002", "WARN", "NEEDS_JUDGMENT", "<instruction-files>:0",
+            what=f"skill `{name}` is not recorded in the instruction files",
+            why="a gap in the skill listing is instruction decay, though the "
+                "omission may equally have been deliberate",
+            how="add it to the listing, or ignore the finding where leaving it out "
+                "was the intent"))
+    return findings
+
+
 # ---------------------------------------------------------------------------
 # Registry (dispatch by listing, not by editing the dispatcher)
 # ---------------------------------------------------------------------------
 
-RULES: dict[str, dict[str, Any]] = {}
+RULES: dict[str, dict[str, Any]] = {
+    "CA-S001": {"category": "stale", "severity": "WARN",
+                "action": "AUTO_FIX / NEEDS_JUDGMENT", "fn": check_ca_s001},
+    "CA-S002": {"category": "stale", "severity": "WARN",
+                "action": "NEEDS_JUDGMENT", "fn": check_ca_s002},
+    "CA-U001": {"category": "unsafe", "severity": "WARN",
+                "action": "REPORT_ONLY", "fn": check_ca_u001},
+    "CA-D001": {"category": "drift", "severity": "INFO",
+                "action": "REPORT_ONLY", "fn": check_ca_d001},
+    "CA-D002": {"category": "drift", "severity": "WARN",
+                "action": "NEEDS_JUDGMENT", "fn": check_ca_d002},
+}
 
 
 def run_checks(targets: list[dict], ctx: dict, rules: dict | None = None) -> list[dict]:
