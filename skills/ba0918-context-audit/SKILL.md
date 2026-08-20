@@ -221,13 +221,14 @@ classification. **Change nothing**: this phase produces a reading, not an edit.
 
 - **With no candidates, skip the phase entirely.** There is nothing to read.
 - **What goes into the reading is the finding's own `what` and nothing else** — already
-  masked, already cut down to the two claims. The files those lines came from, the
-  content around them, and anything identifying a person, do not travel with it.
-- **A claim taken from a memory arrives without its line.** For that side the reading
-  gets the place, the direction and how far the two overlap, and nothing of what the
-  line says: a memory holds the vocabulary of the work — a customer's name, an internal
-  hostname — and the mask knows neither shape. Where that leaves a pair genuinely
-  unreadable, **undecidable** is the classification; do not go to the file for the line.
+  masked, already cut down to the two claims. The `where` that names the two files stays
+  out of it, along with the content around those lines and anything identifying a person.
+  (`where` is for the report and for Phase 4's presentation, not for this reading.)
+- **A claim taken from a memory arrives without its line.** All the `what` carries for
+  that side is which way it points and how far the two overlap: a memory holds the
+  vocabulary of the work — a customer's name, an internal hostname — and the mask knows
+  neither shape. Where that leaves a pair genuinely unreadable, **undecidable** is the
+  classification; do not go to the file for the line.
 
 ### Phase 3 — Aggregate
 

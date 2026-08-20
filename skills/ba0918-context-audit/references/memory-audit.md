@@ -130,17 +130,18 @@ worse off than it was while looking better.
   report, into a reading, to a person — that limitation is stated alongside it.
 - **A line out of a memory is never transcribed into a finding.** CA-M301 already reported
   only the kind and the place. Two further rules read memories alongside the instruction
-  files — CA-U001 and CA-C001 — and both name the place and the kind of what they found
-  without quoting the line. The mask guards what an instruction file holds; a memory's line
+  files — CA-U001 and CA-C001 — and neither quotes a line it took from a memory: it names
+  the place and the kind of what it found instead. **Only the memory's side is held back.**
+  Where CA-C001 pairs a memory's line with an instruction file's, the instruction file's
+  line stays quoted — dropping that one too would cost the reading the one side it was free
+  to see, and buy nothing. The mask guards what an instruction file holds; a memory's line
   is held back outright, because what a memory accumulates (a customer's name, an internal
   hostname) is a shape no blocklist knows.
 - **What the contradiction reading receives is a finding's own description**, already masked
-  and already cut down to the two claims. The files those lines came from, the content
-  around them, and anything identifying a person, do not travel with it. A claim taken from a
-  memory arrives as its place, its direction and the overlap between the two, and nothing
-  else — **the subjects are not offered in the line's place**, because they are cut from the
-  line itself and would hand over the same words. Held back per claim, not per finding: a
-  pair may put a memory's line beside an instruction file's, and the instruction file's side
-  stays quoted.
+  and already cut down to the two claims. The `where` naming the two files, the content
+  around those lines, and anything identifying a person, do not travel with it. For a claim
+  taken from a memory the description carries which way it points and how far the two
+  overlap, and nothing more — **the subjects are not offered in the line's place**, because
+  they are cut from the line itself and would hand over the same words.
 - **The only automatic fix against a memory is the frontmatter formatting above.** Deleting
   a memory, and rewriting what one says, are not automated by any route.
