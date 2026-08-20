@@ -13,3 +13,8 @@
 # ignore hides these on the author's machine; a fresh checkout has no such ignore.
 __pycache__/
 .pytest_cache/
+
+# The OpenCode store si-001 reads. Its builder is the committed input; the database
+# is produced beside it at run time, and a binary nobody can review in a diff is
+# exactly what committing the builder instead exists to avoid.
+/evals/inputs/ba0918-skill-improve/stores/opencode/opencode.db
