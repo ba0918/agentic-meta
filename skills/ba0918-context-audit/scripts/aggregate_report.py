@@ -94,6 +94,24 @@ MASK_IS_INCOMPLETE = (
     "a value shaped unlike any pattern it knows passes through it")
 
 
+FIX_BODY_WITHHELD = ("withheld from the report; the text itself stays in the findings "
+                     "file, which is what an applied fix is read from")
+
+
+def _without_the_fix_body(finding: dict) -> dict:
+    """The finding as the report carries it: its fix named, its fix's text withheld.
+
+    An automatic fix carries the line it replaces, because matching that line is how it
+    finds the place to act. A report carries no fix anywhere: it is written to be handed
+    to another person, and applying a fix reads the findings file instead. So the report
+    says a fix is there and stops, which is what lets a line out of a memory stay out of
+    every report while the fix that replaces it goes on working.
+    """
+    if not isinstance(finding.get("fix_action"), dict):
+        return dict(finding)
+    return {**finding, "fix_action": FIX_BODY_WITHHELD}
+
+
 def build_report(findings: list[dict], baseline: dict | None,
                  memory_dir: str | None = None, skipped: list[str] | None = None,
                  rules_run: list[str] | None = None) -> dict:
@@ -109,8 +127,9 @@ def build_report(findings: list[dict], baseline: dict | None,
         finding["finding_id"] = finding_id(finding)
 
     counts = summarize(ordered)
+    reported = [_without_the_fix_body(finding) for finding in ordered]
     groups: dict[str, list[dict]] = {}
-    for finding in ordered:
+    for finding in reported:
         groups.setdefault(finding.get("id", "?"), []).append(finding)
 
     return {
@@ -130,7 +149,7 @@ def build_report(findings: list[dict], baseline: dict | None,
         "by_severity": counts["by_severity"],
         "groups": [{"rule_id": rule_id, "count": len(group), "findings": group}
                    for rule_id, group in sorted(groups.items())],
-        "findings": ordered,
+        "findings": reported,
     }
 
 

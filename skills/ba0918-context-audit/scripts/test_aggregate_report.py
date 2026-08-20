@@ -106,6 +106,21 @@ class TestReport(unittest.TestCase):
         report = ar.build_report([found], None)
         self.assertEqual(report["findings"][0]["action"], "AUTO_FIX")
 
+    def test_the_report_withholds_the_text_a_fix_would_replace(self):
+        found = finding(rule_id="CA-M001", action="AUTO_FIX",
+                        fix_action={"path": "n.md", "old": "name:   a note",
+                                    "new": "name: a note"})
+        report = ar.build_report([found], None)
+        self.assertNotIn("name:   a note", json.dumps(report))
+        self.assertNotIn("name:   a note", json.dumps(report["groups"]))
+
+    def test_withholding_it_leaves_the_findings_the_fixes_are_applied_from_alone(self):
+        found = finding(rule_id="CA-M001", action="AUTO_FIX",
+                        fix_action={"path": "n.md", "old": "name:   a note",
+                                    "new": "name: a note"})
+        ar.build_report([found], None)
+        self.assertEqual(found["fix_action"]["old"], "name:   a note")
+
     def test_the_gravest_findings_are_listed_first(self):
         findings = [finding(severity="INFO", where="a.md:1"),
                     finding(severity="BLOCK", where="a.md:2"),

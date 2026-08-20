@@ -255,6 +255,9 @@ python3 {skill_dir}/scripts/aggregate_report.py \
   action through untouched — recomputing it here would produce a second opinion with no way
   of saying afterwards which one the report shows.
 - A suppressed finding appears in the count. Never drop one quietly.
+- **The report names a fix without carrying its text.** The line an automatic fix replaces
+  stays in the findings file, which is what Phase 4 applies from; a report is written to be
+  handed to another person and has no use for it.
 - Drop `--markdown` for the structured form, which carries the same report as JSON.
 
 ### Phase 4 — Apply, decide, report
