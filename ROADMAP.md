@@ -275,9 +275,26 @@ Those fixes moved 11 of the 16 files the lock had recorded, so the verification 
 — and the executor did not finish either attempt, once losing its response and once
 hanging for an hour. Both attempts collected the measurement successfully, reporting three
 stores read, no structural route for Codex, and a downgraded confidence for the skill seen
-only through it. The lock is therefore closed as `accepted-without-run` rather than as a
-pass: what is missing is the executor's own completion, and the failures sit outside the
-instrument. Across wave 4 the free executor route finished 1 run in 4.
+only through it.
+
+A final holistic review then found that the scenario those runs passed had been proving
+nothing. All three of its critical expectations held without reading the fixture at all:
+the store list is three entries long whatever is there, the missing Codex route is a
+constant in the adapter, and the skills said to be unmodified have no directories to
+modify. Demonstrated by running it against paths that do not exist — two of the three
+still passed. Alongside it, the documented commands named no read locations, so an
+executor copying them would read the operator's own session history, and the scenario
+could not tell the difference. Two expectations that only the fixture can satisfy were
+added, and the commands now name where they read.
+
+Run against the tightened scenario, the measurement came out right — three skills, one per
+store, with the confidence downgrade falling on the Codex-only skill and naming Codex as
+its cause — which is the first evidence in this wave that the reading is actually
+per-store rather than merely declared. The executor hung again at the same point, the
+parallel launch of the four analysis roles, now three times out of three. The lock closes
+as `accepted-without-run`: what is missing is a completed run, and what is missing is on
+the executor's side. Across wave 4 the free route finished 1 run in 6, reaching the
+measurement in 5 of them.
 
 ### Wave 5 — Auditor ⬜
 
