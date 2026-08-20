@@ -335,6 +335,35 @@ class TestContradictionCandidates(unittest.TestCase):
         self.assertIn("b.md:1", f[0]["where"])
 
 
+class TestContradictionPolarityInEnglish(unittest.TestCase):
+    """An instruction file written in English negates by turning a modal negative,
+    so which way `must not` and `should not` point decides whether this rule works
+    at all on a repository whose instruction files are English."""
+
+    def test_a_prohibition_written_as_a_negated_modal_is_not_read_as_a_permission(self):
+        a = target("agents_md", "Never delete the cache directory", path="a.md")
+        b = target("rules", "You should not delete the cache directory", path="b.md")
+        self.assertEqual(findings_for("CA-C001", [a, b], ctx()), [])
+
+    def test_a_prohibition_written_with_must_not_still_pairs_with_a_permission(self):
+        a = target("agents_md", "You must not commit directly to main", path="a.md")
+        b = target("rules", "Committing directly to main is always allowed", path="b.md")
+        self.assertTrue(findings_for("CA-C001", [a, b], ctx()))
+
+    def test_a_prohibition_written_as_a_contraction_pairs_with_a_permission(self):
+        a = target("agents_md", "You shouldn't run the migration by hand", path="a.md")
+        b = target("rules", "Running the migration by hand is always allowed",
+                   path="b.md")
+        self.assertTrue(findings_for("CA-C001", [a, b], ctx()))
+
+    def test_a_prohibition_written_as_cannot_pairs_with_a_permission(self):
+        a = target("agents_md", "The build directory cannot be edited by hand",
+                   path="a.md")
+        b = target("rules", "Editing the build directory by hand is always allowed",
+                   path="b.md")
+        self.assertTrue(findings_for("CA-C001", [a, b], ctx()))
+
+
 class TestMemoryFrontmatterShape(unittest.TestCase):
     def test_a_memory_missing_a_required_key_is_left_to_a_human(self):
         t = target("memory", "---\ndescription: a note\n---\nbody", path="note.md")

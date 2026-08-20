@@ -385,9 +385,17 @@ def check_ca_d002(targets, ctx):
 # ---------------------------------------------------------------------------
 
 # The polarity vocabulary is read in the languages instruction files are written in.
+# English negates by turning a modal negative, and the negative form contains the
+# affirmative one: 'must not' holds 'must', "shouldn't" holds 'should'. Matched first
+# and taken out of the line, so the modal inside a negation is never read afterwards
+# as the permission it would be on its own.
+_NEGATED_MODAL_RE = re.compile(
+    r"\b(?:must|should|shall|may|can|will)\s+not\b"
+    r"|\b(?:must|should|shall|can|will|do|does|did)n['’]t\b"
+    r"|\bcannot\b", re.IGNORECASE)
 _PROHIBIT_RE = re.compile(
     r"するな|しない(?:こと)?|禁止|してはならない|べきでない"
-    r"|never\b|don't\b|do not\b|avoid\b|must not\b", re.IGNORECASE)
+    r"|never\b|don't\b|do not\b|avoid\b", re.IGNORECASE)
 _ALLOW_RE = re.compile(
     r"してよい|してもよい|許可|するべき|すること(?:$|。)"
     r"|always\b|must\b|should\b|allowed\b", re.IGNORECASE)
@@ -429,8 +437,10 @@ def _subjects_of(line: str) -> frozenset[str]:
 
 def _polarity_of(line: str) -> str | None:
     """Which way a line points, or None when it points both ways or neither."""
-    prohibits = bool(_PROHIBIT_RE.search(line))
-    allows = bool(_ALLOW_RE.search(line))
+    negated = bool(_NEGATED_MODAL_RE.search(line))
+    remainder = _NEGATED_MODAL_RE.sub(" ", line)
+    prohibits = negated or bool(_PROHIBIT_RE.search(remainder))
+    allows = bool(_ALLOW_RE.search(remainder))
     if prohibits and not allows:
         return "prohibit"
     if allows and not prohibits:
