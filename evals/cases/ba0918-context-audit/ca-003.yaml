@@ -1,0 +1,61 @@
+skill: ba0918-context-audit
+id: ca-003
+title: Edge case — a correction is offered as a diff and the file it would change stays untouched
+source: ported-from-claude-skills-fixtures
+executor_tier: standard
+isolation: worktree
+
+files:
+  - from: ca-003/claude.md
+    to: target-project/CLAUDE.md
+  - from: ca-003/agents.md
+    to: target-project/AGENTS.md
+  - from: ca-003/setup.md
+    to: target-project/docs/setup.md
+
+exercises:
+  - skills/ba0918-context-audit/SKILL.md
+  - skills/ba0918-context-audit/references/rule-catalog.md
+
+prompt: |
+  Audit the `CLAUDE.md` and `AGENTS.md` in `target-project/` — I want to know where they
+  have drifted away from what the project actually looks like.
+
+  It is a copy that was handed to me, so no session history of its own came with it —
+  the files in the directory are all there is to read.
+
+expected_output: |
+  A report naming the drift in both files, in which the one correction that can be made
+  mechanically is shown as the exact replacement it would make, and shown rather than
+  carried out.
+
+expectations:
+  - text: |
+      The typo in `target-project/CLAUDE.md` — `docs/setups.md`, where the project has
+      `docs/setup.md` — is reported as a stale reference (CA-S001) whose correction is
+      automatic, and the correction is put in front of the reader as the exact
+      replacement it would make, `docs/setups.md` to `docs/setup.md`
+    critical: true
+  - text: |
+      That replacement is not carried out. `target-project/CLAUDE.md` is byte-for-byte
+      what it was before the run and still reads `docs/setups.md`
+    critical: true
+  - text: |
+      The tool vocabulary belonging to one runtime in `target-project/AGENTS.md` — the
+      line telling the reader to make the edit with the `Edit` tool — is reported as
+      drift (CA-D001), even though it is written as a Japanese phrase rather than the
+      English one
+    critical: true
+  - text: |
+      The report keeps the three dispositions apart — the correction to `docs/setups.md`
+      that can be applied mechanically, the missing `docs/legacy-notes.md` that needs a
+      person to decide, and the tool-vocabulary finding that is only ever reported. Each
+      appears under the disposition it was given rather than in one undifferentiated
+      list
+    critical: true
+  - text: |
+      No baseline file is written under `target-project/.agents/config/`
+    critical: false
+  - text: |
+      The report leads with its counts and puts the individual findings after them
+    critical: false

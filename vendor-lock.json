@@ -1,5 +1,10 @@
 {
   "dependencies": {
+    "ba0918-context-audit": [
+      "fix-action-taxonomy",
+      "fixture-contract",
+      "severity-and-verdicts"
+    ],
     "ba0918-empirical-prompt-tuning": [
       "fixture-contract"
     ],
