@@ -160,9 +160,8 @@ qualification.
 **The 30% share has no measurement behind it, and this document is the record of that.**
 It came over from the collector this replaces, and neither that collector nor this one
 recorded what was measured to arrive at it. There is nothing here to recalibrate
-against. It is left where it is rather than moved: a share chosen now would read like a
-decision and would carry no more evidence than this one does, and every threshold in the
-table above was set against verdicts this inference already fed.
+against. It is left where it is rather than moved, because a share chosen now would read
+like a decision while carrying no more evidence than this one does.
 
 The inference also became easier to trip. Turns are now counted as speech only — a
 runtime's own bookkeeping no longer swells the denominator — so the same session has
