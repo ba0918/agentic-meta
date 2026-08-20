@@ -129,9 +129,10 @@ Running headless, or as a subagent, no question has an answer.
   says which way to go — "take the current state as the baseline" is option (a) of the
   first-run choice — follow it.
 - Absent one, **fall to the side that changes no state.** Emit the full report. Do not write
-  the baseline. Apply neither the automatic fixes nor the decisions, and **send both to the
-  report instead** — with the decisions in a frame of their own, so a finding waiting on a
-  person is not read as one that was only ever informational.
+  the baseline. Apply neither the automatic fixes nor the decisions. The report already
+  holds both, each finding carrying the fix action it was given, so one waiting on a person
+  reads as `NEEDS_JUDGMENT` rather than as one that was only ever informational. **Say in
+  the reply that neither was applied**, so the untouched state is stated rather than assumed.
 
 ## Workflow
 
@@ -214,8 +215,14 @@ python3 {skill_dir}/scripts/aggregate_report.py \
   --output .agents/tmp/context-audit/report-{ts}.md
 ```
 
-- **`--targets` is not optional.** It is what puts the memory directory that was actually
-  read into the report; without it the report can say only that no location was given to it.
+- **`--targets` is not optional.** It carries two things no rule produces: the memory
+  directory that was actually read, and the targets the collection passed over. Without it
+  the report can state neither, and a file nobody opened passes for one that came back
+  clean.
+- **The checks that ran come out of the findings file**, which names them, and the report
+  repeats them. That is what separates a count of zero from a check that never happened.
+- **The report states that the mask is a blocklist** and so incomplete, alongside the
+  masked text it hands onward.
 - Suppression, the counts and the ordering are the script's. It carries each finding's fix
   action through untouched — recomputing it here would produce a second opinion with no way
   of saying afterwards which one the report shows.
@@ -240,10 +247,13 @@ anything.
 **Decisions.** Group them by rule and by kind of fix, and offer each group as a group
 ("apply these path corrections together / go through them one at a time / skip them").
 
-**Cap the decisions at ten per run.** Past that, stop asking and send the remainder to the
-report: a person asked thirty questions in a row stops reading them, and an answer given
-that way is worse than no answer at all. The report states how many were deferred, so the
-number is a fact about the run rather than a silence.
+**Cap the decisions at ten per run.** Past that, stop asking: a person asked thirty
+questions in a row stops reading them, and an answer given that way is worse than no answer
+at all. Nothing has to be added to the report for the remainder — Phase 3 wrote every
+finding out, answered or not, and the ones you did not reach are sitting in it under
+`NEEDS_JUDGMENT`. **State the deferred count when you close the phase, in the reply**: the
+report file was written before the first question was asked, so it cannot carry a number
+that only exists afterwards.
 
 **Resuming.** `--interactive` picks the deferred decisions back up. It reads the findings a
 previous run already wrote in `.agents/tmp/context-audit/` and starts from the first that
@@ -277,12 +287,14 @@ locations side by side with the classification Phase 2 gave it.
 ## Completion conditions
 
 - Phases 0 through 3 have run, and Phase 4 has disposed of every finding: applied, decided,
-  deferred to the report with a count, or reported.
+  deferred with the deferred count stated in the reply, or reported.
 - The report exists, leads with its counts, and names the memory directory that was read.
 - The baseline was written exactly when it was asked for, and not otherwise.
-- The report names the checks that ran, what they found, and what was left unchecked. A
-  completion claim standing on anything but a command run in this session and its output is
-  not a completion claim.
+- The report names the checks that ran, the findings they produced, and the targets that
+  were passed over unchecked. All three come out of the scripts, so a report missing one is
+  a run that dropped an argument rather than a project with nothing to say. A completion
+  claim standing on anything but a command run in this session and its output is not a
+  completion claim.
 
 ## Handling failures
 

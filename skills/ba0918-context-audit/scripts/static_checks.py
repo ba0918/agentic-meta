@@ -773,7 +773,11 @@ def main(argv: list[str] | None = None) -> int:
     findings = run_checks(targets, ctx)
 
     rendered = json.dumps(
-        {"finding_count": len(findings), "findings": findings},
+        # The rules that ran travel with the findings because the report has to say
+        # which checks a clean result came out of; a count of zero on its own cannot be
+        # told from a check that never happened.
+        {"finding_count": len(findings), "rules_run": sorted(RULES),
+         "findings": findings},
         indent=2, ensure_ascii=False)
     if args.output:
         Path(args.output).write_text(rendered + "\n", encoding="utf-8")

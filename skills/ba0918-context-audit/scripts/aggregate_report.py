@@ -11,11 +11,13 @@ A baseline holds nothing but opaque per-finding identifiers (a digest over the r
 place and the description). No detected value and no body text reaches it, which is what
 makes a committed baseline safe to read.
 
-The directory the project memory was read from travels alongside the findings rather
-than inside them. It is collection provenance, not something a rule found, and a report
-that named no memory location would leave the reader unable to tell what was read: the
-place a finding names is redacted, and a home-relative location is one of the shapes the
-redaction replaces.
+Three things travel alongside the findings rather than inside them, because no rule
+produces any of them and a count of zero cannot stand in for them: the directory the
+project memory was read from, the targets the collection passed over, and the rules that
+ran. Without the first, a reader cannot tell what was read at all — the place a finding
+names is redacted, and a home-relative location is one of the shapes the redaction
+replaces. Without the second, a file nobody opened passes for a file that came back
+clean. Without the third, a clean report cannot be told from a check that never happened.
 """
 
 import argparse
@@ -75,9 +77,20 @@ def _sort_key(finding: dict) -> tuple:
             finding.get("id", ""), finding.get("where", ""))
 
 
+MASK_IS_INCOMPLETE = (
+    "the credential mask over these findings is a blocklist and therefore incomplete: "
+    "a value shaped unlike any pattern it knows passes through it")
+
+
 def build_report(findings: list[dict], baseline: dict | None,
-                 memory_dir: str | None = None) -> dict:
-    """Lay the findings out with the counts ahead of them."""
+                 memory_dir: str | None = None, skipped: list[str] | None = None,
+                 rules_run: list[str] | None = None) -> dict:
+    """Lay the findings out with the counts ahead of them.
+
+    What was checked and what was passed over travel alongside the findings for the same
+    reason the memory directory does: they are facts about the collection and the run,
+    which no rule produces and which a count of zero cannot stand in for.
+    """
     kept, suppressed = apply_suppression(findings, baseline)
     ordered = sorted(kept, key=_sort_key)
     for finding in ordered:
@@ -97,6 +110,8 @@ def build_report(findings: list[dict], baseline: dict | None,
             "suppressed": suppressed,
         },
         "memory_dir": memory_dir,
+        "skipped": skipped,
+        "rules_run": rules_run,
         "by_severity": counts["by_severity"],
         "groups": [{"rule_id": rule_id, "count": len(group), "findings": group}
                    for rule_id, group in sorted(groups.items())],
@@ -118,8 +133,15 @@ def render_markdown(report: dict) -> str:
         # report that picked one would be stating something it does not know.
         f"memory read from: {memory_dir}" if memory_dir
         else "memory: no location reported",
-        "",
     ]
+    rules_run = report.get("rules_run")
+    if rules_run:
+        lines.append("checks that ran: " + ", ".join(rules_run))
+    skipped = report.get("skipped")
+    if skipped is not None:
+        lines.append("targets skipped: " + (", ".join(skipped) if skipped else "none"))
+    lines.append(MASK_IS_INCOMPLETE)
+    lines.append("")
     for finding in report["findings"]:
         lines.append(f"- [{finding['severity']}/{finding['action']}] "
                      f"{finding['id']} {finding['where']}")
@@ -138,7 +160,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("findings_json", help="static_checks.py output (path or '-')")
     parser.add_argument("--targets", default=None,
                         help="collect_targets.py output, read for the memory location "
-                             "the report names")
+                             "and the passed-over targets the report names")
     parser.add_argument("--baseline", default=None, help="Baseline JSON path")
     parser.add_argument("--output", default=None, help="Output file (default stdout)")
     parser.add_argument("--markdown", action="store_true")
@@ -149,6 +171,7 @@ def main(argv: list[str] | None = None) -> int:
 
     data = _read_json(args.findings_json)
     findings = data["findings"] if isinstance(data, dict) else data
+    rules_run = data.get("rules_run") if isinstance(data, dict) else None
 
     if args.update_baseline:
         baseline_doc = build_baseline(findings)
@@ -159,16 +182,18 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     memory_dir = None
+    skipped = None
     if args.targets:
         collected = _read_json(args.targets)
         if isinstance(collected, dict):
             memory_dir = collected.get("memory_dir")
+            skipped = collected.get("skipped")
 
     baseline = None
     if args.baseline and Path(args.baseline).is_file():
         baseline = json.loads(Path(args.baseline).read_text(encoding="utf-8"))
 
-    report = build_report(findings, baseline, memory_dir)
+    report = build_report(findings, baseline, memory_dir, skipped, rules_run)
     rendered = render_markdown(report) if args.markdown \
         else json.dumps(report, indent=2, ensure_ascii=False)
     if args.output:

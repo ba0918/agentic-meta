@@ -2,6 +2,7 @@
 """Unit tests for static_checks.py (the pure-function CA-* rule engine)."""
 
 import importlib.util
+import json
 import os
 import tempfile
 import unittest
@@ -521,6 +522,23 @@ class TestEngineOutput(unittest.TestCase):
         for f in produced:
             self.assertEqual(sc.validate_finding_schema(f), [], f["id"])
             self.assertIn(":", f["where"])
+
+
+class TestEmittedOutput(unittest.TestCase):
+    """What the engine writes out is the only place downstream can learn which checks
+    ran, so a clean report can be told apart from a check that never happened."""
+
+    def test_the_output_names_the_checks_that_ran(self):
+        with tempfile.TemporaryDirectory() as work:
+            targets = Path(work) / "targets.json"
+            targets.write_text(json.dumps({"targets": [
+                {"path": os.path.join(work, "CLAUDE.md"), "rel": "CLAUDE.md",
+                 "kind": "claude_md", "category": "instruction",
+                 "content": "ordinary prose"}]}), encoding="utf-8")
+            out = Path(work) / "findings.json"
+            sc.main([str(targets), "--root", work, "--output", str(out)])
+            emitted = json.loads(out.read_text(encoding="utf-8"))
+            self.assertEqual(emitted["rules_run"], sorted(sc.RULES))
 
 
 class TestRegistry(unittest.TestCase):

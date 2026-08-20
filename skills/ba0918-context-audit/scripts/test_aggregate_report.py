@@ -172,6 +172,47 @@ class TestRenderedReport(unittest.TestCase):
         self.assertIn("0 findings", rendered)
 
 
+class TestWhatTheRunCovered(unittest.TestCase):
+    """A report is read as a statement about the whole instruction layer, so it has to
+    carry what was checked, what was passed over, and how far its mask reaches."""
+
+    def test_the_report_names_the_checks_that_ran(self):
+        rendered = ar.render_markdown(
+            ar.build_report([], None, rules_run=["CA-S001", "CA-U001"]))
+        self.assertIn("CA-S001", rendered)
+        self.assertIn("CA-U001", rendered)
+
+    def test_the_report_names_the_targets_that_were_passed_over(self):
+        rendered = ar.render_markdown(
+            ar.build_report([], None, skipped=["PROJECT.md", "<project-memory>"]))
+        self.assertIn("PROJECT.md", rendered)
+        self.assertIn("<project-memory>", rendered)
+
+    def test_a_run_that_passed_over_nothing_says_so_rather_than_staying_silent(self):
+        self.assertIn("skipped: none",
+                      ar.render_markdown(ar.build_report([], None, skipped=[])))
+
+    def test_the_report_states_that_the_mask_it_relies_on_is_incomplete(self):
+        self.assertIn("blocklist", ar.render_markdown(ar.build_report([], None)))
+
+    def test_what_ran_and_what_was_passed_over_come_from_the_two_input_files(self):
+        with tempfile.TemporaryDirectory() as work:
+            targets = Path(work) / "targets.json"
+            targets.write_text(
+                json.dumps({"targets": [], "skipped": ["PROJECT.md"],
+                            "memory_dir": None}), encoding="utf-8")
+            findings = Path(work) / "findings.json"
+            findings.write_text(
+                json.dumps({"findings": [finding(rule_id="CA-U001")],
+                            "rules_run": ["CA-S001", "CA-U001"]}), encoding="utf-8")
+            output = Path(work) / "report.md"
+            ar.main([str(findings), "--targets", str(targets),
+                     "--markdown", "--output", str(output)])
+            rendered = output.read_text(encoding="utf-8")
+            self.assertIn("PROJECT.md", rendered)
+            self.assertIn("CA-S001", rendered)
+
+
 class TestBaselineWriting(unittest.TestCase):
     def test_the_baseline_holds_identifiers_and_nothing_else(self):
         written = ar.build_baseline([finding(where="a.md:1", what="sensitive detail"),
