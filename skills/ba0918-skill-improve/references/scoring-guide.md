@@ -21,9 +21,19 @@ friction_score = min(10, (
 | Rate | Formula | Range |
 |---|---|---|
 | retry_rate | `retry_count / invocation_count` | 0 to 1 |
-| correction_rate | `correction_turns / (invocation_count × 5)` | 0 to 1, saturating at 5 turns per firing |
+| correction_rate | `min(1, correction_turns / (invocation_count × 5))` | 0 to 1, saturating at 5 turns per firing |
 | abandonment_rate | `session_abandoned_count / invocation_count` | 0 to 1 |
-| error_rate | `tool_error_count / max(total_turns_to_completion, 1)` | 0 to 1, saturating at 1 |
+| error_rate | `min(1, tool_error_count / max(total_turns_to_completion, 1))` | 0 to 1, saturating at 1 |
+
+**Two of the four would run past 1 without that clip, and the clip is part of the
+formula rather than a property of the counts.** Nothing bounds `correction_turns` at
+five per firing, and `tool_error_count` is the whole session's while
+`total_turns_to_completion` counts speech only — a session with more failed runs than
+things said is ordinary here, not exceptional. Each weight is the most its term may
+contribute, and the four weights come to exactly 10, so an unclipped term reaches the
+Critical band on its own and the band stops meaning what the table below says. A range
+a document only states is not a range anything performs: this score is worked out by a
+role reading this table, so the clip has to be in the line the role reads.
 
 Every field named above is read from that skill's entry in `friction_signals`. A skill
 with `invocation_count` 0 does not appear there at all: every rate divides by the
