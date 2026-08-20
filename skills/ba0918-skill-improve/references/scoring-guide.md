@@ -32,9 +32,20 @@ frictionless.
 
 ### Two things the counts mean that their names do not say
 
-**`retry_count` is the length of a run, not the number of repeats.** The first repeat of
-a skill reads as 2, not 1. The thresholds below were calibrated against that counting,
-and changing the counting without recalibrating them would move every verdict silently.
+**`retry_count` is one more than the number of repeats, and a repeat is bounded by a
+window.** A firing counts as a repeat only where the same skill fired again **within
+three turns** of its own previous firing; further apart than that, it is the skill being
+used afresh rather than the same attempt made again. The count starts at 2 for the first
+repeat and rises by one for each later one — including a repeat in a separate run later
+in the same session, so a session holding two runs of two firings reports 3 rather than
+2. The thresholds below were calibrated against that counting, and changing the counting
+without recalibrating them would move every verdict silently.
+
+That three-turn window is also the window that decides which pairs of detections are
+folded into one firing, described in [friction-schema.md](friction-schema.md). One
+window and not two, deliberately: a pair falling outside a narrower folding window would
+land inside the retry window instead, and one firing seen along both routes would be
+counted as the immediate repeat the folding exists to stop it being read as.
 
 **Session-wide counts are attributed whole to every skill fired in that session.**
 `tool_error_count` and `total_turns_to_completion` are the session's, not the skill's

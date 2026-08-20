@@ -53,7 +53,7 @@ enumerated below.
   "friction_signals": {
     "{skill_name}": {
       "invocation_count": "integer — firings",
-      "retry_count": "integer — the length of a run of firings of the same skill",
+      "retry_count": "integer — one more than the repeats inside the retry window (scoring-guide.md)",
       "correction_turns": "integer — utterances made after the skill fired",
       "session_abandoned_count": "integer — sessions holding this skill that ended broken off",
       "tool_error_count": "integer — failed tool runs in those sessions",
@@ -116,6 +116,11 @@ Only a typed command followed by a tool call is folded, never the reverse. A too
 the runtime recorded first, with the operator then typing the command, is the operator
 firing the skill again after the agent had already fired it — a real repeat, and
 exactly what the retry count exists to catch.
+
+The pair must also be close. A tool call more than **three turns** after the typed
+command is not folded, and the two are counted as two firings. That bound is the retry
+window, defined with the counting it governs in
+[scoring-guide.md](scoring-guide.md).
 
 ### Two things the collector this replaces emitted, and this one does not
 

@@ -129,7 +129,8 @@ abnormal frequencies.
 {contents of context.json}
 
 ## Analysis instructions
-1. Detect the same skill being fired several times inside a short window.
+1. Detect the same skill being fired several times inside the retry window — three
+   turns of its own previous firing, which is what `retry_count` counts.
 2. Identify the sessions with a high `tool_errors` on the `sessions` rows, and classify
    how the errors repeat. A session's error count is attributed whole to every skill
    fired in it, so a shared high count points at the session rather than at any one
