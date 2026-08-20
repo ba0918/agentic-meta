@@ -58,7 +58,10 @@ SESSIONS_SQL = "SELECT id, directory, time_updated FROM session ORDER BY time_cr
 MESSAGES_SQL = (
     "SELECT id, time_created, data FROM message WHERE session_id = ? ORDER BY time_created"
 )
-PARTS_SQL = "SELECT data FROM part WHERE message_id = ? ORDER BY time_created"
+PARTS_SQL = (
+    "SELECT message_id, data FROM part WHERE session_id = ?"
+    " ORDER BY message_id, time_created"
+)
 
 # The one kind of part that holds something a side actually said. A message built
 # only of the other kinds — a tool call and its result — is the runtime working,
@@ -251,9 +254,16 @@ class OpenCodeStore:
         return kept
 
     def _session_events(self, connection, session_id: str) -> typing.Iterator[Event]:
-        """One session's messages and their parts, oldest message first."""
-        messages = connection.execute(MESSAGES_SQL, (session_id,)).fetchall()
-        for message_id, created, raw in messages:
+        """One session's messages and their parts, oldest message first.
+
+        The parts of the whole session are read in one statement and handed to the
+        messages they belong to, rather than one statement per message. Every part
+        row already carries the session it belongs to, so the rows are the same
+        rows either way; asking per message multiplies the cost of reading a
+        session by the number of messages in it.
+        """
+        parts = self._parts_by_message(connection, session_id)
+        for message_id, created, raw in connection.execute(MESSAGES_SQL, (session_id,)):
             body = _decoded(raw)
             if body is None or not isinstance(created, int):
                 continue
@@ -261,14 +271,20 @@ class OpenCodeStore:
             if self.since is not None and at < self.since:
                 continue
             role = body.get("role")
-            parts = [
-                part
-                for part in (
-                    _decoded(row[0])
-                    for row in connection.execute(PARTS_SQL, (message_id,)).fetchall()
-                )
-                if part is not None
-            ]
             yield from _message_events(
-                parts, role if role in TURN_ROLES else None, at
+                parts.get(message_id, []), role if role in TURN_ROLES else None, at
             )
+
+    def _parts_by_message(self, connection, session_id: str) -> dict[str, list[dict]]:
+        """Every part of one session, gathered under the message it was built into.
+
+        The order the statement returns them in is kept, so a message's parts stay
+        in the order they were created — which is the order a message's text is
+        joined in.
+        """
+        gathered: dict[str, list[dict]] = {}
+        for message_id, raw in connection.execute(PARTS_SQL, (session_id,)):
+            part = _decoded(raw)
+            if part is not None:
+                gathered.setdefault(message_id, []).append(part)
+        return gathered

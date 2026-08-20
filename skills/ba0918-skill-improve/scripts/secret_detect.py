@@ -64,12 +64,19 @@ def redact(kind: str) -> str:
 
 
 def detect_secrets(text: str) -> list[dict[str, str]]:
-    """Detect potential secrets in text. Returns list of {type, masked}."""
-    findings: list[dict[str, str]] = []
-    for name, pattern in SECRET_PATTERNS:
-        for _match in pattern.finditer(text):
-            findings.append({"type": name, "masked": redact(name)})
-    return findings
+    """One finding per kind of credential the text holds, in pattern order.
+
+    A finding says which kind was found and what it was replaced with, and both are
+    fixed per kind, so a second match of the same kind carries nothing the first
+    does not. The warnings are gathered across every utterance of a whole reading
+    before being reduced to one per kind, and a month of history matching one
+    pattern often would otherwise pile up identical entries all the way there.
+    """
+    return [
+        {"type": name, "masked": redact(name)}
+        for name, pattern in SECRET_PATTERNS
+        if pattern.search(text)
+    ]
 
 
 def mask_project_key(key: str) -> str:

@@ -37,6 +37,10 @@ class TestDetectSecrets(unittest.TestCase):
     def test_reports_nothing_for_prose_holding_no_secret(self):
         self.assertEqual(secret_detect.detect_secrets("just some normal prose here"), [])
 
+    def test_a_kind_found_more_than_once_is_reported_once(self):
+        found = secret_detect.detect_secrets(f"{SAMPLE_AWS} and again {SAMPLE_AWS}")
+        self.assertEqual(found, [{"type": "aws_key", "masked": "[REDACTED:aws_key]"}])
+
     def test_every_finding_carries_its_kind_and_the_placeholder_it_masks_to(self):
         findings = secret_detect.detect_secrets(f"key {SAMPLE_AWS}")
         self.assertEqual(findings, [{"type": "aws_key", "masked": "[REDACTED:aws_key]"}])

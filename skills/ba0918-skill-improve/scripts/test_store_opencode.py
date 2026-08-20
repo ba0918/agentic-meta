@@ -226,24 +226,54 @@ class TestADatabaseThatCannotBeRead(unittest.TestCase):
                 list(store.events())
 
 
+def _statements_of_one_reading(database):
+    """Every SQL statement one whole reading of the database actually issues."""
+    recorded = []
+
+    def watched(path):
+        connection = store_opencode.connect_readonly(path)
+        connection.set_trace_callback(recorded.append)
+        return connection
+
+    list(store_opencode.OpenCodeStore(db_path=database.path, connect=watched).events())
+    return recorded
+
+
+class TestHowASessionIsRead(unittest.TestCase):
+    def test_the_parts_of_a_session_are_read_in_one_statement(self):
+        with tempfile.TemporaryDirectory() as directory:
+            database = Database(directory).session()
+            for index in range(4):
+                identifier = "m-" + str(index)
+                database.message(identifier=identifier)
+                database.text_part("p-" + str(index), "hello", message=identifier)
+            database.close()
+            over_parts = [
+                statement
+                for statement in _statements_of_one_reading(database)
+                if " part " in statement.lower()
+            ]
+            self.assertEqual(len(over_parts), 1, over_parts)
+
+    def test_each_message_still_gets_the_parts_that_belong_to_it(self):
+        with tempfile.TemporaryDirectory() as directory:
+            database = (Database(directory).session()
+                        .message(identifier="m-1")
+                        .text_part("p-1", "first", message="m-1")
+                        .message(identifier="m-2")
+                        .text_part("p-2", "second", message="m-2"))
+            database.close()
+            said = _of_kind(_events_of(database), events.UserText)
+            self.assertEqual([one.text for one in said], ["first", "second"])
+
+
 class TestTablesItQueries(unittest.TestCase):
-    def _statements_of_one_reading(self, database):
-        recorded = []
-
-        def watched(path):
-            connection = store_opencode.connect_readonly(path)
-            connection.set_trace_callback(recorded.append)
-            return connection
-
-        list(store_opencode.OpenCodeStore(db_path=database.path, connect=watched).events())
-        return recorded
-
     def test_no_statement_it_runs_names_a_table_holding_credentials(self):
         with tempfile.TemporaryDirectory() as directory:
             database = (Database(directory).session()
                         .message().text_part("p-1", "hello"))
             database.close()
-            statements = self._statements_of_one_reading(database)
+            statements = _statements_of_one_reading(database)
             self.assertTrue(statements)
             for statement in statements:
                 for forbidden in FORBIDDEN_TABLES:
@@ -255,7 +285,7 @@ class TestTablesItQueries(unittest.TestCase):
                         .message().text_part("p-1", "hello"))
             database.close()
             read = set()
-            for statement in self._statements_of_one_reading(database):
+            for statement in _statements_of_one_reading(database):
                 read.update(re.findall(r"(?:from|join)\s+([a-z_]+)", statement.lower()))
             self.assertTrue(read)
             self.assertTrue(read.issubset(set(store_opencode.TABLES_READ)), read)
@@ -266,7 +296,7 @@ class TestTablesItQueries(unittest.TestCase):
                         .message().text_part("p-1", "hello"))
             database.close()
             read = set()
-            for statement in self._statements_of_one_reading(database):
+            for statement in _statements_of_one_reading(database):
                 read.update(re.findall(r"(?:from|join)\s+([a-z_]+)", statement.lower()))
             self.assertEqual(set(store_opencode.TABLES_READ) - read, set())
 
