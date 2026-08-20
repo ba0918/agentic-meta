@@ -1,0 +1,67 @@
+skill: ba0918-context-audit
+id: ca-001
+title: Median case — a decayed instruction file yields a stale reference, a contradiction and unsafe wording
+source: ported-from-claude-skills-fixtures
+executor_tier: standard
+isolation: worktree
+
+files:
+  - from: ca-001/claude.md
+    to: target-project/CLAUDE.md
+  - from: ca-001/main.py
+    to: target-project/src/main.py
+
+exercises:
+  - skills/ba0918-context-audit/SKILL.md
+  - skills/ba0918-context-audit/references/rule-catalog.md
+
+prompt: |
+  The instructions in `target-project/` have been accumulating for a while. Files have
+  moved since they were written, and rules have been piled on top of older ones without
+  anyone going back over what was already there.
+
+  Take stock of that project's instruction layer and lay out what is wrong with it.
+
+  It is a copy that was handed to me, so no session history of its own came with it —
+  the files in the directory are all there is to read.
+
+expected_output: |
+  An inventory of the project's instruction layer that names each problem, where it is,
+  which rule it comes from and what to do about it, with the project's own files left
+  exactly as they were.
+
+expectations:
+  - text: |
+      `target-project/CLAUDE.md` points at `docs/setup-guide.md`, which the project does
+      not have, and that reference is reported as a stale one under the rule for
+      references to a missing path (CA-S001)
+    critical: true
+  - text: |
+      The two lines about `git push --force` — the one forbidding it and the one that
+      tells the reader to use it after a rebase — are reported together as a
+      contradiction candidate (CA-C001), with both positions named
+    critical: true
+  - text: |
+      The line permitting deletion with `rm -rf` and no confirmation is reported as
+      unsafe wording (CA-U001), naming that line rather than only the two lines whose
+      unsafe vocabulary is `git push --force`
+    critical: true
+  - text: |
+      The findings come from running the skill's own checks rather than from reading the
+      file by eye, and the report carries that evidence — the commands or their output,
+      in which `target-project/CLAUDE.md` appears as a file that was collected and
+      checked
+    critical: true
+  - text: |
+      Nothing in `target-project/` is rewritten. `CLAUDE.md` still carries the same four
+      instruction lines it was staged with, the `docs/setup-guide.md` reference among
+      them, and no baseline file was written under `target-project/.agents/config/`.
+      What the run itself produces under `.agents/tmp/` is not part of this
+    critical: true
+  - text: |
+      The report leads with its counts and puts the individual findings after them
+    critical: false
+  - text: |
+      The report states that no memory directory belonging to this project was resolved,
+      so what was audited is the instruction files alone
+    critical: false

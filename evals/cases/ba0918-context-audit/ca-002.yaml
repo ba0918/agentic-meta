@@ -1,0 +1,69 @@
+skill: ba0918-context-audit
+id: ca-002
+title: Edge case — a healthy project comes back clean without a finding being invented
+source: ported-from-claude-skills-fixtures
+executor_tier: standard
+isolation: worktree
+
+files:
+  - from: ca-002/claude.md
+    to: target-project/CLAUDE.md
+  - from: ca-002/agents.md
+    to: target-project/AGENTS.md
+  - from: ca-002/project.md
+    to: target-project/PROJECT.md
+  - from: ca-002/architecture.md
+    to: target-project/docs/architecture.md
+  - from: ca-002/checks.md
+    to: target-project/skills/acme-lint/checks.md
+  - from: ca-002/Makefile
+    to: target-project/Makefile
+
+exercises:
+  - skills/ba0918-context-audit/SKILL.md
+  - skills/ba0918-context-audit/references/rule-catalog.md
+
+prompt: |
+  I think the instruction files in `target-project/` are in reasonable shape, but I would
+  rather be told than assume it. Check them over and tell me where they stand.
+
+  It is a copy that was handed to me, so no session history of its own came with it —
+  the files in the directory are all there is to read.
+
+expected_output: |
+  A report over the project's instruction files stating that the checks found nothing,
+  naming which files were read, and offering no problem that no check produced.
+
+expectations:
+  - text: |
+      All three of the project's instruction files are read and named as audited —
+      `target-project/CLAUDE.md`, `target-project/AGENTS.md` and
+      `target-project/PROJECT.md` — and none of them is passed over in silence
+    critical: true
+  - text: |
+      Nothing is invented to show. The report states that no rule fired across the
+      project's `CLAUDE.md`, `AGENTS.md` and `PROJECT.md`, and leads with a count of
+      zero, instead of offering a problem no check produced
+    critical: true
+  - text: |
+      The references those files carry are checked and found to be present rather than
+      reported as stale — `docs/architecture.md`, cited from all three, and
+      `skills/acme-lint/checks.md`, cited from AGENTS.md and PROJECT.md. The skill
+      directory `skills/acme-lint/` is named in the instructions, so no gap in the skill
+      listing is reported either
+    critical: true
+  - text: |
+      The project's committed state is left as it was found. The three instruction files
+      are byte-for-byte what they were staged as, and no baseline file was written under
+      `target-project/.agents/config/` — with nothing to suppress and nobody to ask, the
+      run reads, counts and reports. What the run itself produces under `.agents/tmp/` is
+      not part of this
+    critical: true
+  - text: |
+      The report says which checks ran, so a reader can tell a clean result from a check
+      that never happened
+    critical: false
+  - text: |
+      The report states that no memory directory belonging to this project was resolved,
+      so what was audited is the instruction files alone
+    critical: false
