@@ -262,6 +262,23 @@ worked example omits the required `--runtime-root`, so the documented command do
 start. No check looks at whether a command in a document still runs — recorded as an issue
 rather than fixed here.
 
+Two independent reviews then ran over the finished diff, split by file kind. The code
+review returned BLOCK on a demonstrated hole: the harvest verified its output path and
+then wrote through a `.tmp` sibling it never resolved, so a symlink planted at that name
+put utterance bodies outside the permitted area with the run exiting 0. Three more
+important findings and five minor ones came with it, and the document review added eight
+of its own — chief among them that scoring and report-writing were each assigned to two
+different performers, and that the documented commands failed as written because nothing
+created the directory they wrote into. All were fixed.
+
+Those fixes moved 11 of the 16 files the lock had recorded, so the verification was rerun
+— and the executor did not finish either attempt, once losing its response and once
+hanging for an hour. Both attempts collected the measurement successfully, reporting three
+stores read, no structural route for Codex, and a downgraded confidence for the skill seen
+only through it. The lock is therefore closed as `accepted-without-run` rather than as a
+pass: what is missing is the executor's own completion, and the failures sit outside the
+instrument. Across wave 4 the free executor route finished 1 run in 4.
+
 ### Wave 5 — Auditor ⬜
 
 - [ ] Port `context-audit` as `ba0918-context-audit` (its read-only observation
