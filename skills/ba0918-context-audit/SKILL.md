@@ -95,8 +95,11 @@ Three places, and nowhere else:
   only what is new. It is an argument of `aggregate_report.py`, which **writes the baseline
   and stops**: that run produces no report. See
   [references/baseline-format.md](references/baseline-format.md).
-- **`--interactive`** — resume the decisions a previous run capped and sent to its report.
-  No script implements this; it is a phase of the workflow below.
+- **`--interactive {ts}`** — resume the decisions the run with that timestamp capped. The
+  timestamp is **required and is the one in that run's file names** under
+  `.agents/tmp/context-audit/`: every run writes under a name of its own, so there is no
+  "the previous run" for the argument to mean. No script implements this; it is a phase of
+  the workflow below.
 
 No command is created; being a single workflow, it needs no named entry point.
 
@@ -244,8 +247,11 @@ The first form changes nothing and says how many files would change. That count,
 difference each fix makes, is what the confirmation is asked over. Only `--write` edits
 anything.
 
-**Decisions.** Group them by rule and by kind of fix, and offer each group as a group
-("apply these path corrections together / go through them one at a time / skip them").
+**Decisions.** Take them **in the order the report lists them** — gravest first, then by
+rule identifier, then by place. That order is the aggregate script's rather than one you
+choose, and fixing it is what lets a capped run be resumed. Offer the run of findings a
+single rule holds as a group ("apply these path corrections together / go through them one
+at a time / skip them").
 
 **Cap the decisions at ten per run.** Past that, stop asking: a person asked thirty
 questions in a row stops reading them, and an answer given that way is worse than no answer
@@ -255,12 +261,16 @@ finding out, answered or not, and the ones you did not reach are sitting in it u
 report file was written before the first question was asked, so it cannot carry a number
 that only exists afterwards.
 
-**Resuming.** `--interactive` picks the deferred decisions back up. It reads the findings a
-previous run already wrote in `.agents/tmp/context-audit/` and starts from the first that
-was deferred; it does not re-run Phases 0 through 3. Re-running them would re-derive
-findings against a tree the earlier decisions have since changed, and the answers already
-given would be answers to a different set. When the files that run wrote are gone, say so
-and start a fresh run rather than reconstructing them.
+**Resuming.** `--interactive {ts}` picks the deferred decisions back up. Read
+`.agents/tmp/context-audit/findings-{ts}.json` and the report written beside it, take that
+run's `NEEDS_JUDGMENT` findings in the order above, and **skip the ones it already
+reached**: ten per run at the cap, counted from the start of that order, so a run resumed a
+second time skips twenty. Nothing records which findings were deferred, and nothing needs
+to — the order is fixed by the script and the cap is a number, which together say exactly
+where the last run stopped. **Do not re-run Phases 0 through 3.** Re-running them would
+re-derive findings against a tree the earlier decisions have since changed, and the answers
+already given would be answers to a different set. When the files that run wrote are gone,
+say so and start a fresh run rather than reconstructing them.
 
 **Reported findings.** Present what, why and how together. For a contradiction, put both
 locations side by side with the classification Phase 2 gave it.
