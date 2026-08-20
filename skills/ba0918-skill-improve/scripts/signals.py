@@ -30,9 +30,11 @@ Two of those attributions are inherited from the collector this replaces, and ar
 kept deliberately even though each reads oddly on its own:
 
 A run of firings is reported as the length of the run, so the first repeat is 2
-rather than 1. The thresholds in the scoring guide were calibrated against that
-number, and changing the number without recalibrating them would move every
-verdict silently.
+rather than 1. The thresholds in the scoring guide assume that number. No
+calibration stands behind them — they came over with the counting, and no
+measurement they were fitted to was ever recorded — so changing the number would
+move an inherited boundary rather than a fitted one, silently and for every skill
+at once.
 
 A session's error and turn counts are attributed whole to every skill fired in it,
 rather than divided among them. What is being measured is the friction around a
