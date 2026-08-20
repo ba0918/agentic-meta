@@ -64,6 +64,16 @@ classifying them.
   constraint under each kind, and recommend hardening the guard where the risk is high.
   A constraint nobody can be bothered to keep is a constraint that is not there.
 
+**No role is asked which skill followed which.** The measurement carries no order
+between firings and no way to say that two skills met: a session row holds how many
+distinct skills fired in it and none of their names, the friction counts are keyed by
+skill and carry no sequence, and the per-firing array the collector this replaces
+emitted is deliberately gone ([friction-schema.md](friction-schema.md)). A transition,
+a chain, a co-occurrence — none of them can be worked out from what a role is handed,
+so a role asked for one could only supply a guess. That is the estimate this skill
+refuses everywhere else, and asking a role for it in a prompt is the same refusal
+broken from the inside.
+
 ## The context each role is given
 
 Each prompt below declares what it is handed, and a role is handed exactly that. A
@@ -149,10 +159,13 @@ abnormal frequencies.
    how the errors repeat. A session's error count is attributed whole to every skill
    fired in it, so a shared high count points at the session rather than at any one
    skill.
-3. Analyse the transitions between skills — which tends to be fired after which, and
-   where a chain looks anomalous.
+3. Count the sessions that held more than one skill (`skill_count` above one). There
+   the error and turn counts are carried whole by every skill in the session, so a
+   repetition may belong to the session rather than to any one skill reported against
+   it. Which skills shared a session is not recoverable, so give the number of shared
+   sessions rather than naming pairs.
 4. Note where a pattern rests on a store whose structural route is unavailable: there
-   the sequence of firings is only what the operator typed.
+   the only firings seen at all are the ones the operator typed.
 
 ## Output
 Write the result to {output_path} as the following JSON:
@@ -160,7 +173,7 @@ Write the result to {output_path} as the following JSON:
   "role": "pattern-analyzer",
   "findings": [
     {
-      "pattern_type": "string (multi_invoke | error_loop | chain_anomaly)",
+      "pattern_type": "string (multi_invoke | error_loop | shared_session)",
       "skill": "string",
       "frequency": "number",
       "description": "string — quantitative only",
@@ -230,10 +243,8 @@ being used, and detect the drift.
    actually fired in.
 2. Detect skills fired far more or far less often than the design implies, and judge
    the drift.
-3. Check that the dependencies between skills, seen as chained firings, match the
-   design.
-4. Detect uses that were not anticipated at design time.
-5. Before calling a skill underused, check whether it was seen only through a store
+3. Detect uses that were not anticipated at design time.
+4. Before calling a skill underused, check whether it was seen only through a store
    with no structural route. A skill the agent fires on its own is invisible there, and
    "underused" is exactly the wrong conclusion to draw from a blind route.
 
