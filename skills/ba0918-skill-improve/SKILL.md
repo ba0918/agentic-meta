@@ -149,6 +149,11 @@ produces scores out of nothing. Do not go on.
 
 ## analyze — the friction analysis (default)
 
+**Scoring and writing the report belong to the roles, not to this list.**
+friction-detector scores; the integrating role writes the report from the four answers
+and is told not to recompute a score. Doing either here as well would produce a second
+set of numbers with no way of saying afterwards which set the report carries.
+
 1. **Collect**, exactly as in `report` above. Stop there if nothing fired.
 2. **Run the four analysis roles** over the measurement, then the integrating role over
    their four answers. Roles, their prompts, and their output schemas are in
@@ -161,14 +166,17 @@ produces scores out of nothing. Do not go on.
      session's business.** Where none can be had, degrade to sequential in-context
      analysis and **say so in the report**. Degrading silently is the one forbidden
      outcome.
-3. **Score and rank** by [references/scoring-guide.md](references/scoring-guide.md). Its
-   formula is the only one — do not let a role invent its own. Apply every confidence
-   downgrade that holds and name each one in the report.
-4. **Write the friction report** to the run's scratch directory, following the schema in
-   [references/friction-schema.md](references/friction-schema.md). It carries figures,
-   classifications and scores; never the original text of an utterance or a response,
-   never a session identifier, never a credential even masked.
-5. **Present the hypotheses and stop.** Each carries a target, the change, the expected
+3. **Check the two things no role is free to decide.** Where a check fails, have that
+   role redo its answer; do not repair the answer yourself, which is the same second
+   set of numbers by another route.
+   - Every score came from the formula in
+     [references/scoring-guide.md](references/scoring-guide.md). It is the only one, and
+     a role that weighed the terms its own way has not scored this measurement.
+   - The report names every confidence downgrade that holds, and carries figures,
+     classifications and scores only — never the original text of an utterance or a
+     response, never a session identifier, never a credential even masked. Its schema is
+     [references/friction-schema.md](references/friction-schema.md).
+4. **Present the hypotheses and stop.** Each carries a target, the change, the expected
    impact, a Small or Large size estimate, and a confidence.
 
 ```
