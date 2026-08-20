@@ -123,8 +123,23 @@ mkdir -p .agents/tmp/skill-improve-{datetime}
 python3 {skill_dir}/scripts/collect.py \
   --days 30 \
   --project=<project key> \
+  --claude-root <the Claude Code store to read> \
+  --opencode-db <the OpenCode database to read> \
+  --codex-root <the Codex CLI store to read> \
   --output .agents/tmp/skill-improve-{datetime}/context.json
 ```
+
+**Say where each store is, or leave all three flags out on purpose.** A location flag
+left out falls back to that runtime's own directory under the operator's home — this
+machine's live history. Whenever what is being measured is a history from anywhere else
+— copied off another machine, staged for a test, kept as an archive — those three flags
+are the only thing that points the run at it, and one left out quietly measures the
+operator's own sessions in its place. Both runs produce a full-looking report, so the
+mistake does not announce itself.
+
+Check it rather than assume it: `summary.stores[*].location` says what each store was
+actually read at, and reading those three lines before going on is what separates the
+two runs.
 
 Across every project instead of one, replace `--project=<key>` with `--all-projects`.
 Use that form for user-scoped skills, or to see usage tendencies across all of them.
@@ -136,17 +151,19 @@ Read the result and show its summary:
 Project: {project_filter} (all projects: {true/false})
 Projects scanned: {count}
 Period: {days} days
-Stores: {per store — present, text, structural, abandonment recorded or inferred,
-        error detection full or partial}
+Stores: {per store — location read, present, text, structural, abandonment
+        recorded or inferred, error detection full or partial}
 Sessions: {sessions_found}
 Skill invocations: {total_skill_invocations}
 Unique skills: {unique_skills_used}
 Secret warnings: {count}
 ```
 
-**Report the store situation even when it is boring.** A store that was absent, a route
-that was unavailable, and a session read as a superset of what was said all belong in
-what a reader sees, not only in the JSON. The schema is
+**Report the store situation even when it is boring.** The location each store was read
+at, a store that was absent, a route that was unavailable, and a session read as a
+superset of what was said all belong in what a reader sees, not only in the JSON. The
+location leads because a run pointed at the wrong history is wrong about everything
+after it, and nothing further down the report shows it. The schema is
 [references/friction-schema.md](references/friction-schema.md).
 
 In `report` the workflow ends here.
@@ -213,8 +230,15 @@ mkdir -p .agents/tmp/skill-improve-{datetime}
 python3 {skill_dir}/scripts/capture.py \
   --days 30 \
   --project=<project key> \
+  --claude-root <the Claude Code store to read> \
+  --opencode-db <the OpenCode database to read> \
+  --codex-root <the Codex CLI store to read> \
   --output .agents/tmp/skill-improve-{datetime}/prompts.jsonl
 ```
+
+The location flags carry the same weight here as in `report`, and more: this workflow
+writes bodies out. A flag left out harvests the operator's own utterances rather than
+the history that was meant to be read.
 
 - **The record shape is frozen.** Five fields — `ts`, `project`, `user_text_masked`,
   `fired_skill`, `signals` — and two signal names, `slash_fired` and
