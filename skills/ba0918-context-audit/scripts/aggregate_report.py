@@ -113,7 +113,11 @@ def render_markdown(report: dict) -> str:
         f"{summary['total']} findings: {summary['AUTO_FIX']} AUTO_FIX / "
         f"{summary['NEEDS_JUDGMENT']} NEEDS_JUDGMENT / "
         f"{summary['REPORT_ONLY']} REPORT_ONLY; {summary['suppressed']} suppressed",
-        f"memory read from: {memory_dir}" if memory_dir else "memory: not read",
+        # Phrased as what the report was told, not as what happened: a run given no
+        # collected targets cannot tell "no memory was read" from "nobody said", and a
+        # report that picked one would be stating something it does not know.
+        f"memory read from: {memory_dir}" if memory_dir
+        else "memory: no location reported",
         "",
     ]
     for finding in report["findings"]:

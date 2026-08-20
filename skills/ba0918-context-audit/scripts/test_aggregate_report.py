@@ -136,10 +136,10 @@ class TestMemoryProvenance(unittest.TestCase):
         self.assertEqual(report["memory_dir"], memory)
         self.assertIn(memory, ar.render_markdown(report))
 
-    def test_a_run_that_read_no_memory_says_so_rather_than_staying_silent(self):
+    def test_a_report_given_no_memory_location_says_so_rather_than_staying_silent(self):
         report = ar.build_report([finding()], None, memory_dir=None)
         self.assertIsNone(report["memory_dir"])
-        self.assertIn("not read", ar.render_markdown(report))
+        self.assertIn("no location reported", ar.render_markdown(report))
 
     def test_the_memory_directory_is_taken_from_the_collected_targets(self):
         memory = _abs("store", "projects", "a-project", "memory")
