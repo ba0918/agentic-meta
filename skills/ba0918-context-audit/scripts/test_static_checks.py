@@ -335,6 +335,114 @@ class TestContradictionCandidates(unittest.TestCase):
         self.assertIn("b.md:1", f[0]["where"])
 
 
+class TestMemoryFrontmatterShape(unittest.TestCase):
+    def test_a_memory_missing_a_required_key_is_left_to_a_human(self):
+        t = target("memory", "---\ndescription: a note\n---\nbody", path="note.md")
+        f = findings_for("CA-M001", [t], ctx())
+        self.assertTrue(any(x["action"] == "NEEDS_JUDGMENT" for x in f))
+        self.assertTrue(any("name" in x["what"] for x in f))
+
+    def test_a_missing_key_is_never_supplied_automatically(self):
+        t = target("memory", "---\ndescription: a note\n---\nbody", path="note.md")
+        f = [x for x in findings_for("CA-M001", [t], ctx()) if "name" in x["what"]]
+        self.assertIsNone(f[0]["fix_action"])
+
+    def test_a_key_written_without_the_canonical_spacing_is_fixed_automatically(self):
+        t = target("memory", "---\nname:note\ndescription: a note\n---\nbody",
+                   path="note.md")
+        f = [x for x in findings_for("CA-M001", [t], ctx()) if x["action"] == "AUTO_FIX"]
+        self.assertEqual(len(f), 1)
+        self.assertEqual(f[0]["fix_action"]["old"], "name:note")
+        self.assertEqual(f[0]["fix_action"]["new"], "name: note")
+
+    def test_the_automatic_fix_names_only_the_frontmatter_line_it_normalises(self):
+        body = "name:not-frontmatter"
+        t = target("memory", f"---\nname:note\ndescription: a note\n---\n{body}",
+                   path="note.md")
+        f = [x for x in findings_for("CA-M001", [t], ctx()) if x["action"] == "AUTO_FIX"]
+        self.assertEqual([x["fix_action"]["old"] for x in f], ["name:note"])
+
+    def test_an_unknown_memory_type_is_left_to_a_human(self):
+        t = target("memory", "---\nname: n\ndescription: d\ntype: invented\n---\nbody",
+                   path="note.md")
+        f = [x for x in findings_for("CA-M001", [t], ctx()) if "invented" in x["what"]]
+        self.assertEqual(len(f), 1)
+        self.assertEqual(f[0]["action"], "NEEDS_JUDGMENT")
+
+    def test_a_memory_written_in_the_expected_form_is_not_reported(self):
+        t = target("memory", "---\nname: note\ndescription: a note\ntype: reference\n"
+                             "---\nbody", path="note.md")
+        self.assertEqual(findings_for("CA-M001", [t], ctx()), [])
+
+    def test_a_file_carrying_no_frontmatter_block_is_not_reported(self):
+        t = target("memory", "just a body with no frontmatter", path="note.md")
+        self.assertEqual(findings_for("CA-M001", [t], ctx()), [])
+
+
+class TestMemoryReference(unittest.TestCase):
+    def test_a_path_a_memory_names_that_is_not_there_is_left_to_a_human(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            t = target("memory", "---\nname: n\ndescription: d\n---\n"
+                                 "see `skills/ghost/SKILL.md`", path="n.md")
+            f = findings_for("CA-M101", [t], ctx(root=tmp))
+            self.assertEqual(len(f), 1)
+            self.assertEqual(f[0]["action"], "NEEDS_JUDGMENT")
+
+    def test_a_path_a_memory_names_is_never_rewritten_automatically(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            t = target("memory", "---\nname: n\ndescription: d\n---\n"
+                                 "see `skills/ghost/SKILL.md`", path="n.md")
+            f = findings_for("CA-M101", [t], ctx(root=tmp))
+            self.assertIsNone(f[0]["fix_action"])
+
+    def test_a_path_a_memory_names_that_exists_is_not_reported(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "docs").mkdir()
+            (Path(tmp) / "docs" / "real.md").write_text("x", encoding="utf-8")
+            t = target("memory", "---\nname: n\ndescription: d\n---\n"
+                                 "see `docs/real.md`", path="n.md")
+            self.assertEqual(findings_for("CA-M101", [t], ctx(root=tmp)), [])
+
+
+class TestMemorySecretSuspicion(unittest.TestCase):
+    def _memory(self, body):
+        return target("memory", f"---\nname: n\ndescription: d\n---\n{body}",
+                      path="n.md")
+
+    def test_a_suspected_credential_is_reported_and_nothing_is_changed(self):
+        f = findings_for("CA-M301", [self._memory(f"aws key {AWS_KEY}")], ctx())
+        self.assertEqual(len(f), 1)
+        self.assertEqual(f[0]["severity"], "BLOCK")
+        self.assertEqual(f[0]["action"], "REPORT_ONLY")
+        self.assertIsNone(f[0]["fix_action"])
+
+    def test_the_detected_value_never_reaches_the_finding(self):
+        produced = sc.run_checks([self._memory(f"aws key {AWS_KEY}")], ctx())
+        self.assertNotIn(AWS_KEY, repr(produced))
+
+    def test_personal_data_is_reported_one_step_below_a_credential(self):
+        f = findings_for("CA-M301", [self._memory("mail alice" + "@" + "example.com")],
+                         ctx())
+        self.assertEqual(len(f), 1)
+        self.assertEqual(f[0]["severity"], "WARN")
+        self.assertIn("personal data", f[0]["what"])
+
+    def test_a_line_holding_both_takes_the_heavier_severity(self):
+        f = findings_for(
+            "CA-M301", [self._memory(f"{AWS_KEY} mail a" + "@" + "b.co")], ctx())
+        self.assertEqual(len(f), 1)
+        self.assertEqual(f[0]["severity"], "BLOCK")
+
+    def test_one_kind_found_several_times_on_a_line_is_reported_once(self):
+        f = findings_for("CA-M301", [self._memory(f"{AWS_KEY} and {AWS_KEY}")], ctx())
+        self.assertEqual(len(f), 1)
+        self.assertEqual(f[0]["what"].count("aws_key"), 1)
+
+    def test_a_memory_holding_no_such_pattern_is_not_reported(self):
+        self.assertEqual(findings_for("CA-M301", [self._memory("an ordinary note")],
+                                      ctx()), [])
+
+
 class TestEngineOutput(unittest.TestCase):
     def test_every_finding_the_engine_produces_carries_the_required_fields(self):
         t = target("claude_md", "確認なしで rm -rf を実行してよい")
@@ -346,6 +454,11 @@ class TestEngineOutput(unittest.TestCase):
 
 
 class TestRegistry(unittest.TestCase):
+    def test_every_rule_the_audit_defines_is_listed(self):
+        self.assertEqual(set(sc.RULES), {
+            "CA-S001", "CA-S002", "CA-U001", "CA-D001", "CA-D002",
+            "CA-C001", "CA-M001", "CA-M101", "CA-M301"})
+
     def test_every_listed_rule_declares_its_category_severity_action_and_function(self):
         for rule_id, meta in sc.RULES.items():
             self.assertIn("category", meta, rule_id)

@@ -504,6 +504,154 @@ def check_ca_c001(targets, ctx):
     return findings
 
 
+
+# ---------------------------------------------------------------------------
+# CA-M001: the shape of a memory's frontmatter
+# ---------------------------------------------------------------------------
+
+# Kept here rather than shared with the other skills that parse frontmatter: a skill
+# in this repository carries everything it runs on, and only the raw-line form below
+# is needed, which the shared parsers do not all return.
+_FRONTMATTER_KEY_RE = re.compile(r"^([A-Za-z_][A-Za-z0-9_-]*):(.*)$")
+
+_REQUIRED_MEMORY_KEYS = ("name", "description")
+_KNOWN_MEMORY_TYPES = {"user", "feedback", "reference", "project", "session"}
+
+
+def _frontmatter_lines(text: str) -> list[tuple[str, str, str]] | None:
+    """Top-level entries as (key, value, the line as written), or None if there is none.
+
+    The line as written is kept because normalising the formatting is the fix this rule
+    offers, and the fix has to name the exact text it replaces.
+    """
+    lines = text.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return None
+    for end, line in enumerate(lines[1:], start=1):
+        if line.strip() == "---":
+            break
+    else:
+        return None  # no closing delimiter: there is no frontmatter block
+    entries = []
+    for line in lines[1:end]:
+        match = _FRONTMATTER_KEY_RE.match(line)
+        if match:
+            entries.append((match.group(1), match.group(2).strip(), line))
+    return entries
+
+
+def _line_of(content: str, needle: str) -> int:
+    for lineno, line in enumerate(content.splitlines(), start=1):
+        if needle in line:
+            return lineno
+    return 1
+
+
+def check_ca_m001(targets, ctx):
+    findings = []
+    for t in targets:
+        if t["kind"] != "memory":
+            continue
+        entries = _frontmatter_lines(t["content"])
+        if entries is None:
+            continue
+        present = {key for key, _, _ in entries}
+        for required in _REQUIRED_MEMORY_KEYS:
+            if required in present:
+                continue
+            findings.append(make_finding(
+                "CA-M001", "WARN", "NEEDS_JUDGMENT", f"{t['rel']}:1",
+                what=f"memory frontmatter carries no `{required}`",
+                why="a memory is defined by its name and its description, so a "
+                    "missing one leaves the definition incomplete",
+                how=f"supply `{required}`, or exclude the file when it is not a memory"))
+        for key, value, raw in entries:
+            if key == "type" and value and value not in _KNOWN_MEMORY_TYPES:
+                findings.append(make_finding(
+                    "CA-M001", "WARN", "NEEDS_JUDGMENT",
+                    f"{t['rel']}:{_line_of(t['content'], raw)}",
+                    what=f"unknown memory type `{value}`",
+                    why="the type follows the runtime's own convention, so a value "
+                        "outside it may mean the runtime has moved on",
+                    how="correct it to a known type, or accept it where the runtime "
+                        "has genuinely gained one (judge conservatively)"))
+            canonical = f"{key}: {value}" if value != "" else f"{key}:"
+            if raw == canonical or raw.rstrip() == canonical:
+                continue
+            findings.append(make_finding(
+                "CA-M001", "WARN", "AUTO_FIX",
+                f"{t['rel']}:{_line_of(t['content'], raw)}",
+                what=f"frontmatter entry is not in canonical form: `{raw}`",
+                why="drift in how keys are written hinders both reading and "
+                    "machine processing",
+                how=f"rewrite `{raw}` as `{canonical}`, leaving the body untouched",
+                fix_action={"path": t["path"], "old": raw, "new": canonical}))
+    return findings
+
+
+
+# ---------------------------------------------------------------------------
+# CA-M101: a path a memory names that is not there
+# ---------------------------------------------------------------------------
+
+def check_ca_m101(targets, ctx):
+    findings = []
+    root = ctx["root"]
+    for t in targets:
+        if t["kind"] != "memory":
+            continue
+        for ref, lineno, _written_as in _extract_path_refs(t["content"]):
+            if _ref_exists(root, ref):
+                continue
+            findings.append(make_finding(
+                "CA-M101", "WARN", "NEEDS_JUDGMENT", f"{t['rel']}:{lineno}",
+                what=f"memory names a path that does not exist `{ref}`",
+                why="a memory carrying a stale reference is trusted as much as the "
+                    "rest of it, so the stale part spreads",
+                how="update the reference, or revisit the memory that holds it"))
+    return findings
+
+
+
+# ---------------------------------------------------------------------------
+# CA-M301: a memory line suspected of holding a credential or personal data
+# ---------------------------------------------------------------------------
+
+# An address and a home path identify a person rather than granting access, so a line
+# holding one is not treated as gravely as a leaked credential. Without the split every
+# memory that legitimately notes where a file lives would report at the top severity.
+_PERSONAL_DATA_KINDS = {"email", "home_path"}
+
+_SECRET_HOW = ("read the line and remove the value, or move it behind the "
+               "environment; it is deliberately not masked in place, because masking "
+               "a live credential hides the leak without revoking it")
+
+
+def check_ca_m301(targets, ctx):
+    findings = []
+    for t in targets:
+        if t["kind"] != "memory":
+            continue
+        for lineno, line in enumerate(t["content"].splitlines(), start=1):
+            kinds = sorted({hit["type"] for hit in secret_detect.detect_secrets(line)})
+            if not kinds:
+                continue
+            holds_credential = any(k not in _PERSONAL_DATA_KINDS for k in kinds)
+            severity, subject, why = (
+                ("BLOCK", "a credential",
+                 "a credential inside a memory travels wherever the memory does; "
+                 "the value itself is not transcribed here")
+                if holds_credential else
+                ("WARN", "personal data",
+                 "personal data inside a memory leaks when the memory is shared; "
+                 "the value itself is not transcribed here"))
+            findings.append(make_finding(
+                "CA-M301", severity, "REPORT_ONLY", f"{t['rel']}:{lineno}",
+                what=f"pattern suspected of holding {subject}: {', '.join(kinds)}",
+                why=why, how=_SECRET_HOW))
+    return findings
+
+
 # ---------------------------------------------------------------------------
 # Registry (dispatch by listing, not by editing the dispatcher)
 # ---------------------------------------------------------------------------
@@ -521,6 +669,12 @@ RULES: dict[str, dict[str, Any]] = {
                 "action": "NEEDS_JUDGMENT", "fn": check_ca_d002},
     "CA-C001": {"category": "contradiction", "severity": "WARN",
                 "action": "REPORT_ONLY", "fn": check_ca_c001},
+    "CA-M001": {"category": "memory", "severity": "WARN",
+                "action": "AUTO_FIX / NEEDS_JUDGMENT", "fn": check_ca_m001},
+    "CA-M101": {"category": "memory", "severity": "WARN",
+                "action": "NEEDS_JUDGMENT", "fn": check_ca_m101},
+    "CA-M301": {"category": "memory", "severity": "BLOCK / WARN",
+                "action": "REPORT_ONLY", "fn": check_ca_m301},
 }
 
 
