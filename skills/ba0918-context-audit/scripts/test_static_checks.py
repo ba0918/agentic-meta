@@ -178,6 +178,36 @@ class TestStaleFileReference(unittest.TestCase):
             self.assertEqual(len(findings_for("CA-S001", [t], ctx(root=str(root)))), 1)
 
 
+class TestInstallationWideTargets(unittest.TestCase):
+    """A file belonging to the installation rather than to the audited project makes no
+    claim about that project's tree, so a name it writes is not judged against it: the
+    near neighbour such a judgment finds sits in another tree entirely, and offering it
+    as a correction would put a fix on a file every project shares."""
+
+    def _root(self, tmp):
+        root = Path(tmp)
+        (root / "docs").mkdir()
+        (root / "docs" / "setup.md").write_text("x", encoding="utf-8")
+        return root
+
+    def test_a_reference_written_outside_the_project_is_not_judged_against_it(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._root(tmp)
+            t = target("global_claude_md", "see [setup](docs/setups.md)",
+                       path="outer-claude.md")
+            self.assertEqual(findings_for("CA-S001", [t], ctx(root=str(root))), [])
+
+    def test_the_projects_own_file_is_still_judged_when_a_global_one_is_present(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._root(tmp)
+            outer = target("global_claude_md", "see [setup](docs/setups.md)",
+                           path="outer-claude.md")
+            own = target("claude_md", "see [setup](docs/setups.md)", path="CLAUDE.md")
+            f = findings_for("CA-S001", [outer, own], ctx(root=str(root)))
+            self.assertEqual([x["where"] for x in f], ["CLAUDE.md:1"])
+            self.assertEqual(f[0]["fix_action"]["path"], "CLAUDE.md")
+
+
 class TestStaleSkillReference(unittest.TestCase):
     def test_a_reference_to_a_skill_directory_that_is_not_there_is_left_to_a_human(self):
         t = target("claude_md", "the `skills/ghostskill/` directory does things")

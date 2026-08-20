@@ -218,13 +218,20 @@ def _unique_near_neighbour(root: str, ref: str) -> str | None:
 _STALE_REF_WHY = ("an instruction file pointing at a file that is not there "
                   "misleads the agent that reads it")
 
+# The instruction files belonging to the installation rather than to one project. Whether
+# a path exists is asked of the audited project's tree, and a file every project shares
+# makes no claim about that tree: judging it there answers a question nobody asked, and
+# the near neighbour the answer finds would put an automatic fix on a shared file over
+# the contents of one project. Left out of the judgment rather than judged wrongly.
+_INSTALLATION_KINDS = ("global_claude_md", "global_rules")
+
 
 def check_ca_s001(targets, ctx):
     findings = []
     root = ctx["root"]
     basename_index = None
     for t in targets:
-        if t["category"] != "instruction":
+        if t["category"] != "instruction" or t["kind"] in _INSTALLATION_KINDS:
             continue
         for ref, lineno, written_as in _extract_path_refs(t["content"]):
             if written_as == "code_span":
