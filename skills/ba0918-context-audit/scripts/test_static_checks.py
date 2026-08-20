@@ -196,7 +196,9 @@ class TestInstallationWideTargets(unittest.TestCase):
     """A file belonging to the installation rather than to the audited project makes no
     claim about that project's tree, so a name it writes is not judged against it: the
     near neighbour such a judgment finds sits in another tree entirely, and offering it
-    as a correction would put a fix on a file every project shares."""
+    as a correction would put a fix on a file every project shares. It holds of every
+    question asked of that tree, and of both directions — such a file neither raises a
+    finding about the tree nor answers one away."""
 
     def _root(self, tmp):
         root = Path(tmp)
@@ -220,6 +222,27 @@ class TestInstallationWideTargets(unittest.TestCase):
             f = findings_for("CA-S001", [outer, own], ctx(root=str(root)))
             self.assertEqual([x["where"] for x in f], ["CLAUDE.md:1"])
             self.assertEqual(f[0]["fix_action"]["path"], "CLAUDE.md")
+
+    def test_a_skill_directory_named_outside_the_project_is_not_judged_against_it(self):
+        t = target("global_claude_md", "see `skills/ghostskill/` there",
+                   path="outer-claude.md")
+        self.assertEqual(findings_for("CA-S002", [t], ctx(skill_names={"plan"})), [])
+
+    def test_the_projects_own_mention_of_a_skill_is_still_judged(self):
+        outer = target("global_claude_md", "see `skills/ghostskill/` there",
+                       path="outer-claude.md")
+        own = target("claude_md", "see `skills/ghostskill/` there", path="CLAUDE.md")
+        f = findings_for("CA-S002", [outer, own], ctx(skill_names={"plan"}))
+        self.assertEqual([x["where"] for x in f], ["CLAUDE.md:1"])
+
+    def test_a_skill_recorded_only_outside_the_project_is_still_reported_as_missing(self):
+        own = target("claude_md", "this project does things", path="CLAUDE.md")
+        outer = target("global_claude_md", "use lonely-skill everywhere",
+                       path="outer-claude.md")
+        f = findings_for("CA-D002", [own, outer], ctx(skill_names={"lonely-skill"}))
+        self.assertEqual([x["what"] for x in f],
+                         ["skill `lonely-skill` is not recorded in the "
+                          "instruction files"])
 
 
 class TestStaleSkillReference(unittest.TestCase):

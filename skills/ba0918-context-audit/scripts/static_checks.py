@@ -233,12 +233,23 @@ def _unique_near_neighbour(root: str, ref: str) -> str | None:
 _STALE_REF_WHY = ("an instruction file pointing at a file that is not there "
                   "misleads the agent that reads it")
 
-# The instruction files belonging to the installation rather than to one project. Whether
-# a path exists is asked of the audited project's tree, and a file every project shares
-# makes no claim about that tree: judging it there answers a question nobody asked, and
-# the near neighbour the answer finds would put an automatic fix on a shared file over
-# the contents of one project. Left out of the judgment rather than judged wrongly.
+# The instruction files belonging to the installation rather than to one project.
 _INSTALLATION_KINDS = ("global_claude_md", "global_rules")
+
+
+def _is_project_instruction(target: dict) -> bool:
+    """Whether the target is an instruction file belonging to the audited project.
+
+    Every question this audit asks about a tree — whether a path is there, whether a
+    skill directory is there, whether a skill is written down — is asked of the audited
+    project's tree, and a file every project shares makes no claim about that tree.
+    Judging it there answers a question nobody asked, and the near neighbour such an
+    answer finds would put an automatic fix on a shared file over the contents of one
+    project. Left out of the judgment rather than judged wrongly, in both directions:
+    a shared file neither raises a finding about the tree nor answers one away.
+    """
+    return (target["category"] == "instruction"
+            and target["kind"] not in _INSTALLATION_KINDS)
 
 
 def check_ca_s001(targets, ctx):
@@ -246,7 +257,7 @@ def check_ca_s001(targets, ctx):
     root = ctx["root"]
     basename_index = None
     for t in targets:
-        if t["category"] != "instruction" or t["kind"] in _INSTALLATION_KINDS:
+        if not _is_project_instruction(t):
             continue
         for ref, lineno, written_as in _extract_path_refs(t["content"]):
             if written_as == "code_span":
@@ -291,7 +302,7 @@ def check_ca_s002(targets, ctx):
     findings = []
     known = ctx["skill_names"]
     for t in targets:
-        if t["category"] != "instruction":
+        if not _is_project_instruction(t):
             continue
         for lineno, line in enumerate(t["content"].splitlines(), start=1):
             for match in _SKILL_DIR_REF_RE.finditer(line):
@@ -397,7 +408,7 @@ def check_ca_d002(targets, ctx):
     if not known:
         return []
     instructions = "\n".join(
-        t["content"] for t in targets if t["category"] == "instruction")
+        t["content"] for t in targets if _is_project_instruction(t))
     findings = []
     for name in sorted(known):
         # A skill name may hold hyphens, so the boundary excludes them as well: without

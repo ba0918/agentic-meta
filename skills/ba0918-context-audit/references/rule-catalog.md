@@ -36,10 +36,10 @@ and `M` for memory.
 | ID | Category | Severity | Action | Verification | Content |
 |----|----------|----------|--------|--------------|---------|
 | CA-S001 | stale | WARN | AUTO_FIX / NEEDS_JUDGMENT | Pure function | A reference to a file or directory that is not there. Only path-shaped text containing a separator is extracted; a bare filename is out of scope, for precision. It is an automatic fix only when exactly one existing name a single edit away sits beside the reference, and left to a human otherwise. Only the audited project's own files are judged: a reference written in an installation-wide file is passed over, because the tree the judgment would use is not the tree that file belongs to |
-| CA-S002 | stale | WARN | NEEDS_JUDGMENT | Pure function | A reference to a `skills/<name>/` directory that is not there |
+| CA-S002 | stale | WARN | NEEDS_JUDGMENT | Pure function | A reference to a `skills/<name>/` directory that is not there. As with CA-S001, a reference written in an installation-wide file is passed over |
 | CA-U001 | unsafe | WARN | REPORT_ONLY | Pure function | Wording about skipping confirmation or performing a destructive operation. What is matched is the vocabulary alone; which way the line points is not read, so a line forbidding one of these is reported beside a line permitting it and telling them apart is the reader's part. The line is quoted when it comes from an instruction file, and held back when it comes from a memory, which is named by its place and the kind of wording instead |
 | CA-D001 | drift | INFO | REPORT_ONLY | Pure function | Runtime-specific tool vocabulary (`Edit`, `Write` and the like, including the Japanese 「〜ツール」 wording) leaking into a file meant to be runtime-independent — `AGENTS.md` and `PROJECT.md`. `CLAUDE.md` is addressed to one runtime, so it is out of scope. A finding is made per line, and a line naming several such tools is reported once under one representative term |
-| CA-D002 | drift | WARN | NEEDS_JUDGMENT | Pure function | The gap between the skill directories that exist and the skills the instruction files record |
+| CA-D002 | drift | WARN | NEEDS_JUDGMENT | Pure function | The gap between the skill directories that exist and the skills the instruction files record. The instruction files read are the project's own; a skill written down only in an installation-wide file is not recorded in this project |
 | CA-C001 | contradiction | WARN | REPORT_ONLY | Split | One subject forbidden in one place and permitted in another. Candidate extraction is a pure function favouring recall; the judgment is a reading. A side of the pair taken from a memory travels as its place, its direction and the overlap, without its line |
 | CA-M001 | memory | WARN | AUTO_FIX / NEEDS_JUDGMENT | Pure function | The shape of a memory's frontmatter. A key written without the canonical spacing is an automatic fix, normalised with the body left byte for byte as it was; a missing required key or an unknown type is left to a human, never supplied. A finding names the key at fault, never the value beside it; the line the fix replaces travels inside the fix alone |
 | CA-M101 | memory | WARN | NEEDS_JUDGMENT | Pure function | Whether the files a memory references are there. The finding names the place, not the path a memory wrote |
@@ -55,6 +55,11 @@ and `M` for memory.
 - **CA-D002** reports a gap in a listing without deciding it is a fault: leaving a skill out
   of an instruction file is as often deliberate as it is decay, which is why the finding is
   left to a human rather than fixed.
+- **An installation-wide file is not the project's own**, so every question asked of the
+  audited project's tree leaves those files out of both sides of it: the tree the judgment
+  would use is not the tree they belong to, which is why a name one of them writes is never
+  reported as missing from this project (CA-S001, CA-S002) and a skill only one of them
+  records is never counted as written down in it (CA-D002).
 
 ## Implementation notes
 

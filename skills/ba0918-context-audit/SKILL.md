@@ -90,9 +90,10 @@ Three places, and nowhere else:
 
 - **No argument** — audit the project's instruction files and the memory belonging to it.
 - **`--include-global`** — also audit the installation-wide instruction file and rules
-  directory. A deliberate widening of what is read, never a default. **The check for a
-  path that is not there passes over these files**: it asks whether a path exists in the
-  audited project, and that is not the tree they belong to.
+  directory. A deliberate widening of what is read, never a default. **The checks that ask
+  something of the audited project's tree pass over these files**: whether a path is there,
+  whether a skill directory is there, and whether a skill is written down are all questions
+  about a tree these files do not belong to.
 - **`--update-baseline`** — fix the current findings as the baseline, so later runs present
   only what is new. It is an argument of `aggregate_report.py`, which **writes the baseline
   and stops**: that run produces no report. See
