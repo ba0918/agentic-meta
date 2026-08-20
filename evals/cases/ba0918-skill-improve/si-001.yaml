@@ -35,6 +35,15 @@ expectations:
       and a store that could not be read is named rather than passed over
     critical: true
   - text: |
+      The skills the report is about are the three these histories hold — alpha-tidy,
+      beta-check and gamma-sweep — and no skill outside those three appears as measured
+    critical: true
+  - text: |
+      The confidence downgrade for resting on a store with no structural route falls on
+      gamma-sweep and on no other skill, and the report names the Codex store as what
+      forced it
+    critical: true
+  - text: |
       The report states that the Codex store has no structural detection route, so a
       skill seen only through it rests on typed text alone
     critical: true
