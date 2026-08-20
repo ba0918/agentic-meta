@@ -18,6 +18,10 @@ prompt: |
   agent runtimes, copied off another machine. They belong to a project other than the one
   you are standing in.
 
+  They are an archive rather than live logs. Every record in them was written on
+  2026-08-15, so a period counted back from today only reaches them once it is wide
+  enough to cover the whole archive. Read all of it, not a recent slice.
+
   One of them keeps its history in a database rather than in text records; running
   `stores/opencode/build_db.py` produces that database beside the script.
 
