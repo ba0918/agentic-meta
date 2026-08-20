@@ -62,7 +62,10 @@ and `M` for memory.
   files mention. It does not read each skill in full.
 - **CA-C001** buckets claims by the subjects they name and pairs only claims sharing a bucket
   with opposite polarity, so the overlap threshold (0.2 by the Jaccard measure) does the work
-  a sweep over every pair would otherwise do.
+  a sweep over every pair would otherwise do. **Which way a line points is read by pattern,
+  so that reading is incomplete in the way the credential mask is**: a prohibition or a
+  permission worded unlike every pattern it holds is passed over rather than paired, and a
+  pair the rule does not offer is therefore no evidence that none is there.
 - Each rule is listed in `RULES` as a pure `check(targets, ctx) -> list[Finding]`. Adding a
   rule is writing the function, listing it, and adding its tests; no existing rule is touched.
 - Every finding carries `id`, `severity`, `action`, `where` (file and line), `what`, `why`,

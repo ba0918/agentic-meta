@@ -400,14 +400,21 @@ def check_ca_d002(targets, ctx):
 # ---------------------------------------------------------------------------
 
 # The polarity vocabulary is read in the languages instruction files are written in.
-# English negates by turning a modal negative, and the negative form contains the
-# affirmative one: 'must not' holds 'must', "shouldn't" holds 'should'. Matched first
-# and taken out of the line, so the modal inside a negation is never read afterwards
-# as the permission it would be on its own.
-_NEGATED_MODAL_RE = re.compile(
+# English builds a negation around the affirmative word rather than beside it, so the
+# negation is matched first and taken out of the line, and what is left is never read
+# afterwards as the permission it would be on its own. The word carrying the negation
+# is a modal ('must not' holds 'must', "shouldn't" holds 'should') or the predicate
+# ('is not allowed' holds 'allowed'), and the second kind is reached through: the
+# affirmative word sits after the negation instead of inside it.
+#
+# The contractions are spelt out one by one because they are irregular — 'can' plus
+# "n't" is "can't", not "cann't", and 'will' plus "n't" is "won't".
+_NEGATION_RE = re.compile(
     r"\b(?:must|should|shall|may|can|will)\s+not\b"
-    r"|\b(?:must|should|shall|can|will|do|does|did)n['’]t\b"
-    r"|\bcannot\b", re.IGNORECASE)
+    r"|\b(?:must|should|do|does|did)n['’]t\b"
+    r"|\b(?:ca|sha|wo)n['’]t\b"
+    r"|\bcannot\b"
+    r"|\bnot\s+(?:allowed|permitted)\b", re.IGNORECASE)
 _PROHIBIT_RE = re.compile(
     r"するな|しない(?:こと)?|禁止|してはならない|べきでない"
     r"|never\b|don't\b|do not\b|avoid\b", re.IGNORECASE)
@@ -469,8 +476,8 @@ def _subjects_of(line: str) -> frozenset[str]:
 
 def _polarity_of(line: str) -> str | None:
     """Which way a line points, or None when it points both ways or neither."""
-    negated = bool(_NEGATED_MODAL_RE.search(line))
-    remainder = _NEGATED_MODAL_RE.sub(" ", line)
+    negated = bool(_NEGATION_RE.search(line))
+    remainder = _NEGATION_RE.sub(" ", line)
     prohibits = negated or bool(_PROHIBIT_RE.search(remainder))
     allows = bool(_ALLOW_RE.search(remainder))
     if prohibits and not allows:

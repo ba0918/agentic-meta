@@ -378,9 +378,10 @@ class TestContradictionCandidateFromAMemory(unittest.TestCase):
 
 
 class TestContradictionPolarityInEnglish(unittest.TestCase):
-    """An instruction file written in English negates by turning a modal negative,
-    so which way `must not` and `should not` point decides whether this rule works
-    at all on a repository whose instruction files are English."""
+    """An instruction file written in English negates in two places — the modal
+    (`must not`, `can't`) and the predicate (`is not allowed`) — so which way those
+    point decides whether this rule works at all on a repository whose instruction
+    files are English."""
 
     def test_a_prohibition_written_as_a_negated_modal_is_not_read_as_a_permission(self):
         a = target("agents_md", "Never delete the cache directory", path="a.md")
@@ -403,6 +404,47 @@ class TestContradictionPolarityInEnglish(unittest.TestCase):
                    path="a.md")
         b = target("rules", "Editing the build directory by hand is always allowed",
                    path="b.md")
+        self.assertTrue(findings_for("CA-C001", [a, b], ctx()))
+
+    # One case per contraction: the spellings are irregular (`can't` is not `can` plus
+    # `n't`), so a single case standing in for all of them leaves the others unread.
+
+    def test_a_prohibition_written_as_cant_pairs_with_a_permission(self):
+        a = target("agents_md", "You can't commit directly to the main branch",
+                   path="a.md")
+        b = target("rules", "Committing directly to the main branch is always allowed",
+                   path="b.md")
+        self.assertTrue(findings_for("CA-C001", [a, b], ctx()))
+
+    def test_a_prohibition_written_as_wont_pairs_with_a_permission(self):
+        a = target("agents_md", "You won't rewrite the release notes by hand",
+                   path="a.md")
+        b = target("rules", "Rewriting the release notes by hand is always allowed",
+                   path="b.md")
+        self.assertTrue(findings_for("CA-C001", [a, b], ctx()))
+
+    def test_a_prohibition_written_as_shant_pairs_with_a_permission(self):
+        a = target("agents_md", "You shan't deploy the release on a Friday", path="a.md")
+        b = target("rules", "Deploying the release on a Friday is always allowed",
+                   path="b.md")
+        self.assertTrue(findings_for("CA-C001", [a, b], ctx()))
+
+    # The other way English negates: the predicate carries the negation, so the
+    # affirmative word sits after it rather than inside it.
+
+    def test_a_prohibition_written_as_a_negated_predicate_pairs_with_a_permission(self):
+        a = target("agents_md", "Committing directly to main is not allowed", path="a.md")
+        b = target("rules", "Committing directly to main is always allowed", path="b.md")
+        self.assertTrue(findings_for("CA-C001", [a, b], ctx()))
+
+    def test_a_prohibition_written_as_a_negated_predicate_is_not_read_as_a_permission(self):
+        a = target("agents_md", "Never commit directly to main", path="a.md")
+        b = target("rules", "Committing directly to main is not allowed", path="b.md")
+        self.assertEqual(findings_for("CA-C001", [a, b], ctx()), [])
+
+    def test_a_prohibition_written_as_a_negated_permission_pairs_with_a_permission(self):
+        a = target("agents_md", "Direct commits to main are not permitted", path="a.md")
+        b = target("rules", "Direct commits to main are always allowed", path="b.md")
         self.assertTrue(findings_for("CA-C001", [a, b], ctx()))
 
 
