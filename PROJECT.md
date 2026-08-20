@@ -78,6 +78,16 @@ pinned install, and says so plainly when that install is missing.
   environment a measurement ran in — what it cost, whether a judging model passed
   calibration — are not committed at all, since the repository is cloned into other
   environments where they would not hold.
+- Reading a session history: a skill here may need the record of how an agent actually
+  behaved, which lives outside any tree it measures. The read-scope clause of
+  `fixture-contract` allows that only on an explicit grant stated in the invocation, so such
+  a skill names in its own `SKILL.md` exactly which stores it reads and takes each location
+  as a parameter. Two things follow. Where a store's records cannot show something — a
+  runtime that keeps no record of a skill firing, say — the skill declares that it cannot,
+  and the declaration travels into the report beside the numbers. And it never fills the gap
+  by inference: a friction score built on invented firings recommends fixing a skill nobody
+  ran, which is worse than a report saying the route could not be read.
+  `ba0918-skill-improve` is the current case; the reasoning is in `docs/spec/`.
 - Licensing: the repository is MIT and `LICENSE` at the root covers it. A skill derived from
   someone else's work carries an additional `LICENSE` in its own directory, holding that
   author's copyright notice — MIT requires the notice to travel with every copy, and a skill

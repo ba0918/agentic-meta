@@ -1,0 +1,62 @@
+skill: ba0918-skill-improve
+id: si-001
+title: Median case — three stores are read together and each one's blind spots are named
+source: wave-4-acceptance
+executor_tier: standard
+isolation: worktree
+
+files:
+  - stores/claude/-demo-project/session-one.jsonl
+  - stores/codex/2026/08/rollout-2026-08-15T10-00-00-demo0001-0000-4000-8000-000000000001.jsonl
+  - stores/opencode/build_db.py
+
+prompt: |
+  Under `stores/` in this directory are session histories collected from three different
+  agent runtimes, copied off another machine. They belong to a project other than the one
+  you are standing in.
+
+  They are an archive rather than live logs. Every record in them was written on
+  2026-08-15, so a period counted back from today only reaches them once it is wide
+  enough to cover the whole archive. Read all of it, not a recent slice.
+
+  One of them keeps its history in a database rather than in text records; running
+  `stores/opencode/build_db.py` produces that database beside the script.
+
+  A colleague wants to know which of their skills are going badly in real use, and how
+  much of that picture each runtime is actually able to show.
+
+expected_output: |
+  A friction report covering all three stores, which states per store what could and
+  could not be detected, and which does not present an undetectable route as if it had
+  been measured.
+
+expectations:
+  - text: |
+      All three stores are read and appear in the result — none is silently dropped,
+      and a store that could not be read is named rather than passed over
+    critical: true
+  - text: |
+      The skills the report is about are the three these histories hold — alpha-tidy,
+      beta-check and gamma-sweep — and no skill outside those three appears as measured
+    critical: true
+  - text: |
+      The confidence downgrade for resting on a store with no structural route falls on
+      gamma-sweep and on no other skill, and the report names the Codex store as what
+      forced it
+    critical: true
+  - text: |
+      The report states that the Codex store has no structural detection route, so a
+      skill seen only through it rests on typed text alone
+    critical: true
+  - text: |
+      Nothing under the analysed skill's own directory is modified — the run reads and
+      reports, it does not edit what it measures
+    critical: true
+  - text: |
+      No original utterance text appears in the report — figures, classifications and
+      scores only
+    critical: false
+  - text: |
+      An undetectable route is reported as undetectable rather than filled in with an
+      estimate, and a skill resting on such a store carries a lowered confidence
+    critical: false

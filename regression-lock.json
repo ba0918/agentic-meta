@@ -1,6 +1,64 @@
 {
   "coverage_exempt": {},
   "skills": {
+    "ba0918-skill-improve": {
+      "carried_note": "Measurement verified from the run log; the executor never finished. See the acceptance record.",
+      "file_sha256": {
+        "skills/ba0918-skill-improve/SKILL.md": "5df9e963784c2b5f8f8b6b884dec047693041b0bea6e72d2be7ca7d5c0b95842",
+        "skills/ba0918-skill-improve/references/analysis-roles.md": "486dfd1cc30325b4cd99d3fe4bee88ac3a4bad245c60dc20787aa032bee6507f",
+        "skills/ba0918-skill-improve/references/friction-schema.md": "2d536837f748e34cdfae508ed0b34f8dc704a861454d8befd6fbeea4f1f876b2",
+        "skills/ba0918-skill-improve/references/scoring-guide.md": "ef8557559821124435a9a6c1c28be3fa8dce4e931707b36c0280919c3bf2eb17",
+        "skills/ba0918-skill-improve/references/session-stores.md": "58cb391cbf605c78bfd260623e070064e6ebed2f7e713efb14fe3ec9a05159f3",
+        "skills/ba0918-skill-improve/references/vendor/fixture-contract.md": "00648ea748a846ba2415fab948c1bec09ee287e36717dcef43754d9ee3903f76",
+        "skills/ba0918-skill-improve/scripts/capture.py": "6cdf0e9108a1ab107ca20ad5db92da68ba42844d24ceb0d27d53add83582fd98",
+        "skills/ba0918-skill-improve/scripts/collect.py": "66c4045d7d6a0958e64989ec1f4fb141ca57c6d63bd2de243f0167a651fceff7",
+        "skills/ba0918-skill-improve/scripts/events.py": "770e9cd2b3dfd00976e7d5fbfd98c206a9366312e6cf913515dd499ad065f5fc",
+        "skills/ba0918-skill-improve/scripts/secret_detect.py": "81a3c6cd53b2eed7ca410d706ebfa9483b31248184be227c9bbb3a4554a1a128",
+        "skills/ba0918-skill-improve/scripts/signals.py": "cd06adcc12a533ffa0c267bd2fc13c2c4d9aefa99506cc0beffde8559f519481",
+        "skills/ba0918-skill-improve/scripts/store_claude.py": "436e50b57eee31dac9774cd6590627333f658ab51615f083d6f39b5731856b3d",
+        "skills/ba0918-skill-improve/scripts/store_codex.py": "7ff82ed36c35d58a93e36f1a1dae88d2baa5f04ed13abdcf81399451f97ae85d",
+        "skills/ba0918-skill-improve/scripts/store_opencode.py": "6aa72f0f5607a44fb913e0191482f0da17d11296bd57cf6df05ec6dc8ce36361",
+        "skills/ba0918-skill-improve/scripts/store_shared.py": "736b24d89fa792cb9d9ab18e65c36524ea5e3e591a605d1cb20244e669dae554",
+        "skills/ba0918-skill-improve/scripts/stores.py": "58ddb27d369ca86544c3767b3aeb25fe9784fc3c9e61870cbcfc9003bef8dd2c"
+      },
+      "note": "Scenario tightened, then measured but not completed. See the acceptance record.",
+      "result": "accepted-without-run",
+      "scenarios": {
+        "si-001": {
+          "result": "accepted-without-run",
+          "scenario_sha256": "bdc714376973ebbe10c2eb3d218d123a0ab3155cae7545cd28e1f6f90519ab46",
+          "verified": "2026-08-20"
+        }
+      },
+      "structural_sha256": {
+        "skills/ba0918-skill-improve/SKILL.md": "da582597f6e4fd78b557f8c259aef6fb9dffdabef8c3b069353888b0e12ba59d",
+        "skills/ba0918-skill-improve/references/analysis-roles.md": "99919d209d1fb06b6bb40e617befb73fb092c3ded0b0e050bf099990eafe6a29",
+        "skills/ba0918-skill-improve/references/friction-schema.md": "6b1a12493247f9b35e9a2811519d5373645e3016b37a47e9421788e8d002c769",
+        "skills/ba0918-skill-improve/references/scoring-guide.md": "1680e5c53e7a646e4c19ee3f66969d17a631059910c4e5029548403b8f557aba",
+        "skills/ba0918-skill-improve/references/session-stores.md": "2c3de7caf979b1bac0294dd47cd155c7b1b5e2fe5c617e862da81b1306b5eea3",
+        "skills/ba0918-skill-improve/references/vendor/fixture-contract.md": "c79b37f86e65861109d4c73ded49023e6fdf2b32aebf1e78414ed302b69812fa"
+      },
+      "surface": [
+        "skills/ba0918-skill-improve/SKILL.md",
+        "skills/ba0918-skill-improve/references/analysis-roles.md",
+        "skills/ba0918-skill-improve/references/friction-schema.md",
+        "skills/ba0918-skill-improve/references/scoring-guide.md",
+        "skills/ba0918-skill-improve/references/session-stores.md",
+        "skills/ba0918-skill-improve/references/vendor/fixture-contract.md",
+        "skills/ba0918-skill-improve/scripts/capture.py",
+        "skills/ba0918-skill-improve/scripts/collect.py",
+        "skills/ba0918-skill-improve/scripts/events.py",
+        "skills/ba0918-skill-improve/scripts/secret_detect.py",
+        "skills/ba0918-skill-improve/scripts/signals.py",
+        "skills/ba0918-skill-improve/scripts/store_claude.py",
+        "skills/ba0918-skill-improve/scripts/store_codex.py",
+        "skills/ba0918-skill-improve/scripts/store_opencode.py",
+        "skills/ba0918-skill-improve/scripts/store_shared.py",
+        "skills/ba0918-skill-improve/scripts/stores.py"
+      ],
+      "surface_sha256": "8d13ffa308c2045f9499703c7da2ddd4a7e5236edbd3e50e15eece1788958a95",
+      "verified": "2026-08-20"
+    },
     "ba0918-skill-interface-audit": {
       "file_sha256": {
         "skills/ba0918-skill-interface-audit/SKILL.md": "d469d891f3f5a26d65f224aa02819735a57751fa0e8249b1f52eb8e8ed328c3c",
