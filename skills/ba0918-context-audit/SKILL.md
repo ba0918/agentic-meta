@@ -176,8 +176,13 @@ classification. **Change nothing**: this phase produces a reading, not an edit.
 
 - **With no candidates, skip the phase entirely.** There is nothing to read.
 - **What goes into the reading is the finding's own `what` and nothing else** — already
-  masked, already cut down to the two claim lines. The files those lines came from, the
+  masked, already cut down to the two claims. The files those lines came from, the
   content around them, and anything identifying a person, do not travel with it.
+- **A claim taken from a memory arrives without its line.** For that side the reading
+  gets the place, the direction and how far the two overlap, and nothing of what the
+  line says: a memory holds the vocabulary of the work — a customer's name, an internal
+  hostname — and the mask knows neither shape. Where that leaves a pair genuinely
+  unreadable, **undecidable** is the classification; do not go to the file for the line.
 
 ### Phase 3 — Aggregate
 

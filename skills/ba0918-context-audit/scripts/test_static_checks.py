@@ -214,6 +214,20 @@ class TestUnsafeVocabulary(unittest.TestCase):
         t = target("claude_md", "rm -rf without confirmation and --force too")
         self.assertEqual(len(findings_for("CA-U001", [t], ctx())), 1)
 
+    def test_the_line_an_instruction_file_holds_is_quoted_in_the_finding(self):
+        t = target("claude_md", "drop the staging tables without confirmation")
+        f = findings_for("CA-U001", [t], ctx())
+        self.assertIn("drop the staging tables", f[0]["what"])
+
+    def test_the_line_a_memory_holds_is_reported_without_being_transcribed(self):
+        t = target("memory", "---\nname: n\ndescription: d\n---\n"
+                             "drop the acmecorp tables without confirmation",
+                   path="n.md")
+        f = findings_for("CA-U001", [t], ctx())
+        self.assertEqual(len(f), 1)
+        self.assertIn("n.md:5", f[0]["where"])
+        self.assertNotIn("acmecorp", repr(f))
+
 
 class TestToolVocabularyDrift(unittest.TestCase):
     def test_a_runtime_specific_tool_name_in_the_behaviour_file_is_reported(self):
@@ -333,6 +347,33 @@ class TestContradictionCandidates(unittest.TestCase):
         f = findings_for("CA-C001", [a, b], ctx())
         self.assertIn("a.md:1", f[0]["where"])
         self.assertIn("b.md:1", f[0]["where"])
+
+
+class TestContradictionCandidateFromAMemory(unittest.TestCase):
+    """A candidate pair may mix a memory's line with an instruction file's. The
+    memory's line is the one nobody reviews, and the finding it lands in is what the
+    contradiction reading receives, so only the memory's side is held back."""
+
+    def _pair(self):
+        memory = target("memory", "---\nname: n\ndescription: d\n---\n"
+                                  "deploying to acmecorp hosts is always allowed",
+                        path="n.md")
+        instruction = target("claude_md", "never deploy to those hosts", path="a.md")
+        return findings_for("CA-C001", [memory, instruction], ctx())
+
+    def test_the_memorys_line_is_not_transcribed_into_the_candidate(self):
+        f = self._pair()
+        self.assertEqual(len(f), 1)
+        self.assertNotIn("acmecorp", repr(f))
+
+    def test_the_instruction_files_line_is_kept_rather_than_dropped_with_it(self):
+        self.assertIn("never deploy to those hosts", self._pair()[0]["what"])
+
+    def test_the_withheld_side_still_carries_its_place_and_its_direction(self):
+        f = self._pair()
+        self.assertIn("n.md:5", f[0]["where"])
+        self.assertIn("permission", f[0]["what"])
+        self.assertIn("prohibition", f[0]["what"])
 
 
 class TestContradictionPolarityInEnglish(unittest.TestCase):

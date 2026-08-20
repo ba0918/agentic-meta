@@ -128,8 +128,19 @@ worse off than it was while looking better.
 - **The mask is a blocklist, so it is not complete.** A credential shaped unlike every
   pattern it holds passes straight through. Wherever masked text is handed onward — into a
   report, into a reading, to a person — that limitation is stated alongside it.
+- **A line out of a memory is never transcribed into a finding.** CA-M301 already reported
+  only the kind and the place. Two further rules read memories alongside the instruction
+  files — CA-U001 and CA-C001 — and both name the place and the kind of what they found
+  without quoting the line. The mask guards what an instruction file holds; a memory's line
+  is held back outright, because what a memory accumulates (a customer's name, an internal
+  hostname) is a shape no blocklist knows.
 - **What the contradiction reading receives is a finding's own description**, already masked
-  and already cut down to the two claim lines. The files those lines came from, the content
-  around them, and anything identifying a person, do not travel with it.
+  and already cut down to the two claims. The files those lines came from, the content
+  around them, and anything identifying a person, do not travel with it. A claim taken from a
+  memory arrives as its place, its direction and the overlap between the two, and nothing
+  else — **the subjects are not offered in the line's place**, because they are cut from the
+  line itself and would hand over the same words. Held back per claim, not per finding: a
+  pair may put a memory's line beside an instruction file's, and the instruction file's side
+  stays quoted.
 - **The only automatic fix against a memory is the frontmatter formatting above.** Deleting
   a memory, and rewriting what one says, are not automated by any route.

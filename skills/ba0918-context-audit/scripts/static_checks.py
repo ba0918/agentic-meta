@@ -44,6 +44,19 @@ def validate_finding_schema(finding: dict) -> list[str]:
     return [key for key in CANONICAL_FINDING_FIELDS if key not in finding]
 
 
+# What a finding says instead of the line, when the line came out of a memory. A memory
+# is written mid-session and reviewed by nobody, so it accumulates the vocabulary of the
+# work itself — a customer's name, an internal hostname. The mask below is a blocklist
+# and knows neither shape, so a transcribed memory line would carry both into whatever
+# reads the finding afterwards. The place, the kind and the direction are enough to act
+# on and disclose nothing the line itself holds.
+MEMORY_LINE_WITHHELD = "(a line in a memory; its text is withheld)"
+
+
+def _is_memory(target: dict) -> bool:
+    return target.get("kind") == "memory"
+
+
 def _mask_fix_action(fix_action: dict) -> dict:
     # 'path' names the file a fix opens, and one of the credential patterns matches a
     # path under a user's home directory. Masking it would leave a fix pointing at a
@@ -295,13 +308,15 @@ _UNSAFE_PATTERNS = [
 def check_ca_u001(targets, ctx):
     findings = []
     for t in targets:
+        excerpt = MEMORY_LINE_WITHHELD if _is_memory(t) else None
         for lineno, line in enumerate(t["content"].splitlines(), start=1):
             for label, pattern in _UNSAFE_PATTERNS:
                 if not pattern.search(line):
                     continue
                 findings.append(make_finding(
                     "CA-U001", "WARN", "REPORT_ONLY", f"{t['rel']}:{lineno}",
-                    what=f"wording that permits a {label}: {line.strip()}",
+                    what=f"wording that permits a {label}: "
+                         f"{excerpt if excerpt else line.strip()}",
                     why="permitting unconfirmed or destructive operations raises the "
                         "risk of an accident, so the intent behind it needs checking",
                     how="keep it where it is deliberate, otherwise state the "
@@ -419,6 +434,23 @@ class Claim(NamedTuple):
     polarity: str
     subjects: frozenset[str]
     text: str
+    from_memory: bool = False
+
+
+_POLARITY_NOUN = {"prohibit": "prohibition", "allow": "permission"}
+
+
+def _claim_excerpt(claim: Claim) -> str:
+    """How one side of a candidate pair is put to the reader.
+
+    Held back per claim rather than per finding: a pair may put a memory's line beside
+    an instruction file's, and dropping both would cost the reading the one side it was
+    free to see. The subjects are not offered in the withheld line's place either —
+    they are cut from the line itself, so quoting them would hand over the same words
+    the line was held back for.
+    """
+    body = MEMORY_LINE_WITHHELD if claim.from_memory else f"`{claim.text}`"
+    return f"{_POLARITY_NOUN[claim.polarity]} {body}"
 
 
 def _subjects_of(line: str) -> frozenset[str]:
@@ -477,6 +509,7 @@ def candidate_pairs(claims: list[Claim]) -> set[tuple[int, int]]:
 def _claims_in(targets) -> list[Claim]:
     claims = []
     for t in targets:
+        from_memory = _is_memory(t)
         for lineno, line in enumerate(t["content"].splitlines(), start=1):
             if not line.strip():
                 continue
@@ -485,7 +518,8 @@ def _claims_in(targets) -> list[Claim]:
                 continue
             subjects = _subjects_of(line)
             if subjects:
-                claims.append(Claim(t["rel"], lineno, polarity, subjects, line.strip()))
+                claims.append(Claim(t["rel"], lineno, polarity, subjects,
+                                    line.strip(), from_memory))
     return claims
 
 
@@ -505,8 +539,9 @@ def check_ca_c001(targets, ctx):
         findings.append(make_finding(
             "CA-C001", "WARN", "REPORT_ONLY",
             f"{first.rel}:{first.line} vs {second.rel}:{second.line}",
-            what=f"contradiction candidate, a prohibition and a permission over one "
-                 f"subject: `{first.text}` vs `{second.text}`",
+            what=f"contradiction candidate, two claims pointing opposite ways over one "
+                 f"subject (overlap {shared:.2f}): {_claim_excerpt(first)} vs "
+                 f"{_claim_excerpt(second)}",
             why="opposing instructions over one subject make an agent's behaviour "
                 "depend on which one it happens to read",
             how="classify the pair as a contradiction, a deliberate difference, an "
