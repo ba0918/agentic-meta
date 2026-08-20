@@ -14,6 +14,11 @@ Every replacement is idempotent: applying the result again changes nothing. The
 replacement strings are computed by static_checks.py, which is where the single source
 of truth for them lives; this module never synthesises content, it only substitutes
 one string for another.
+
+What `--write` writes: each file a fix names, in place, and nothing else. No file is
+created, none is deleted, and a path no finding named is never opened. For a fix against
+a memory that file lies outside the audited project, under the home the collection was
+pointed at — the same file the audit was given permission to read.
 """
 
 import argparse

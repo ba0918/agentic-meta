@@ -69,6 +69,23 @@ check does not hold it is skipped unread rather than guessed at. The derivation,
 modes, and the constraints on what may leave a memory are in
 [references/memory-audit.md](references/memory-audit.md).
 
+### What this writes
+
+Three places, and nowhere else:
+
+- **`.agents/tmp/context-audit/` under the audited project** — every artefact a run
+  produces: the collected targets, the findings, the report.
+- **`.agents/config/context-audit-baseline.json` under the audited project** — only when
+  a baseline was asked for.
+- **The file an automatic fix names**, and only under `apply_fixes.py --write`. This is
+  the one write that can land outside the audited project: a fix against a memory writes
+  that memory back, and a memory sits under the operator's home rather than in the
+  project. **It is never a file outside the read scope above** — a fix names the file the
+  finding came out of and no other. Nothing here creates a file or deletes one; a fix is
+  a path corrected inside a line, or a frontmatter key put into canonical form with the
+  body's bytes unchanged. It runs only after the change has been shown and confirmed,
+  and not at all when there is nobody to ask.
+
 ## Arguments
 
 - **No argument** — audit the project's instruction files and the memory belonging to it.
@@ -92,10 +109,12 @@ No command is created; being a single workflow, it needs no named entry point.
   pointing elsewhere audits one project against another project's memory.
 - **`{ts}`** is minted once with `date +%Y%m%d-%H%M%S` and reused across the phases, so a run
   never overwrites an earlier run's artefacts.
-- **Output location.** Everything a run produces goes to `.agents/tmp/context-audit/` under
-  the audited project. **Create that directory before the first script runs** — no script
-  creates it. The baseline is the exception and goes to
+- **Output location.** Every artefact a run produces goes to `.agents/tmp/context-audit/`
+  under the audited project. **Create that directory before the first script runs** — no
+  script creates it. The baseline is the exception and goes to
   `.agents/config/context-audit-baseline.json`, which is committed while the rest is not.
+  An applied fix is not an artefact of the run: it writes back the file the finding came
+  out of, under the write scope stated above.
 - This is not the placement a skill measuring *another* tree uses. Here the tree under audit
   is the invoking project itself — that is what keeping the root equal to the working
   directory means — so the run's scratch area and the audited tree are the same place, and
