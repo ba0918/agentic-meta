@@ -276,6 +276,65 @@ class TestSkillListingCoverage(unittest.TestCase):
         self.assertEqual(reported(with_script=True), reported(with_script=False))
 
 
+class TestContradictionCandidatePairing(unittest.TestCase):
+    """Claims are grouped by the subjects they name and paired only inside a group,
+    so the scan does not grow with the square of the number of claims."""
+
+    def _claim(self, path, polarity, subjects):
+        return sc.Claim(path, 1, polarity, frozenset(subjects), "text")
+
+    def test_claims_are_grouped_by_the_subjects_they_name(self):
+        claims = [self._claim("a.md", "prohibit", {"テス", "スト"}),
+                  self._claim("b.md", "allow", {"テス", "実行"}),
+                  self._claim("c.md", "allow", {"独立"})]
+        grouped = sc.index_claims_by_subject(claims)
+        self.assertEqual(sorted(grouped["テス"]), [0, 1])
+        self.assertEqual(grouped["独立"], [2])
+
+    def test_only_claims_naming_a_subject_in_common_are_ever_paired(self):
+        claims = [self._claim("a.md", "prohibit", {"aa", "bb"}),
+                  self._claim("b.md", "allow", {"aa", "bb"}),
+                  self._claim("c.md", "allow", {"zz"})]
+        self.assertEqual(sc.candidate_pairs(claims), {(0, 1)})
+
+
+class TestContradictionCandidates(unittest.TestCase):
+    # Japanese input on purpose: the polarity vocabulary this rule reads is the
+    # vocabulary instruction files are written in, and translating it removes the
+    # coverage these cases exist for.
+
+    def test_a_prohibition_and_a_permission_over_one_subject_become_a_candidate(self):
+        a = target("claude_md", "テストをスキップしてよい", path="a.md")
+        b = target("rules", "テストをスキップするな", path="b.md")
+        f = findings_for("CA-C001", [a, b], ctx())
+        self.assertTrue(f)
+        self.assertEqual(f[0]["action"], "REPORT_ONLY")
+
+    def test_two_claims_pointing_the_same_way_do_not_become_a_candidate(self):
+        a = target("claude_md", "テストをスキップするな", path="a.md")
+        b = target("rules", "テストをスキップしてはならない", path="b.md")
+        self.assertEqual(findings_for("CA-C001", [a, b], ctx()), [])
+
+    def test_claims_with_no_subject_in_common_do_not_become_a_candidate(self):
+        a = target("claude_md", "テストをスキップしてよい", path="a.md")
+        b = target("rules", "コミットは日本語で書くな", path="b.md")
+        self.assertEqual(findings_for("CA-C001", [a, b], ctx()), [])
+
+    def test_claims_whose_subjects_only_partly_overlap_still_become_a_candidate(self):
+        a = target("claude_md", "main ブランチへの直接コミットを禁止する", path="a.md")
+        b = target("rules", "軽微な修正は main に直接コミットしてよい", path="b.md")
+        f = findings_for("CA-C001", [a, b], ctx())
+        self.assertTrue(f)
+        self.assertEqual(f[0]["action"], "REPORT_ONLY")
+
+    def test_a_candidate_names_where_both_claims_were_written(self):
+        a = target("claude_md", "テストをスキップしてよい", path="a.md")
+        b = target("rules", "テストをスキップするな", path="b.md")
+        f = findings_for("CA-C001", [a, b], ctx())
+        self.assertIn("a.md:1", f[0]["where"])
+        self.assertIn("b.md:1", f[0]["where"])
+
+
 class TestEngineOutput(unittest.TestCase):
     def test_every_finding_the_engine_produces_carries_the_required_fields(self):
         t = target("claude_md", "確認なしで rm -rf を実行してよい")

@@ -19,7 +19,7 @@ import os
 import re
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import secret_detect  # noqa: E402
@@ -379,6 +379,131 @@ def check_ca_d002(targets, ctx):
     return findings
 
 
+
+# ---------------------------------------------------------------------------
+# CA-C001: a prohibition and a permission over the same subject
+# ---------------------------------------------------------------------------
+
+# The polarity vocabulary is read in the languages instruction files are written in.
+_PROHIBIT_RE = re.compile(
+    r"するな|しない(?:こと)?|禁止|してはならない|べきでない"
+    r"|never\b|don't\b|do not\b|avoid\b|must not\b", re.IGNORECASE)
+_ALLOW_RE = re.compile(
+    r"してよい|してもよい|許可|するべき|すること(?:$|。)"
+    r"|always\b|must\b|should\b|allowed\b", re.IGNORECASE)
+
+_WORD_RE = re.compile(r"[a-z0-9]{2,}")
+# A run of Japanese script, which is written without spaces between words.
+_JAPANESE_RUN_RE = re.compile(r"[぀-ヿ一-鿿]+")
+# Words that say which way a claim points rather than what it is about. Left in the
+# subject they would make every prohibition share a subject with every permission.
+_POLARITY_WORDS = {"する", "しない", "してよい", "するな", "こと", "must", "not",
+                   "should", "never", "avoid", "always", "don", "allowed"}
+
+_CANDIDATE_OVERLAP = 0.2
+
+
+class Claim(NamedTuple):
+    """One line asserting that something is or is not to be done."""
+
+    rel: str
+    line: int
+    polarity: str
+    subjects: frozenset[str]
+    text: str
+
+
+def _subjects_of(line: str) -> frozenset[str]:
+    """What a line is about, as a set of words and Japanese character pairs.
+
+    Japanese is written without spaces, so a run of it is cut into overlapping pairs
+    rather than words. Two claims about one subject then share pairs even when neither
+    the whole run nor its word boundaries agree.
+    """
+    words = set(_WORD_RE.findall(line.lower()))
+    for run in _JAPANESE_RUN_RE.findall(line):
+        for i in range(len(run) - 1):
+            words.add(run[i:i + 2])
+    return frozenset(w for w in words if w not in _POLARITY_WORDS)
+
+
+def _polarity_of(line: str) -> str | None:
+    """Which way a line points, or None when it points both ways or neither."""
+    prohibits = bool(_PROHIBIT_RE.search(line))
+    allows = bool(_ALLOW_RE.search(line))
+    if prohibits and not allows:
+        return "prohibit"
+    if allows and not prohibits:
+        return "allow"
+    return None
+
+
+def index_claims_by_subject(claims: list[Claim]) -> dict[str, list[int]]:
+    """Where each subject is claimed, so pairing can start from a shared subject."""
+    grouped: dict[str, list[int]] = {}
+    for position, claim in enumerate(claims):
+        for subject in claim.subjects:
+            grouped.setdefault(subject, []).append(position)
+    return grouped
+
+
+def candidate_pairs(claims: list[Claim]) -> set[tuple[int, int]]:
+    """Opposing claim pairs, drawn only from claims that share a subject.
+
+    Pairs are formed inside a subject group rather than over every pair of claims:
+    an all-pairs sweep grows with the square of the number of claims, and almost all
+    of those pairs are about unrelated things.
+    """
+    pairs: set[tuple[int, int]] = set()
+    for positions in index_claims_by_subject(claims).values():
+        for i in range(len(positions)):
+            for j in range(i + 1, len(positions)):
+                x, y = positions[i], positions[j]
+                if claims[x].polarity != claims[y].polarity:
+                    pairs.add((min(x, y), max(x, y)))
+    return pairs
+
+
+def _claims_in(targets) -> list[Claim]:
+    claims = []
+    for t in targets:
+        for lineno, line in enumerate(t["content"].splitlines(), start=1):
+            if not line.strip():
+                continue
+            polarity = _polarity_of(line)
+            if polarity is None:
+                continue
+            subjects = _subjects_of(line)
+            if subjects:
+                claims.append(Claim(t["rel"], lineno, polarity, subjects, line.strip()))
+    return claims
+
+
+def check_ca_c001(targets, ctx):
+    claims = _claims_in(targets)
+    findings = []
+    for x, y in sorted(candidate_pairs(claims)):
+        first, second = claims[x], claims[y]
+        union = first.subjects | second.subjects
+        shared = len(first.subjects & second.subjects) / len(union) if union else 0.0
+        # A generous cut on purpose. Whether a pair is a real contradiction is decided
+        # downstream by a reader, so the only pairs dropped here are the ones with
+        # almost nothing in common; a tighter cut would hide real conflicts that happen
+        # to be worded differently.
+        if shared < _CANDIDATE_OVERLAP:
+            continue
+        findings.append(make_finding(
+            "CA-C001", "WARN", "REPORT_ONLY",
+            f"{first.rel}:{first.line} vs {second.rel}:{second.line}",
+            what=f"contradiction candidate, a prohibition and a permission over one "
+                 f"subject: `{first.text}` vs `{second.text}`",
+            why="opposing instructions over one subject make an agent's behaviour "
+                "depend on which one it happens to read",
+            how="classify the pair as a contradiction, a deliberate difference, an "
+                "already-resolved precedence, or undecidable"))
+    return findings
+
+
 # ---------------------------------------------------------------------------
 # Registry (dispatch by listing, not by editing the dispatcher)
 # ---------------------------------------------------------------------------
@@ -394,6 +519,8 @@ RULES: dict[str, dict[str, Any]] = {
                 "action": "REPORT_ONLY", "fn": check_ca_d001},
     "CA-D002": {"category": "drift", "severity": "WARN",
                 "action": "NEEDS_JUDGMENT", "fn": check_ca_d002},
+    "CA-C001": {"category": "contradiction", "severity": "WARN",
+                "action": "REPORT_ONLY", "fn": check_ca_c001},
 }
 
 
