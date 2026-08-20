@@ -6,8 +6,9 @@ aggregation, and shapes the answer. No count is computed here.
 
 What the result says about itself matters as much as the counts. Every store the
 run asked for appears in the summary with what it could actually be read for — the
-two detection routes, and whether a session being broken off was recorded by the
-store or inferred from how much of it failed. A number drawn through a route a
+two detection routes, how much of the store its failures could be read out of, and
+whether a session being broken off was recorded by the store or inferred from how
+much of it failed. A number drawn through a route a
 store cannot read is not a smaller number but a different measurement, and a
 report that cannot tell the two apart will recommend fixing a skill nobody ran.
 
@@ -57,6 +58,10 @@ DEFAULT_STORE = stores.EVERY_STORE
 # How a store's abandonment count was arrived at.
 ABANDONMENT_RECORDED = "recorded"
 ABANDONMENT_INFERRED = "inferred"
+
+# How much of a store its failures could be read out of.
+ERROR_DETECTION_FULL = "full"
+ERROR_DETECTION_PARTIAL = "partial"
 
 NOTHING_FIRED = (
     "no skill firing was found in the period, so there is nothing to score"
@@ -146,6 +151,11 @@ def store_report(
         "structural_route": declared.structural,
         "abandonment": (
             ABANDONMENT_RECORDED if declared.abandonment_signal else ABANDONMENT_INFERRED
+        ),
+        "error_detection": (
+            ERROR_DETECTION_PARTIAL
+            if declared.error_detection_partial
+            else ERROR_DETECTION_FULL
         ),
         "superset_utterance_sessions": superset_sessions.get(reading.name, 0),
     }

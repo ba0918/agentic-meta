@@ -274,6 +274,18 @@ class TestWhatEachStoreCouldBeReadFor(unittest.TestCase):
             self.assertEqual(read[store_claude.NAME]["abandonment"],
                              collect.ABANDONMENT_INFERRED)
 
+    def test_a_store_whose_error_detection_has_a_limit_is_reported_as_partial(self):
+        with tempfile.TemporaryDirectory() as parent:
+            read = self._read(parent)["summary"]["stores"]
+            self.assertEqual(read[store_codex.NAME]["error_detection"],
+                             collect.ERROR_DETECTION_PARTIAL)
+
+    def test_a_store_reading_every_failure_it_holds_is_reported_as_full(self):
+        with tempfile.TemporaryDirectory() as parent:
+            read = self._read(parent)["summary"]["stores"]
+            self.assertEqual(read[store_claude.NAME]["error_detection"],
+                             collect.ERROR_DETECTION_FULL)
+
     def test_a_store_reading_only_real_utterances_counts_no_superset_session(self):
         with tempfile.TemporaryDirectory() as parent:
             read = self._read(parent)["summary"]["stores"]

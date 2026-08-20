@@ -316,7 +316,8 @@ class CodexStore:
     project: str | None = None
     name: str = NAME
     capabilities: Capabilities = Capabilities(
-        text=True, structural=False, abandonment_signal=True
+        text=True, structural=False, abandonment_signal=True,
+        error_detection_partial=True,
     )
 
     def events(self) -> typing.Iterator[Event]:

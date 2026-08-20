@@ -204,11 +204,20 @@ class Capabilities:
     failed — so the declaration is what tells a reader which of two different
     measurements produced an abandonment count, and what stops the inference from
     being applied on top of a store that already said so itself.
+
+    A limit on error detection is declared for the same reason as the missing
+    route, and differs only in reaching part of a store rather than all of it: a
+    store whose failures are recorded one way in newer sessions and another way in
+    older ones can be read for the first and not the second. Left undeclared, its
+    error count would read as the whole of what happened, and a skill would be
+    called clean because the logs holding its failures were the ones nothing could
+    be read from.
     """
 
     text: bool
     structural: bool
     abandonment_signal: bool = False
+    error_detection_partial: bool = False
 
 
 class StoreUnreadable(Exception):

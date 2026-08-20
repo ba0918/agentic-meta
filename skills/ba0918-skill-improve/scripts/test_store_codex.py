@@ -125,6 +125,11 @@ class TestDeclaredCapabilities(unittest.TestCase):
             store = store_codex.CodexStore(root=root)
             self.assertTrue(store.capabilities.abandonment_signal)
 
+    def test_the_store_declares_that_its_error_detection_does_not_reach_every_log(self):
+        with tempfile.TemporaryDirectory() as root:
+            store = store_codex.CodexStore(root=root)
+            self.assertTrue(store.capabilities.error_detection_partial)
+
     def test_the_store_satisfies_the_adapter_contract(self):
         with tempfile.TemporaryDirectory() as root:
             self.assertIsInstance(store_codex.CodexStore(root=root), events.SessionStore)
