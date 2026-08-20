@@ -247,7 +247,8 @@ A harvest is deleted rather than kept, masked or not.
 | A store's location is not there | Already handled: it is reported in `notes`, read as empty, and the run goes on. Carry the absence into the report |
 | `--store` names nothing | The run refuses. Fix the name; do not read it as "no stores" |
 | No firing found in the period | Stop after collection. Say the period and the project filter |
-| Some analysis roles could not start | Two or more: go on with the answers you have, and say which were missing. Fewer than two: stop — one reading is not an analysis |
+| There is no way to start an independent model invocation at all | Degrade: work all four role prompts one after another in the current context, and say so in the report. Not the row below — nothing failed here, the mechanism is simply absent |
+| Roles were started and some did not answer | Go on where two or more answers came back, naming the roles that are missing. With fewer than two answers, stop — one reading is not an analysis |
 | The harvest is refused by a guard | Report that no real-data seeds were produced, and why. Never harvest by another route |
 
 ## Red flags
