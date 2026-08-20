@@ -51,7 +51,8 @@ The grant is exactly this and nothing wider:
 
 Nothing else on the machine is read. Every path is resolved and required to stay inside
 the location it was read from, links included. A store that is not there is reported and
-stepped over, never substituted for by looking somewhere else.
+stepped over, never substituted for by looking somewhere else, and a store that is there
+and cannot be read stops that one reading rather than the run.
 
 ## What each store can be read for
 
@@ -252,6 +253,7 @@ A harvest is deleted rather than kept, masked or not.
 |---|---|
 | The output directory does not exist yet | `collect.py` ends in an uncaught `FileNotFoundError`; `capture.py` refuses, naming the containment rule instead. Create `.agents/tmp/skill-improve-{datetime}/` and run again |
 | A store's location is not there | Already handled: it is reported in `notes`, read as empty, and the run goes on. Carry the absence into the report |
+| A store is there and cannot be read | Already handled: that store's reading stops where it broke, the reason goes in `notes`, and the remaining stores are still read. Carry it into the report separately from an absence — its counts are a floor, not a total |
 | `--store` names nothing | The run refuses. Fix the name; do not read it as "no stores" |
 | No firing found in the period | Stop after collection. Say the period and the project filter |
 | There is no way to start an independent model invocation at all | Degrade: work all four role prompts one after another in the current context, and say so in the report. Not the row below — nothing failed here, the mechanism is simply absent |

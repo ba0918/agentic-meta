@@ -73,7 +73,7 @@ enumerated below.
       "masked": "string — always the whole mask [REDACTED:{type}]"
     }
   ],
-  "notes": ["string — one per store that was asked for and not found"]
+  "notes": ["string — one per store not found, and one per store found and not read to the end"]
 }
 ```
 
@@ -91,6 +91,13 @@ read for, and why, is in [session-stores.md](session-stores.md).
 not find it. That is reported and stepped over, never dropped in silence: an operator
 who mistyped a location and an operator who does not run that runtime would otherwise
 read the same clean result.
+
+A store that was found and could not be read to the end writes its own line in `notes`
+and keeps `present: true`, so the two facts stay apart. They differ in what they say
+about the numbers: an absent store contributed nothing and was never going to, while one
+that broke off part way may have contributed some of what it holds, which makes its
+counts a floor rather than a total. Reading either as a clean measurement of no friction
+is what both lines exist to stop.
 
 `analysis.proceed` is false when the reading found no firing at all. Every friction
 rate divides by the number of firings, so an analysis of nothing produces scores out of
