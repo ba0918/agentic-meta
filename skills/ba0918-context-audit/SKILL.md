@@ -110,9 +110,13 @@ No command is created; being a single workflow, it needs no named entry point.
 
 - **Script paths.** `{skill_dir}` is the directory this skill is installed in, and the
   scripts are called by absolute path. `{project_root}` is the audited project's root.
-- **Keep `{project_root}` equal to the working directory.** It is both the root that
-  references are resolved against and the input the memory directory is derived from; a root
-  pointing elsewhere audits one project against another project's memory.
+- **`{project_root}` is the root of the tree being audited — not necessarily the working
+  directory.** It is both the root references are resolved against and the input the memory
+  directory is derived from. When the audited tree sits below the working directory — a copy
+  handed over for review, one project inside a larger checkout — pass that subdirectory:
+  resolving the references against the outer tree checks the wrong files. Memory follows the
+  same root, so a tree nobody ever worked in under its own path resolves no memory at all,
+  and the run reports that rather than substituting another project's.
 - **`{ts}`** is minted once with `date +%Y%m%d-%H%M%S` and reused across the phases, so a run
   never overwrites an earlier run's artefacts.
 - **Output location.** Every artefact a run produces goes to `.agents/tmp/context-audit/`
