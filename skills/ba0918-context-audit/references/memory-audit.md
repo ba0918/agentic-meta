@@ -67,8 +67,10 @@ absolute directory that was opened.
 `aggregate_report.py` puts it into the report when it is given `--targets`. **Pass that
 argument.** The findings cannot stand in for it: a finding names its file relative to the
 audited project, which for a memory is a parent-relative path, and the mask that runs over
-every finding replaces a home-rooted location with a placeholder. Without `--targets` the
-report can say only that no location was given to it — honest, and useless.
+every finding replaces a home-rooted location with a placeholder — in the spelling a project
+key uses, where the conversion to the key has turned every separator into a hyphen and left
+the home directory's name sitting inside it, as much as in the spelling a path uses. Without
+`--targets` the report can say only that no location was given to it — honest, and useless.
 
 ## The three memory rules
 

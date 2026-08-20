@@ -40,6 +40,10 @@ def _abs(*parts: str) -> str:
 # Assembled so the credential shapes below are not themselves scannable literals.
 AWS_KEY = "AK" + "IA" + "IOSFODNN7" + "EXAMPLE"
 
+# The home root as it is spelt inside a project key, where the conversion to the key has
+# turned every separator into a hyphen. Assembled for the same reason as the paths above.
+HOME_SLUG = "-" + "home"
+
 
 def target(kind, content, path="x.md", category=None):
     if category is None:
@@ -98,6 +102,16 @@ class TestRedactionBeforeSerialization(unittest.TestCase):
                         "old": f"x {AWS_KEY}", "new": "x"})
         out = sc.finalize_findings([finding])
         self.assertNotIn(AWS_KEY, out[0]["fix_action"]["old"])
+
+    def test_the_home_a_project_key_spells_with_hyphens_is_redacted(self):
+        key = HOME_SLUG + "-someuser-develop-proj"
+        finding = sc.make_finding(
+            "CA-M101", "WARN", "NEEDS_JUDGMENT",
+            f".claude/projects/{key}/memory/note.md:2",
+            what="w", why="y", how="h")
+        out = sc.finalize_findings([finding])
+        self.assertNotIn(HOME_SLUG, out[0]["where"])
+        self.assertIn("[REDACTED:home_path]", out[0]["where"])
 
 
 class TestStaleFileReference(unittest.TestCase):

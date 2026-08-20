@@ -68,6 +68,20 @@ def _mask_fix_action(fix_action: dict) -> dict:
     }
 
 
+def _mask_home_inside_project_keys(text: str) -> str:
+    """Mask the operator's home where a project key spells it without separators.
+
+    A memory sits inside the runtime's project store, under a directory named for the
+    working directory with every separator turned into a hyphen — so the home directory,
+    whose name is the operator, survives the credential mask, which looks for the
+    separators that conversion removed. The key is one path segment and the masking is
+    anchored at a key's start, so the text is cut on the separator first and each segment
+    offered on its own.
+    """
+    return "/".join(secret_detect.mask_project_key(segment)
+                    for segment in text.split("/"))
+
+
 def finalize_findings(findings: list[dict]) -> list[dict]:
     """Mask credentials in every text a finding carries, including its fix."""
     masked = []
@@ -75,7 +89,8 @@ def finalize_findings(findings: list[dict]) -> list[dict]:
         out = dict(finding)
         for key in _MASKED_FINDING_FIELDS:
             if isinstance(out.get(key), str):
-                out[key] = secret_detect.mask_secrets(out[key])
+                out[key] = _mask_home_inside_project_keys(
+                    secret_detect.mask_secrets(out[key]))
         if isinstance(out.get("fix_action"), dict):
             out["fix_action"] = _mask_fix_action(out["fix_action"])
         masked.append(out)
