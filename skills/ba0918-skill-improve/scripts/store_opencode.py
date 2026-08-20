@@ -27,6 +27,7 @@ import json
 import pathlib
 import sqlite3
 import typing
+import urllib.parse
 
 from events import (
     Capabilities,
@@ -81,8 +82,21 @@ def connect_readonly(path: pathlib.Path | str) -> sqlite3.Connection:
     The read-only URI, rather than a promise not to issue writes, is what makes a
     stray write fail instead of corrupting the operator's own history. It also
     reads a database the runtime is currently writing to.
+
+    The location is escaped into that URI rather than pasted into it, because the
+    URI's own punctuation is ordinary inside a file name and each piece of it
+    breaks the guarantee differently. Measured on this reader: a name holding `?`
+    had the read-only mode overridden by what followed, so a writable connection
+    opened; a name holding `#` had everything after it discarded, mode and all,
+    which created a different and empty database and read it as holding nothing; a
+    name holding `%` was decoded as an escape and the real file could not be found.
+    Escaping turns all three back into parts of a name. Resolving first keeps a
+    relative location from naming one file here and a different one elsewhere.
     """
-    return sqlite3.connect("file:" + str(path) + "?mode=ro", uri=True)
+    located = pathlib.Path(path).resolve()
+    return sqlite3.connect(
+        "file:" + urllib.parse.quote(str(located), safe="/") + "?mode=ro", uri=True
+    )
 
 
 def from_milliseconds(value: int) -> datetime.datetime:

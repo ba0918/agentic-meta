@@ -58,8 +58,8 @@ def _milliseconds(when):
 class Database:
     """A database shaped like the real one, built row by row for one test."""
 
-    def __init__(self, directory):
-        self.path = os.path.join(directory, "opencode.db")
+    def __init__(self, directory, name="opencode.db"):
+        self.path = os.path.join(directory, name)
         self._connection = sqlite3.connect(self.path)
         self._connection.executescript(SCHEMA)
         self._connection.execute(
@@ -169,6 +169,34 @@ class TestReadOnlyAccess(unittest.TestCase):
                     "INSERT INTO session (id, directory) VALUES ('s-2', 'x')"
                 )
             connection.close()
+
+    def test_a_name_reading_as_a_read_write_request_is_still_opened_read_only(self):
+        with tempfile.TemporaryDirectory() as directory:
+            database = Database(directory, name="x.db?mode=rwc&").session()
+            database.close()
+            connection = store_opencode.connect_readonly(database.path)
+            with self.assertRaises(sqlite3.OperationalError) as refused:
+                connection.execute(
+                    "INSERT INTO session (id, directory) VALUES ('s-2', 'x')"
+                )
+            connection.close()
+            self.assertIn("readonly", str(refused.exception))
+            self.assertFalse(os.path.exists(os.path.join(directory, "x.db")))
+
+    def test_a_name_holding_a_fragment_marker_opens_that_file_and_creates_no_other(self):
+        with tempfile.TemporaryDirectory() as directory:
+            database = Database(directory, name="x#1.db").session()
+            database.close()
+            found = _of_kind(_events_of(database), events.SessionIdentity)
+            self.assertEqual([one.session_id for one in found], ["s-1"])
+            self.assertFalse(os.path.exists(os.path.join(directory, "x")))
+
+    def test_a_name_holding_a_percent_sign_opens_the_file_it_names(self):
+        with tempfile.TemporaryDirectory() as directory:
+            database = Database(directory, name="a%2Fb.db").session()
+            database.close()
+            found = _of_kind(_events_of(database), events.SessionIdentity)
+            self.assertEqual([one.session_id for one in found], ["s-1"])
 
     def test_a_database_that_is_not_there_is_read_as_an_empty_store(self):
         with tempfile.TemporaryDirectory() as directory:
