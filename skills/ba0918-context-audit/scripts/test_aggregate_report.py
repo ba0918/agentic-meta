@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Unit tests for aggregate_report.py (baseline suppression and the report skeleton)."""
 
+import contextlib
 import importlib.util
+import io
 import json
 import os
 import tempfile
@@ -255,6 +257,20 @@ class TestBaselineOverPartOfWhatWasFound(unittest.TestCase):
         kept, suppressed = ar.apply_suppression([heavy, light], written)
         self.assertEqual([f["severity"] for f in kept], ["BLOCK"])
         self.assertEqual(suppressed, 1)
+
+    def test_a_severity_no_finding_can_carry_is_refused_rather_than_acted_on(self):
+        """A cut nothing can fall under produces an empty baseline, which reads exactly
+        like a run that found the project already settled. Refused at the argument."""
+        with tempfile.TemporaryDirectory() as work:
+            findings = Path(work) / "findings.json"
+            findings.write_text(json.dumps({"findings": [finding(severity="INFO")]}),
+                                encoding="utf-8")
+            baseline = Path(work) / "baseline.json"
+            with contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit):
+                    ar.main([str(findings), "--update-baseline", str(baseline),
+                             "--baseline-below", "warn"])
+            self.assertFalse(baseline.exists())
 
     def test_the_baseline_the_script_writes_honours_the_cut_it_was_given(self):
         heavy, light = finding(severity="BLOCK", where="a.md:1"), \

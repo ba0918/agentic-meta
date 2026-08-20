@@ -182,7 +182,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--update-baseline", default=None, metavar="PATH",
                         help="Write the current findings out as the new baseline "
                              "(identifiers only) to PATH and stop")
+    # Bounded at the argument rather than inside findings_below: a severity the ordering
+    # does not know puts nothing into the baseline, and an empty baseline reads exactly
+    # like a project that had nothing worth fixing. The pure function stays as it is,
+    # failing to the safe side for any caller that reaches it another way.
     parser.add_argument("--baseline-below", default=None, metavar="SEVERITY",
+                        choices=sorted(_SEVERITY_RANK, key=_SEVERITY_RANK.get),
                         help="With --update-baseline, put only the findings less grave "
                              "than SEVERITY into the baseline, so the graver ones go on "
                              "being reported")
