@@ -7,10 +7,11 @@ stores are: a binary blob in the repository is an input nobody can review in a
 diff. The builder is committed instead, and the database is produced where the
 run needs it.
 
-Only the four tables the adapter queries are created — project, session,
-message and part. The credential tables of a real OpenCode database have no
-counterpart here, which is also why a scenario can never accidentally exercise
-a read of one.
+Only the three tables the adapter queries are created — session, message and
+part. Everything else the real database holds is left out, the credential tables
+among them, which is why a scenario can never accidentally exercise a read of
+one. A table created and never queried would make this input look as though it
+exercised more of the adapter than it does.
 
 Usage: python3 build_db.py [output-path]   (default: opencode.db beside this file)
 """
@@ -22,16 +23,8 @@ import sqlite3
 import sys
 
 SCHEMA = """
-CREATE TABLE project (
-    id TEXT PRIMARY KEY,
-    worktree TEXT NOT NULL,
-    name TEXT,
-    time_created INTEGER NOT NULL,
-    time_updated INTEGER NOT NULL
-);
 CREATE TABLE session (
     id TEXT PRIMARY KEY,
-    project_id TEXT NOT NULL,
     slug TEXT NOT NULL,
     directory TEXT NOT NULL,
     title TEXT NOT NULL,
@@ -93,15 +86,10 @@ def build(path):
     try:
         connection.executescript(SCHEMA)
         connection.execute(
-            "INSERT INTO project (id, worktree, name, time_created, time_updated)"
-            " VALUES (?, ?, ?, ?, ?)",
-            ("p1", PROJECT_DIRECTORY, "demo", at(0), at(4)),
-        )
-        connection.execute(
             "INSERT INTO session"
-            " (id, project_id, slug, directory, title, version, time_created, time_updated)"
-            " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            ("s1", "p1", "demo-session", PROJECT_DIRECTORY, "config check",
+            " (id, slug, directory, title, version, time_created, time_updated)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?)",
+            ("s1", "demo-session", PROJECT_DIRECTORY, "config check",
              "0.0.0-demo", at(0), at(4)),
         )
         for index, (message_id, role, offset, parts) in enumerate(MESSAGES):
