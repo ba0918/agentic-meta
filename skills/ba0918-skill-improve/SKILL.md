@@ -212,11 +212,14 @@ python3 {skill_dir}/scripts/capture.py \
 - **The record shape is frozen.** Five fields — `ts`, `project`, `user_text_masked`,
   `fired_skill`, `signals` — and two signal names, `slash_fired` and
   `correction_after_skill`. `ba0918-trigger-eval` names all of them in its own body.
-- **Three guards stand before the write, and all three fail closed**: the output must
+- **Four guards stand before the write, and all four fail closed**: the output must
   resolve inside `.agents/tmp` under the working directory; git itself must say the
-  path is ignored, with any answer it cannot decide refused like a negative one; and the
-  file is replaced in one step. A guard that refuses is an answer, not an obstacle — do
-  not work around one by harvesting some other way.
+  path is ignored, with any answer it cannot decide refused like a negative one; the
+  neighbouring name the write lands on first must be created new, so a link or a
+  leftover already sitting there is refused rather than written through; and the file is
+  replaced in one step. A guard that refuses is an answer, not an obstacle — do not work
+  around one by harvesting some other way. A leftover is cleared by removing the file
+  the refusal names, never by harvesting elsewhere.
 - **The masking is a blocklist and is therefore not complete.** A credential shaped
   unlike any pattern it knows survives it. A harvest is sensitive material even after
   masking: treat it that way, and delete it when the run that needed it is done.

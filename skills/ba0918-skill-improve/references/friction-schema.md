@@ -191,8 +191,8 @@ null` described a collector that took its time from a neighbouring record.
 ### The harvest is the one route by which bodies leave a store
 
 Everything else this skill produces is counts and classifications. Here the words
-themselves are written to a file, and three guards stand between a run and a written
-body. All three fail closed:
+themselves are written to a file, and four guards stand between a run and a written
+body. All four fail closed:
 
 1. The output must resolve to a path inside `.agents/tmp` under the working directory.
    Containment is decided on the resolved parent, not on the spelling of the path.
@@ -202,7 +202,15 @@ body. All three fail closed:
    write exactly like a negative one. The repository's ignore file is never read as
    text: anchoring, negation and the directory a pattern is relative to all make a
    hand-rolled reading wrong in the permissive direction.
-3. The write replaces the file in one step, so a reader never sees a partly written
+3. The neighbouring name the write lands on before the replacement must be created
+   new: refused if a link sits there, refused if a file does. Containment above decides
+   the name the harvest is finally given and says nothing about that neighbour, so a
+   link planted under it would carry the bodies wherever it points. Whatever is found
+   there is refused rather than removed first — removing it would let a planted link be
+   replaced and the run go on looking ordinary, and a gate over message bodies must not
+   end in an ordinary-looking run. A leftover from a killed run is refused for the same
+   reason, and the refusal names the file to remove.
+4. The write replaces the file in one step, so a reader never sees a partly written
    harvest and a failed run never destroys a previous one.
 
 **The masking is a blocklist and is therefore not complete.** It replaces what it
