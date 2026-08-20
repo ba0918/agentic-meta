@@ -179,10 +179,10 @@ set of numbers with no way of saying afterwards which set the report carries.
    - Every score came from the formula in
      [references/scoring-guide.md](references/scoring-guide.md). It is the only one, and
      a role that weighed the terms its own way has not scored this measurement.
-   - The report names every confidence downgrade and every qualification that holds,
-     and carries figures,
-     classifications and scores only — never the original text of an utterance or a
-     response, never a session identifier, never a credential even masked. Its schema is
+   - The report names every confidence downgrade and every qualification that holds, and
+     carries figures, classifications and scores only — never the original text of an
+     utterance or a response, never a session identifier, never a credential even
+     masked. Its schema is
      [references/friction-schema.md](references/friction-schema.md).
 4. **Present the hypotheses and stop.** Each carries a target, the change, the expected
    impact, a Small or Large size estimate, and a confidence.
