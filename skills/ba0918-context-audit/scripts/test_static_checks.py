@@ -693,6 +693,16 @@ class TestRuleDispatch(unittest.TestCase):
         out = sc.run_checks([], {"root": "."}, rules=rules)
         self.assertNotIn(AWS_KEY, repr(out))
 
+    def test_the_checks_reported_as_run_are_the_ones_that_were_dispatched(self):
+        """Not the registry read back: what a run is asked for and what it did are two
+        statements, and only the second can report a rule that was listed and skipped."""
+        rules = {"CA-X002": self._rule("CA-X002", "b"),
+                 "CA-X001": self._rule("CA-X001", "a")}
+        audited = sc.run_audit([], {"root": "."}, rules=rules)
+        self.assertEqual(audited["rules_run"], ["CA-X001", "CA-X002"])
+        self.assertEqual([f["id"] for f in audited["findings"]],
+                         ["CA-X001", "CA-X002"])
+
 
 if __name__ == "__main__":
     unittest.main()

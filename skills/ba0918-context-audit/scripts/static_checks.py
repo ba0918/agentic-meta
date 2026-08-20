@@ -745,13 +745,25 @@ RULES: dict[str, dict[str, Any]] = {
 }
 
 
-def run_checks(targets: list[dict], ctx: dict, rules: dict | None = None) -> list[dict]:
-    """Run every listed rule in identifier order and mask what they report."""
+def run_audit(targets: list[dict], ctx: dict, rules: dict | None = None) -> dict:
+    """Run every listed rule in identifier order, and say what ran as well as what it found.
+
+    A rule is recorded once it has returned, not read back off the registry afterwards:
+    the registry says which rules were listed, and a list of what was listed cannot
+    report a rule that was listed and did not run.
+    """
     listed = RULES if rules is None else rules
     findings: list[dict] = []
+    ran: list[str] = []
     for rule_id in sorted(listed):
         findings.extend(listed[rule_id]["fn"](targets, ctx))
-    return finalize_findings(findings)
+        ran.append(rule_id)
+    return {"findings": finalize_findings(findings), "rules_run": ran}
+
+
+def run_checks(targets: list[dict], ctx: dict, rules: dict | None = None) -> list[dict]:
+    """What every listed rule found, masked. For which ones ran, see run_audit."""
+    return run_audit(targets, ctx, rules)["findings"]
 
 
 def build_context(root: str, targets: list[dict]) -> dict:
@@ -792,13 +804,14 @@ def main(argv: list[str] | None = None) -> int:
     data = json.loads(raw)
     targets = _attach_content(data["targets"] if isinstance(data, dict) else data)
     ctx = build_context(args.root, targets)
-    findings = run_checks(targets, ctx)
+    audited = run_audit(targets, ctx)
+    findings = audited["findings"]
 
     rendered = json.dumps(
         # The rules that ran travel with the findings because the report has to say
         # which checks a clean result came out of; a count of zero on its own cannot be
         # told from a check that never happened.
-        {"finding_count": len(findings), "rules_run": sorted(RULES),
+        {"finding_count": len(findings), "rules_run": audited["rules_run"],
          "findings": findings},
         indent=2, ensure_ascii=False)
     if args.output:
