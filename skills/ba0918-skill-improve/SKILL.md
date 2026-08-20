@@ -86,6 +86,10 @@ carries a confidence downgrade rather than a repaired count.
 - Everything a run produces goes to `.agents/tmp/skill-improve-{datetime}/` under the
   working directory — outside whatever tree is being measured, as the run-output clause
   of the fixture contract requires. Nothing is ever written into a skill being analysed.
+- **Create that directory before the first script runs.** Neither script creates it, and
+  neither says so when it is missing: `collect.py` ends in an uncaught
+  `FileNotFoundError`, and `capture.py` refuses with a message naming the containment
+  rule rather than the absent directory.
 - **Write `--project=KEY`, not `--project KEY`.** A project key is a working-directory
   path with every character outside letters, digits and hyphen replaced by a hyphen, so
   it begins with a hyphen and a space-separated value is read as another option.
@@ -107,6 +111,7 @@ carries a confidence downgrade rather than a repaired count.
 ## report — the measurement alone
 
 ```bash
+mkdir -p .agents/tmp/skill-improve-{datetime}
 python3 {skill_dir}/scripts/collect.py \
   --days 30 \
   --project=<project key> \
@@ -195,6 +200,7 @@ The one route by which utterance bodies leave a store, and the only source of re
 seeds for `ba0918-trigger-eval`.
 
 ```bash
+mkdir -p .agents/tmp/skill-improve-{datetime}
 python3 {skill_dir}/scripts/capture.py \
   --days 30 \
   --project=<project key> \
@@ -244,6 +250,7 @@ A harvest is deleted rather than kept, masked or not.
 
 | Situation | What to do |
 |---|---|
+| The output directory does not exist yet | `collect.py` ends in an uncaught `FileNotFoundError`; `capture.py` refuses, naming the containment rule instead. Create `.agents/tmp/skill-improve-{datetime}/` and run again |
 | A store's location is not there | Already handled: it is reported in `notes`, read as empty, and the run goes on. Carry the absence into the report |
 | `--store` names nothing | The run refuses. Fix the name; do not read it as "no stores" |
 | No firing found in the period | Stop after collection. Say the period and the project filter |
