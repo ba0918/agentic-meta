@@ -82,6 +82,12 @@ Confidence is not a smaller score. It says how much the score itself can be reli
 and it is reported beside every score. Three downgrades apply, and they stack: apply
 each one that holds, and name every one applied in the report.
 
+**Confidence outranks the band above.** A skill whose confidence comes out Low is
+recorded with its numbers and its size estimate, and the report says to re-measure rather
+than to change it — whatever band its score fell in. The band describes what a change
+would have to be; the confidence decides whether the score has earned a recommendation at
+all. Reading the band alone would have the report recommend a change off two firings.
+
 ### 1. Sample size
 
 | `invocation_count` | Confidence | Meaning |

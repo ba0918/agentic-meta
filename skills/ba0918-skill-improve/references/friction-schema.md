@@ -212,7 +212,10 @@ figures, classifications and scores.
 - **Invocations:** {count}
 - **Confidence:** High / Medium / Low {and every downgrade applied, with its reason}
 - **Retry Rate:** {retry_count / invocation_count}
-- **Correction Rate:** {correction_turns / invocation_count}
+- **Correction Rate:** {correction_turns / invocation_count} — the raw ratio, followed by
+  the scored contribution in parentheses. The score divides the same count by five times
+  the firings and saturates there, so the two numbers differ by construction; a report
+  showing only the raw ratio reads as though the score disagreed with it
 - **Abandonment Rate:** {session_abandoned_count / invocation_count}
 - **Error Rate:** {tool_error_count / total_turns_to_completion}
 - **Issues:**

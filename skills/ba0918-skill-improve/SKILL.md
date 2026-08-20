@@ -220,9 +220,16 @@ and reconstructing a detection route a store does not have.
 
 ## Cleaning up
 
-Delete `.agents/tmp/skill-improve-{datetime}/` when the run ends, whether it ended well
-or badly. Keep the friction report — it is the deliverable, and it holds no bodies. A
-harvest is deleted rather than kept, masked or not.
+Delete the intermediate files inside `.agents/tmp/skill-improve-{datetime}/` when the run
+ends, whether it ended well or badly: the measurement, the four role answers, and the
+harvest if one ran.
+
+**The friction report stays where it was written, and the directory holding it stays with
+it.** The report is the deliverable, it holds no bodies, and the directory is named after
+the run that produced it. Deleting the directory would take the report with it, which is
+why the instruction above is about what is inside rather than about the directory.
+
+A harvest is deleted rather than kept, masked or not.
 
 ## Error handling
 
