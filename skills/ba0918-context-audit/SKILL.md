@@ -97,8 +97,8 @@ Three places, and nowhere else:
   only what is new. It is an argument of `aggregate_report.py`, which **writes the baseline
   and stops**: that run produces no report. See
   [references/baseline-format.md](references/baseline-format.md).
-- **`--interactive {ts}`** — resume the decisions the run with that timestamp capped. The
-  timestamp is **required and is the one in that run's file names** under
+- **`--interactive {ts}`** — resume the decisions the run with that timestamp left
+  undecided. The timestamp is **required and is the one in that run's file names** under
   `.agents/tmp/context-audit/`: every run writes under a name of its own, so there is no
   "the previous run" for the argument to mean. No script implements this; it is a phase of
   the workflow below.
@@ -287,15 +287,16 @@ report file was written before the first question was asked, so it cannot carry 
 that only exists afterwards.
 
 **Resuming.** `--interactive {ts}` picks the deferred decisions back up. Read
-`.agents/tmp/context-audit/findings-{ts}.json` and the report written beside it, take that
-run's `NEEDS_JUDGMENT` findings in the order above, and **skip the ones it already
-reached**: ten per run at the cap, counted from the start of that order, so a run resumed a
-second time skips twenty. Nothing records which findings were deferred, and nothing needs
-to — the order is fixed by the script and the cap is a number, which together say exactly
-where the last run stopped. **Do not re-run Phases 0 through 3.** Re-running them would
-re-derive findings against a tree the earlier decisions have since changed, and the answers
-already given would be answers to a different set. When the files that run wrote are gone,
-say so and start a fresh run rather than reconstructing them.
+`.agents/tmp/context-audit/findings-{ts}.json` and the report written beside it, and take
+that run's `NEEDS_JUDGMENT` findings in the order above. **Nothing records how many of them
+a person was already shown.** The order is fixed and the cap is ten, so a run that was
+putting questions stopped ten in — but a run with nobody to ask put none, and no artefact
+tells those two apart. Ask which it was; where there is nobody to ask, start from the
+beginning of the order, because putting a decided finding again costs a repeated question
+while skipping one nobody saw loses it in silence. **Do not re-run Phases 0 through 3.**
+Re-running them would re-derive findings against a tree the earlier decisions have since
+changed, and the answers already given would be answers to a different set. When the files
+that run wrote are gone, say so and start a fresh run rather than reconstructing them.
 
 **Reported findings.** Present what, why and how together. For a contradiction, put both
 locations side by side with the classification Phase 2 gave it.
