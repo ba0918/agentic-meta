@@ -10,9 +10,6 @@ files:
   - stores/codex/2026/08/rollout-2026-08-15T10-00-00-demo0001-0000-4000-8000-000000000001.jsonl
   - stores/opencode/build_db.py
 
-exercises:
-  - skills/ba0918-skill-improve/SKILL.md
-
 prompt: |
   Under `stores/` in this directory are session histories collected from three different
   agent runtimes, copied off another machine. They belong to a project other than the one
