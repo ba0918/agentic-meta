@@ -242,7 +242,10 @@ the history that was meant to be read.
 
 - **The record shape is frozen.** Five fields — `ts`, `project`, `user_text_masked`,
   `fired_skill`, `signals` — and two signal names, `slash_fired` and
-  `correction_after_skill`. `ba0918-trigger-eval` names all of them in its own body.
+  `correction_after_skill`. `ba0918-trigger-eval` spells out three of them in its own
+  body — both signals and `user_text_masked` — along with the file it expects them in,
+  and the rest is frozen with them: what it reads is the record, not the three names on
+  their own.
 - **Four guards stand before the write, and all four fail closed**: the output must
   resolve inside `.agents/tmp` under the working directory; git itself must say the
   path is ignored, with any answer it cannot decide refused like a negative one; the

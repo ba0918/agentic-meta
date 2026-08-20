@@ -6,11 +6,14 @@ else this skill produces is counts and classifications; here the words themselve
 are written to a file, and every guard below exists because of that difference.
 
 The record shape is fixed by its reader. The skill that measures whether skills
-fire when they should names these five fields and these two signal names in its own
-body, so a change here is a change to something already promised elsewhere. The
-fields are `ts`, `project`, `user_text_masked`, `fired_skill` and `signals`; the
-signals are `slash_fired`, for an utterance that fired a skill by slash command,
-and `correction_after_skill`, for one made after a skill had fired.
+fire when they should spells out three of these names in its own body — the two
+signals and `user_text_masked` — along with the file it expects to find them in, so
+those spellings are a promise already made elsewhere. The whole record is frozen
+with them rather than only the quoted half: what that skill reads is the record
+those three sit in. The fields are `ts`, `project`, `user_text_masked`,
+`fired_skill` and `signals`; the signals are `slash_fired`, for an utterance that
+fired a skill by a slash command written `/<plugin>:<skill>`, and
+`correction_after_skill`, for one made after a skill had fired.
 
 **The masking is a blocklist and is therefore not complete.** It replaces what it
 recognises — keys, tokens, private keys, addresses, home paths — and a credential

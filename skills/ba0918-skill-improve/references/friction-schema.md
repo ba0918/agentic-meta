@@ -166,9 +166,12 @@ deleted after the run either way.
 
 ## `capture.py` — the prompt harvest
 
-**This shape is frozen.** `ba0918-trigger-eval` names these five fields and these two
-signal names in its own body, and it is that skill's only source of real-data seeds.
-Changing a name here changes something already promised elsewhere.
+**This shape is frozen.** `ba0918-trigger-eval` is its reader, and this is that skill's
+only source of real-data seeds. Three of these names are spelled out in that skill's own
+body — the `slash_fired` and `correction_after_skill` signals and the `user_text_masked`
+field — along with the file it expects to find them in. The record is frozen whole
+rather than only the quoted half: what that skill reads is the record those three names
+sit in, and one whose other fields have moved is not the record it was promised.
 
 One JSONL file, one line per utterance, in the order the utterances were made:
 
