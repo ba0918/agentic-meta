@@ -195,6 +195,13 @@ class TestWhatTheRunCovered(unittest.TestCase):
     def test_the_report_states_that_the_mask_it_relies_on_is_incomplete(self):
         self.assertIn("blocklist", ar.render_markdown(ar.build_report([], None)))
 
+    def test_the_structured_form_states_it_as_well_rather_than_the_prose_form_alone(self):
+        self.assertIn("blocklist", json.dumps(ar.build_report([], None)))
+
+    def test_both_forms_state_it_in_the_same_words(self):
+        report = ar.build_report([], None)
+        self.assertIn(report["mask_is_incomplete"], ar.render_markdown(report))
+
     def test_what_ran_and_what_was_passed_over_come_from_the_two_input_files(self):
         with tempfile.TemporaryDirectory() as work:
             targets = Path(work) / "targets.json"

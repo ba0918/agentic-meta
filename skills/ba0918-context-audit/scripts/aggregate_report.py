@@ -124,6 +124,9 @@ def build_report(findings: list[dict], baseline: dict | None,
         "memory_dir": memory_dir,
         "skipped": skipped,
         "rules_run": rules_run,
+        # Carried in the report rather than added while it is being written out: both
+        # forms are the same report, so the one that is not prose has to state it too.
+        "mask_is_incomplete": MASK_IS_INCOMPLETE,
         "by_severity": counts["by_severity"],
         "groups": [{"rule_id": rule_id, "count": len(group), "findings": group}
                    for rule_id, group in sorted(groups.items())],
@@ -152,7 +155,7 @@ def render_markdown(report: dict) -> str:
     skipped = report.get("skipped")
     if skipped is not None:
         lines.append("targets skipped: " + (", ".join(skipped) if skipped else "none"))
-    lines.append(MASK_IS_INCOMPLETE)
+    lines.append(report.get("mask_is_incomplete", MASK_IS_INCOMPLETE))
     lines.append("")
     for finding in report["findings"]:
         lines.append(f"- [{finding['severity']}/{finding['action']}] "
