@@ -17,7 +17,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · 🔁 recurring gate
 | 3a | Tuning harness | Port `empirical-prompt-tuning` | ✅ |
 | 3b | Regression harness | Port `skill-regression`, redesigned around a root lock and a sized run | ✅ |
 | 4 | Improver | Port `skill-improve` (depends on harnesses; workflow delegation stripped) | ✅ |
-| 5 | Auditor | Port `context-audit` (observed read-only since wave 1) | ⬜ |
+| 5 | Auditor | Port `context-audit` (observed read-only since wave 1) | ✅ |
 
 ## Wave detail
 
@@ -296,18 +296,74 @@ as `accepted-without-run`: what is missing is a completed run, and what is missi
 the executor's side. Across wave 4 the free route finished 1 run in 6, reaching the
 measurement in 5 of them.
 
-### Wave 5 — Auditor ⬜
+### Wave 5 — Auditor ✅
 
-- [ ] Port `context-audit` as `ba0918-context-audit` (its read-only observation
+- [x] Port `context-audit` as `ba0918-context-audit` (its read-only observation
       of this repo starts back in wave 1). Drop its `review-rules.md` references while
       porting: that contract is being retired along with `generate-review-rules`
+
+What the port changed, it changed because of where it landed. Here the instructions are
+split in two — `AGENTS.md` routes, `PROJECT.md` carries the project's own circumstances — so
+an audit reading only the first sees half the layer. `PROJECT.md` joined the allowlist, and
+joined the check for one runtime's tool vocabulary leaking into a file meant to hold for any
+of them; `CLAUDE.md`, being the file one runtime reads, stays outside that check as it
+always did. Two conditions came off with the retired contract: the `review-rules.md` audit,
+and a skip that fired whenever the source repository's own validation script was present.
+The reasoning is in [docs/spec/repository-design.md](docs/spec/repository-design.md).
+
+Reading became a parameter. The source built the memory location out of the home directory
+inside the resolution itself, which the read-scope clause of `fixture-contract` does not
+permit without a grant, and which left no way to exercise the resolution against anything
+but the operator's own store. The home is an argument now, its default is the operator's,
+and the verification that a resolved directory really sits where it should is unchanged.
+What a run actually opened travels into the report as an absolute path, because the place a
+finding names is redacted and a home-relative location is one of the shapes the redaction
+replaces.
+
+The five links into the source's shared directory could not survive the self-containment
+invariant. Three had canonical text here and are declared as contracts and expanded into the
+skill; the rest were written out in the body — the completion conditions, the behaviour when
+the run is headless, and where output goes. Severity and fix wording follows this
+repository's canonical text rather than the source's, which had drifted apart during the
+split.
+
+Two things the port fixed rather than carried. The rule catalogue named a subject-overlap
+threshold neither implementation used — at the documented value the test pinning a partially
+overlapping pair as a candidate fails — so the catalogue states what the code does, and a
+test now holds the catalogue against the registry so the two statements of what a rule is
+cannot drift apart unnoticed. And three functions across the apply and aggregate scripts
+were production code the source shipped with no test at all; they were tested before being
+moved.
+
+One thing surfaced that belongs to the repository rather than to the skill. Two
+self-contained skills may each carry a file of the same name — this port made a second
+`static_checks.py` and a second `secret_detect.py` — and the default test collection then
+hands one skill's module to the other skill's tests, stopping the whole suite at collection.
+The tests here load by path instead. Both this and the duplication forcing it are recorded
+in the spec.
+
+Three scenarios were captured for the acceptance run and checked without a model: staged,
+run through the scripts by hand, and then re-run against a read location that does not exist
+to confirm that every required expectation fails there. **The acceptance run itself has not
+been performed** — it needs a model, and the quota question is open — so the skill has never
+run as a skill, and `regression-lock.json` carries no entry for it.
 
 ## Publishing
 
 The repository has no remote yet and nothing has been pushed. The condition for opening that
 up was fixed on 2026-08-19: **once the wave 5 port is done and the whole set works end to
-end.** Creating the public repository, the first push, and the 0.1.0 tag all wait for that
-point; until then this is a local repository.
+end.**
+
+Half of that condition now holds. The wave 5 port has landed, and the mechanical checks pass
+over the whole repository: the skills' script suites, `verify`, `lint-selfcontain`, the
+Agent Skills validation, and the version declarations agreeing across their three files.
+
+The other half does not. `ba0918-context-audit` has never been run as a skill — its
+scenarios exist and are checked, but the acceptance run itself is still ahead — and wave 4's
+acceptance closed without a completed run of its own. Until the set has been shown to work
+end to end, creating the public repository, the first push and the 0.1.0 tag all continue to
+wait. The version stays at 0.1.0 and unreleased in the meantime; deciding to raise it is
+part of publishing, not of porting.
 
 ## Out of scope here
 

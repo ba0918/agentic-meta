@@ -43,6 +43,24 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   carries a lowered confidence rather than a repaired count. The skill measures and
   recommends; carrying the improvement out is deliberately not its job. Its masked prompt
   harvest is the only source of real-data seeds for `ba0918-trigger-eval`.
+- `ba0918-context-audit` — takes stock of the files that instruct an agent, judged as
+  instructions: `CLAUDE.md`, `AGENTS.md`, `PROJECT.md`, the rules directories, and the
+  project memory carried from one session into the next. Nine deterministic rules make a
+  single pass and report where a reference points at a file that is gone, where one line
+  forbids what the next permits, where wording waives the confirmation before something
+  destructive, where one runtime's tool vocabulary has leaked into a file meant to hold for
+  any of them, and where a memory keeps a value nobody meant to keep. Every finding carries
+  how it may be fixed, and the three answers stay apart: a path correction with a single
+  candidate is automatic, a choice between candidates goes to a person, and a contradiction
+  or a suspected credential is only ever reported. Deleting anything, and rewriting what a
+  body says, are automated by no route at any severity. Whether a pair of opposing lines is
+  a real contradiction is the one judgment a rule is not entitled to make, so the extraction
+  is deliberately generous and the reading is done apart from it — a reading, never an edit.
+  A suspected credential is never transcribed and never masked in place, since masking a
+  live value hides the leak without revoking it, and the baseline that suppresses findings
+  already accepted holds opaque identifiers and nothing else, which is what makes it safe to
+  commit. The memory it reads is one project's, taken as an argument rather than built out
+  of the home directory, and the directory actually opened is named in the report.
 - The contracts these skills are bound to, canonical in `contracts/` and expanded into each
   skill that declares one: `fixture-contract` (how an instrument finds skills in a tree it
   did not write, what it may read while doing so, and where it may write its output),
