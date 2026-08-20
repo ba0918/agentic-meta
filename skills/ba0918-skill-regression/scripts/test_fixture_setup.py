@@ -49,6 +49,13 @@ def _git(dest, *args):
                           text=True, check=True).stdout.strip()
 
 
+def _iso_utc(value):
+    # git >= 2.45 renders a UTC timestamp with a "Z" suffix, older versions with
+    # "+00:00". Both denote the same instant; the assertion is on the instant,
+    # so the suffix difference must not fail it.
+    return value[:-1] + "+00:00" if value.endswith("Z") else value
+
+
 class TestValidateShape(unittest.TestCase):
     def test_minimal_scenario_is_accepted(self):
         self.assertEqual(fixture_setup.validate(_minimal()), [])
@@ -331,9 +338,9 @@ class TestMaterializeIsDeterministic(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             self._materialize(root, "one")
             dest = os.path.join(root, "one")
-            self.assertEqual(_git(dest, "log", "--format=%aI", "-1"),
+            self.assertEqual(_iso_utc(_git(dest, "log", "--format=%aI", "-1")),
                              fixture_setup.FIXED_COMMIT_TIME)
-            self.assertEqual(_git(dest, "log", "--format=%cI", "-1"),
+            self.assertEqual(_iso_utc(_git(dest, "log", "--format=%cI", "-1")),
                              fixture_setup.FIXED_COMMIT_TIME)
 
     def test_two_materializations_agree_on_every_hash(self):
