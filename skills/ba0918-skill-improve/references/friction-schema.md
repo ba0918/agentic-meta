@@ -54,7 +54,7 @@ enumerated below.
   "friction_signals": {
     "{skill_name}": {
       "invocation_count": "integer — firings",
-      "retry_count": "integer — one more than the repeats inside the retry window (scoring-guide.md)",
+      "retry_count": "integer — 0 where nothing repeated, otherwise one more than the repeats inside the retry window, counted per session and summed (scoring-guide.md)",
       "correction_turns": "integer — utterances made after the skill fired",
       "session_abandoned_count": "integer — sessions holding this skill that ended broken off",
       "tool_error_count": "integer — failed tool runs in those sessions",
@@ -173,7 +173,10 @@ field — along with the file it expects to find them in. The record is frozen w
 rather than only the quoted half: what that skill reads is the record those three names
 sit in, and one whose other fields have moved is not the record it was promised.
 
-One JSONL file, one line per utterance, in the order the utterances were made:
+One JSONL file, one line per utterance, in the order the utterances were made **within
+each store** — the stores following one another in the order they are registered, not
+interleaved by time. With more than one store read, the file as a whole is therefore not
+in time order, and a reader that needs one must sort by `ts`:
 
 ```json
 {"ts": "ISO 8601 string, zoned", "project": "string — project key", "user_text_masked": "string — the body with mask_secrets applied", "fired_skill": "string — bare skill name | null", "signals": ["string"]}
