@@ -100,8 +100,11 @@ Two properties are structural rather than advisory:
 - **The connection is opened read-only**, through a URI rather than a promise not to
   issue writes. A stray write fails instead of altering the operator's own history, and
   the database can be read while the runtime is writing to it.
-- **The set of tables read is fixed and named in the module**: `project`, `session`,
-  `message`, `part`. The same database holds the operator's credentials in tables
+- **The set of tables read is fixed and named in the module**: `session`, `message`,
+  `part` — and every one of them is read, so what is declared and what is queried are
+  the same set rather than an upper bound over it. A table declared and never read
+  would widen the claim past what the statements do, which is the direction that makes
+  such a claim worth less. The same database holds the operator's credentials in tables
   beside these; no statement the module can issue mentions one. That is a structural
   guarantee, not a note asking a later reader to be careful.
 

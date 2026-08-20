@@ -43,9 +43,9 @@ The grant is exactly this and nothing wider:
 - **Claude Code** — the per-project session log directory under the operator's home, or
   the directory given as `--claude-root`.
 - **OpenCode** — the runtime's SQLite database under the operator's home, or the file
-  given as `--opencode-db`. Opened read-only, and only the `project`, `session`,
-  `message` and `part` tables are queried. The credential tables in the same database
-  are never named by any statement this skill can issue.
+  given as `--opencode-db`. Opened read-only, and the `session`, `message` and `part`
+  tables are the whole of what any statement names. The credential tables in the same
+  database are never named by any statement this skill can issue.
 - **Codex CLI** — the rollout log directory under the operator's home, or the directory
   given as `--codex-root`.
 
