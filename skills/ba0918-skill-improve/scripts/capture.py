@@ -50,7 +50,7 @@ import sys
 import typing
 
 import stores
-from events import SessionIdentity, SkillInvocation, UserText
+from events import SessionIdentity, SkillInvocation, StoreUnreadable, UserText
 from secret_detect import mask_secrets
 from store_shared import slash_skill_in
 
@@ -304,7 +304,15 @@ def main(argv: list[str] | None = None) -> int:
                 f" {reading.location} — it was read as empty and the run went on",
                 file=sys.stderr,
             )
-        harvested.extend(capture_records(reading.store.events()))
+        try:
+            harvested.extend(capture_records(reading.store.events()))
+        except StoreUnreadable as refusal:
+            print(
+                f"[capture] the {reading.name} store at {reading.location} could not"
+                f" be read ({refusal}) — nothing was harvested from it and the run"
+                " went on",
+                file=sys.stderr,
+            )
 
     try:
         write_records(harvested, resolved)

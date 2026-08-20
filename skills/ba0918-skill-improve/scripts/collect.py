@@ -13,7 +13,10 @@ report that cannot tell the two apart will recommend fixing a skill nobody ran.
 
 A store that is not on this machine is reported and stepped over, never dropped in
 silence: an operator who mistyped a location and an operator who does not run that
-runtime would otherwise read the same clean result.
+runtime would otherwise read the same clean result. A store that is here and cannot
+be read is reported the same way and kept apart from absence — the reading of that
+one store stops where it broke, rather than one runtime's changed schema ending the
+measurement of the other two.
 
 Where the reading found no skill firing at all, the result says so and says the
 analysis should not go on. Every friction rate divides by the number of firings, so
@@ -43,7 +46,7 @@ import typing
 import secret_detect
 import signals
 import stores
-from events import Capabilities, UserText
+from events import Capabilities, StoreUnreadable, UserText
 
 EXIT_OK = 0
 EXIT_REFUSED = 2
@@ -82,6 +85,36 @@ class WatchedForSecrets:
             if isinstance(event, UserText):
                 self._found.extend(secret_detect.detect_secrets(event.text))
             yield event
+
+
+class ReadAsFarAsItGoes:
+    """One store's events, ending that store's reading rather than the whole run.
+
+    An adapter that meets a store it cannot read says so instead of returning
+    nothing, because "here and unreadable" and "not here" are different facts and a
+    reader told only that a store held nothing cannot tell which of the two it is
+    reading. Catching it per store keeps the difference and keeps the run: the
+    reading stops where it broke, the reason is kept for the result, and the stores
+    after it are still read.
+
+    It wraps for the same reason the credential watch does. The aggregation counts
+    friction and knows nothing about where events came from, and teaching it to
+    would put the handling of one storage format into the one layer every store's
+    numbers pass through.
+    """
+
+    def __init__(self, inner, unreadable: dict[str, str]):
+        self.inner = inner
+        self.name = inner.name
+        self.capabilities = inner.capabilities
+        self._unreadable = unreadable
+
+    def events(self) -> typing.Iterator:
+        """Yield the wrapped store's events until it says it cannot be read on."""
+        try:
+            yield from self.inner.events()
+        except StoreUnreadable as refusal:
+            self._unreadable[self.name] = str(refusal)
 
 
 def period_start(days: int, now: datetime.datetime) -> datetime.datetime:
@@ -172,6 +205,25 @@ def absence_notes(readings: list[stores.Reading]) -> list[str]:
     ]
 
 
+def unreadable_notes(
+    readings: list[stores.Reading], unreadable: dict[str, str]
+) -> list[str]:
+    """One note for every store the run found and could not read to the end.
+
+    Kept apart from the absence notes because the two facts differ in what they
+    say about the numbers. A store that is not on this machine contributed nothing
+    and was never going to; a store that broke off may have contributed part of
+    what it holds. The reason is masked like every other text this result carries.
+    """
+    return [
+        f"the {reading.name} store at {shown_location(reading.location)} could not be"
+        f" read to the end ({secret_detect.mask_secrets(unreadable[reading.name])})"
+        " — the reading stopped there and the run went on"
+        for reading in readings
+        if reading.name in unreadable
+    ]
+
+
 def build_result(
     readings: list[stores.Reading],
     aggregate: signals.Aggregate,
@@ -179,6 +231,7 @@ def build_result(
     arguments: argparse.Namespace,
     project: str | None,
     now: datetime.datetime,
+    unreadable: dict[str, str],
 ) -> dict[str, typing.Any]:
     """Shape one reading into the result the analysis reads."""
     scorable = signals.scorable(aggregate.skills)
@@ -212,7 +265,7 @@ def build_result(
             skill: friction_report(friction) for skill, friction in scorable.items()
         },
         "secret_warnings": deduplicate_secrets(found_secrets),
-        "notes": absence_notes(readings),
+        "notes": absence_notes(readings) + unreadable_notes(readings, unreadable),
     }
 
 
@@ -297,10 +350,14 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     found_secrets: list[dict[str, str]] = []
-    aggregate = signals.aggregate(
-        [WatchedForSecrets(reading.store, found_secrets) for reading in readings]
+    unreadable: dict[str, str] = {}
+    aggregate = signals.aggregate([
+        ReadAsFarAsItGoes(WatchedForSecrets(reading.store, found_secrets), unreadable)
+        for reading in readings
+    ])
+    result = build_result(
+        readings, aggregate, found_secrets, arguments, project, now, unreadable
     )
-    result = build_result(readings, aggregate, found_secrets, arguments, project, now)
     write_result(result, arguments.output)
 
     for note in result["notes"]:

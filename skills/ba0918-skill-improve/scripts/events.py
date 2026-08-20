@@ -211,6 +211,23 @@ class Capabilities:
     abandonment_signal: bool = False
 
 
+class StoreUnreadable(Exception):
+    """A store that is on this machine and whose contents could not be read.
+
+    A store that is not here at all is read as an empty one, and the caller already
+    reports the absence. A store that is here and cannot be read — a database in a
+    shape this reader does not know, a schema that has moved on, a location holding
+    something else entirely — is a third case, and reporting it as empty would let
+    one store's trouble read as a clean measurement of no friction.
+
+    It is raised rather than returned so that an adapter needs no way of saying it
+    part way through a stream of events, and it is deliberately not one of the
+    normalized events: those describe what happened in a session, and this
+    describes the reading itself. The caller decides what to do with it; every one
+    of them reports it and goes on to the next store.
+    """
+
+
 @typing.runtime_checkable
 class SessionStore(typing.Protocol):
     """What an adapter offers: a name, its declared capabilities, and its events."""

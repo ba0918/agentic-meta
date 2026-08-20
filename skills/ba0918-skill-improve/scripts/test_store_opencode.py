@@ -204,6 +204,28 @@ class TestReadOnlyAccess(unittest.TestCase):
             self.assertEqual(list(store.events()), [])
 
 
+class TestADatabaseThatCannotBeRead(unittest.TestCase):
+    def test_a_location_holding_no_database_is_refused_as_unreadable(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, "opencode.db")
+            with open(path, "w", encoding="utf-8") as handle:
+                handle.write("this is not a database at all\n")
+            store = store_opencode.OpenCodeStore(db_path=path)
+            with self.assertRaises(events.StoreUnreadable):
+                list(store.events())
+
+    def test_a_database_holding_no_sessions_is_refused_as_unreadable(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, "opencode.db")
+            connection = sqlite3.connect(path)
+            connection.execute("CREATE TABLE something_else (id TEXT)")
+            connection.commit()
+            connection.close()
+            store = store_opencode.OpenCodeStore(db_path=path)
+            with self.assertRaises(events.StoreUnreadable):
+                list(store.events())
+
+
 class TestTablesItQueries(unittest.TestCase):
     def _statements_of_one_reading(self, database):
         recorded = []

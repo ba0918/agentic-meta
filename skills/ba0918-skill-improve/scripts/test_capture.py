@@ -25,6 +25,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import capture
 import events
 import store_claude
+import store_opencode
+import stores
 
 AT = datetime.datetime(2026, 8, 19, 12, 0, tzinfo=datetime.timezone.utc)
 PROJECT = "-w-notes"
@@ -327,6 +329,24 @@ class TestARunOfTheHarvest(unittest.TestCase):
             self.assertNotEqual(code, 0)
             self.assertFalse(os.path.exists(elsewhere))
             self.assertFalse(os.path.islink(output))
+
+    def test_a_store_that_could_not_be_read_does_not_stop_the_harvest(self):
+        with tempfile.TemporaryDirectory() as parent:
+            allowed = _repository(parent)
+            output = os.path.join(allowed, "prompts.jsonl")
+            database = os.path.join(parent, "opencode.db")
+            with open(database, "w", encoding="utf-8") as handle:
+                handle.write("this is not a database at all\n")
+            argv = self._argv(parent, output)
+            argv[argv.index("--store") + 1] = stores.EVERY_STORE
+            argv[argv.index("--opencode-db") + 1] = database
+            complaint = io.StringIO()
+            with contextlib.chdir(parent), contextlib.redirect_stderr(complaint):
+                code = capture.main(argv)
+            self.assertEqual(code, 0)
+            self.assertIn(store_opencode.NAME, complaint.getvalue())
+            written = json.loads(pathlib.Path(output).read_text(encoding="utf-8"))
+            self.assertEqual(written["fired_skill"], "commit")
 
     def test_a_run_refuses_an_output_outside_the_allowed_directory(self):
         with tempfile.TemporaryDirectory() as parent:

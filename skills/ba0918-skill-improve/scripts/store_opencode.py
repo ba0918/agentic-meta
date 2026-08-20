@@ -37,6 +37,7 @@ from events import (
     ROUTE_TEXT,
     SessionIdentity,
     SkillInvocation,
+    StoreUnreadable,
     TURN_ROLES,
     ToolError,
     Turn,
@@ -209,6 +210,14 @@ class OpenCodeStore:
         A database that is not there is an empty store rather than a failure: the
         operator may simply not run this runtime, and one absent store must not
         stop the others from being read.
+
+        A database that is there and cannot be read is neither empty nor fatal.
+        Opening is deferred by this driver, so a location holding something that is
+        not a database, and a database whose session table has moved on, both fail
+        at the first query rather than at the connection — which is where the
+        failure is turned into one the caller can report. Letting it out as it
+        comes would end the whole run: the other stores were read fine, and one
+        runtime's schema change would take their measurement down with it.
         """
         try:
             connection = self.connect(str(self.db_path))
@@ -220,6 +229,8 @@ class OpenCodeStore:
                     session_id=identifier, project=project_slug(directory)
                 )
                 yield from self._session_events(connection, identifier)
+        except sqlite3.Error as unreadable:
+            raise StoreUnreadable(str(unreadable)) from unreadable
         finally:
             connection.close()
 

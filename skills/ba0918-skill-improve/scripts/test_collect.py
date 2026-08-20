@@ -13,6 +13,7 @@ import contextlib
 import io
 import json
 import os
+import sqlite3
 import sys
 import tempfile
 import unittest
@@ -204,6 +205,50 @@ class TestAStoreThatIsNotThere(unittest.TestCase):
         with tempfile.TemporaryDirectory() as parent:
             _, result = self._missing_codex(parent)
             self.assertTrue(result["summary"]["stores"][store_claude.NAME]["present"])
+
+
+class TestAStoreThatIsThereAndCannotBeRead(unittest.TestCase):
+    def _over(self, parent, database):
+        return _run(parent, claude=_claude_root(parent), opencode=database)
+
+    def _not_a_database(self, parent):
+        database = os.path.join(parent, "opencode.db")
+        with open(database, "w", encoding="utf-8") as handle:
+            handle.write("this is not a database at all\n")
+        return database
+
+    def _database_without_sessions(self, parent):
+        database = os.path.join(parent, "opencode.db")
+        connection = sqlite3.connect(database)
+        connection.execute("CREATE TABLE something_else (id TEXT)")
+        connection.commit()
+        connection.close()
+        return database
+
+    def test_a_location_holding_no_database_does_not_stop_the_other_stores(self):
+        with tempfile.TemporaryDirectory() as parent:
+            code, result = self._over(parent, self._not_a_database(parent))
+            self.assertEqual(code, 0)
+            self.assertEqual(result["summary"]["unique_skills_used"], ["commit"])
+
+    def test_a_database_holding_no_sessions_does_not_stop_the_other_stores(self):
+        with tempfile.TemporaryDirectory() as parent:
+            code, result = self._over(parent, self._database_without_sessions(parent))
+            self.assertEqual(code, 0)
+            self.assertEqual(result["summary"]["unique_skills_used"], ["commit"])
+
+    def test_a_store_that_could_not_be_read_is_named_in_the_notes(self):
+        with tempfile.TemporaryDirectory() as parent:
+            _, result = self._over(parent, self._not_a_database(parent))
+            self.assertTrue(
+                any(store_opencode.NAME in note for note in result["notes"]),
+                msg=result["notes"],
+            )
+
+    def test_a_store_that_could_not_be_read_is_not_reported_as_absent(self):
+        with tempfile.TemporaryDirectory() as parent:
+            _, result = self._over(parent, self._not_a_database(parent))
+            self.assertTrue(result["summary"]["stores"][store_opencode.NAME]["present"])
 
 
 class TestWhatEachStoreCouldBeReadFor(unittest.TestCase):
