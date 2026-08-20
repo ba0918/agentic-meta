@@ -1,6 +1,67 @@
 {
   "coverage_exempt": {},
   "skills": {
+    "ba0918-context-audit": {
+      "file_sha256": {
+        "skills/ba0918-context-audit/SKILL.md": "f5d5b3889e5a06d3e1530e0214d8f6ee60b26954204e6419e0d61f7174f1e3ad",
+        "skills/ba0918-context-audit/references/baseline-format.md": "5709687b62c0e62bca251e72f20e5010385e95238e454e35c15e109276b3a668",
+        "skills/ba0918-context-audit/references/memory-audit.md": "f3c976076b146cd39e7148e55420518d2b65074c316d68e3ef5e292136e49f62",
+        "skills/ba0918-context-audit/references/rule-catalog.md": "436c9c63b1b2c587f8bbd8247582cdabbdd0db5bbf8d9beb48e00a32ce874bf6",
+        "skills/ba0918-context-audit/references/vendor/fix-action-taxonomy.md": "13423cbf60274d899d186cca9d5a398f7a1b0e4e4456ec1a1631af7403592aa4",
+        "skills/ba0918-context-audit/references/vendor/fixture-contract.md": "00648ea748a846ba2415fab948c1bec09ee287e36717dcef43754d9ee3903f76",
+        "skills/ba0918-context-audit/references/vendor/severity-and-verdicts.md": "d779066bc837defd9f9a0e4ca000b474670cd9f83803584a2193a4fa9d62997e",
+        "skills/ba0918-context-audit/scripts/__init__.py": "e13cf2d118f0817da5ccbcc55516bb2ca78678d7b23a45339fe8d46fa962d9c7",
+        "skills/ba0918-context-audit/scripts/aggregate_report.py": "723a65f7207612f75672b706b73800a0e83b633df94b1a56f0cd0b62fa05830d",
+        "skills/ba0918-context-audit/scripts/apply_fixes.py": "5f5138e3598e0195d934b91a35a218d7c934f0219627e5887fcaef233e3fef7b",
+        "skills/ba0918-context-audit/scripts/collect_targets.py": "c539a0867d107f3deb1c73042121f1c4b5343a246d857617141e46ee0d57f57b",
+        "skills/ba0918-context-audit/scripts/secret_detect.py": "81a3c6cd53b2eed7ca410d706ebfa9483b31248184be227c9bbb3a4554a1a128",
+        "skills/ba0918-context-audit/scripts/static_checks.py": "2b4cb2ab59e554b942a12abc978f2b2ed4bcba01c48d28eacfaf2c8bef1a7851"
+      },
+      "result": "pass",
+      "scenarios": {
+        "ca-001": {
+          "result": "pass",
+          "scenario_sha256": "7ee516ae89656b6f7319d47fbec11d6d9178010dc45c833c7d8a5652e192c545",
+          "verified": "2026-08-20"
+        },
+        "ca-002": {
+          "result": "pass",
+          "scenario_sha256": "8a4e9061131371bba6a920f3630cb3c2cde674bff2d44ac20055dc2e19d6859f",
+          "verified": "2026-08-20"
+        },
+        "ca-003": {
+          "result": "pass",
+          "scenario_sha256": "cd65f02403f773ba5644fa1eaad1cb8f1a57fd89d75cf81fcd3c85248dddd51f",
+          "verified": "2026-08-20"
+        }
+      },
+      "structural_sha256": {
+        "skills/ba0918-context-audit/SKILL.md": "fc1e6862e6fd8dcc321fc60ec02eebee51c61eaf3eb76ca35a4e178e5c2c1071",
+        "skills/ba0918-context-audit/references/baseline-format.md": "40a804b67addcfcc147def2b62f4c25d037868f919eda12db93393a7d67bd703",
+        "skills/ba0918-context-audit/references/memory-audit.md": "78cf1e995829ed3974da3b757a2574c9b75aa12b91d5c399e8eb34200b2e1f87",
+        "skills/ba0918-context-audit/references/rule-catalog.md": "f81f2727a02ecbc52a6ce8b5fdadffd5f0e3542b5ca64de63d610ca0fe032775",
+        "skills/ba0918-context-audit/references/vendor/fix-action-taxonomy.md": "856194fb7a709fac953382e84ca7d1f62aba208f5bdb138a7d682e0bf6192d1f",
+        "skills/ba0918-context-audit/references/vendor/fixture-contract.md": "c79b37f86e65861109d4c73ded49023e6fdf2b32aebf1e78414ed302b69812fa",
+        "skills/ba0918-context-audit/references/vendor/severity-and-verdicts.md": "39d8b73eb32e23ee7a61e471879b44872f2cb7df191fbd3688ea9a7359f9eff1"
+      },
+      "surface": [
+        "skills/ba0918-context-audit/SKILL.md",
+        "skills/ba0918-context-audit/references/baseline-format.md",
+        "skills/ba0918-context-audit/references/memory-audit.md",
+        "skills/ba0918-context-audit/references/rule-catalog.md",
+        "skills/ba0918-context-audit/references/vendor/fix-action-taxonomy.md",
+        "skills/ba0918-context-audit/references/vendor/fixture-contract.md",
+        "skills/ba0918-context-audit/references/vendor/severity-and-verdicts.md",
+        "skills/ba0918-context-audit/scripts/__init__.py",
+        "skills/ba0918-context-audit/scripts/aggregate_report.py",
+        "skills/ba0918-context-audit/scripts/apply_fixes.py",
+        "skills/ba0918-context-audit/scripts/collect_targets.py",
+        "skills/ba0918-context-audit/scripts/secret_detect.py",
+        "skills/ba0918-context-audit/scripts/static_checks.py"
+      ],
+      "surface_sha256": "285fe0b908244d626bdbba9b195bc6ec0b04eefe2f482a948c4e9ea674c67ff3",
+      "verified": "2026-08-20"
+    },
     "ba0918-skill-improve": {
       "carried_note": "Measurement verified from the run log; the executor never finished. See the acceptance record.",
       "file_sha256": {
