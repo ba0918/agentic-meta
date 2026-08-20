@@ -10,3 +10,274 @@ metadata:
 ---
 
 # ba0918-context-audit
+
+The behaviour of an agent rests on the instruction layer it reads: `CLAUDE.md`, `AGENTS.md`,
+`PROJECT.md`, the rules directory, and the project memory carried from one session into the
+next. That layer decays under long use. References point at files that were deleted. One
+file forbids what another permits. Wording creeps in that waives confirmation before a
+destructive step. Vocabulary belonging to one runtime leaks into a file meant to be
+independent of any. And memory, which nobody reviews, keeps values nobody meant to keep.
+
+This audit takes stock of it. Checking a document against the code it describes, and
+checking documents against each other, belong elsewhere; what this one owns is the files
+that instruct an agent, judged as instructions.
+
+## Architecture
+
+The deterministic work sits in the scripts. This body holds only what a script cannot: the
+sequencing of the phases, the one classification a rule is not entitled to make, and the
+confirmation before anything is applied. **No decision procedure belongs here.**
+
+| Script | Role |
+|---|---|
+| `scripts/collect_targets.py` | Finds the audit targets by allowlist, and resolves the project's memory directory |
+| `scripts/static_checks.py` | The rule engine: the `RULES` registry and its dispatcher. Emits the findings |
+| `scripts/apply_fixes.py` | Findings plus a file's content to new content. Idempotent, and a body's bytes are left as they were |
+| `scripts/aggregate_report.py` | Findings plus a baseline to a summary-first report. Also writes the baseline |
+| `scripts/secret_detect.py` | Detection and masking of credentials. A byte-identical copy of the one `ba0918-skill-improve` carries |
+
+Reference material (progressive disclosure):
+
+- The rules, one row each: [references/rule-catalog.md](references/rule-catalog.md)
+- Auditing memory, and the constraints on it: [references/memory-audit.md](references/memory-audit.md)
+- The baseline's format and operation: [references/baseline-format.md](references/baseline-format.md)
+- What a severity means: [references/vendor/severity-and-verdicts.md](references/vendor/severity-and-verdicts.md)
+- What the three fix actions mean: [references/vendor/fix-action-taxonomy.md](references/vendor/fix-action-taxonomy.md)
+- The clause bounding what an instrument may read: [references/vendor/fixture-contract.md](references/vendor/fixture-contract.md)
+
+## What this reads, and the permission to read it
+
+**Invoking this skill is the explicit grant the read-scope clause of
+[references/vendor/fixture-contract.md](references/vendor/fixture-contract.md) requires.**
+That clause bounds an instrument to its own directory, the tree it audits, and the area it
+writes to, and demands a grant stated in the invocation before it reads anything else the
+executing user has on the machine.
+
+The grant is exactly this and nothing wider:
+
+- **The project's own instruction files** — the audited project's `CLAUDE.md`, `AGENTS.md`
+  and `PROJECT.md`, and the Markdown in its `.claude/rules/` and `rules/` directories.
+- **One project's memory** — the memory directory belonging to the project the audit was
+  pointed at, found under the operator's home or under the directory given as `--home`.
+  **One project's.** Reading across projects is not supported, and no argument enables it.
+- **The installation-wide instruction file and rules directory**, under that same home, and
+  only when `--include-global` is given.
+
+Nothing else on the machine is read. The memory directory is derived from the working
+directory and then verified to sit where it should before anything is opened; where that
+check does not hold it is skipped unread rather than guessed at. The derivation, its failure
+modes, and the constraints on what may leave a memory are in
+[references/memory-audit.md](references/memory-audit.md).
+
+## Arguments
+
+- **No argument** — audit the project's instruction files and the memory belonging to it.
+- **`--include-global`** — also audit the installation-wide instruction file and rules
+  directory. A deliberate widening of what is read, never a default.
+- **`--update-baseline`** — fix the current findings as the baseline, so later runs present
+  only what is new. It is an argument of `aggregate_report.py`, which **writes the baseline
+  and stops**: that run produces no report. See
+  [references/baseline-format.md](references/baseline-format.md).
+- **`--interactive`** — resume the decisions a previous run capped and sent to its report.
+  No script implements this; it is a phase of the workflow below.
+
+No command is created; being a single workflow, it needs no named entry point.
+
+## Execution contract
+
+- **Script paths.** `{skill_dir}` is the directory this skill is installed in, and the
+  scripts are called by absolute path. `{project_root}` is the audited project's root.
+- **Keep `{project_root}` equal to the working directory.** It is both the root that
+  references are resolved against and the input the memory directory is derived from; a root
+  pointing elsewhere audits one project against another project's memory.
+- **`{ts}`** is minted once with `date +%Y%m%d-%H%M%S` and reused across the phases, so a run
+  never overwrites an earlier run's artefacts.
+- **Output location.** Everything a run produces goes to `.agents/tmp/context-audit/` under
+  the audited project. **Create that directory before the first script runs** — no script
+  creates it. The baseline is the exception and goes to
+  `.agents/config/context-audit-baseline.json`, which is committed while the rest is not.
+- This is not the placement a skill measuring *another* tree uses. Here the tree under audit
+  is the invoking project itself — that is what keeping the root equal to the working
+  directory means — so the run's scratch area and the audited tree are the same place, and
+  writing outside it would leave one project's artefacts in another. The fixture contract is
+  invoked above for its read scope, which does bind this skill.
+
+### When there is nobody to ask
+
+Running headless, or as a subagent, no question has an answer.
+
+- **An explicit instruction from the user outranks everything below.** Where one already
+  says which way to go — "take the current state as the baseline" is option (a) of the
+  first-run choice — follow it.
+- Absent one, **fall to the side that changes no state.** Emit the full report. Do not write
+  the baseline. Apply neither the automatic fixes nor the decisions, and **send both to the
+  report instead** — with the decisions in a frame of their own, so a finding waiting on a
+  person is not read as one that was only ever informational.
+
+## Workflow
+
+### Phase 0 — Discovery
+
+```bash
+mkdir -p .agents/tmp/context-audit
+python3 {skill_dir}/scripts/collect_targets.py {project_root} \
+  --output .agents/tmp/context-audit/targets-{ts}.json
+```
+
+Add `--include-global` when it was asked for, and `--home` when the memory store to read is
+not the operator's own.
+
+- The targets come from an allowlist, so an area nobody thought about cannot leak in: the
+  project's `CLAUDE.md`, `AGENTS.md` and `PROJECT.md`, the Markdown of `.claude/rules/` and
+  `rules/`, and the project's memory. Copies nested deeper in the tree, and archival areas
+  such as `.agents/artifacts/`, sit outside it.
+- A target that is not there is a normal state: it is recorded among `skipped` and the run
+  carries on. So is a file that cannot be read or decoded — one of them never ends the run.
+- **Read `memory_dir` in the output before going on.** It says which memory directory was
+  opened, or that none was. A run that resolved none audits the instruction files only, and
+  the report has to say so.
+- **Check whether the baseline file exists**, and where it does not, present the first-run
+  choice below.
+
+#### The first run
+
+A project audited for the first time has no baseline, so every finding it has accumulated
+since it began arrives at once. Do not simply hand that over. Ask which of three:
+
+- **(a) Take the current state as the baseline**, and report only what appears after it.
+- **(b) Triage** — present the heaviest findings now, and baseline the rest.
+- **(c) The full report**, with no baseline written.
+
+### Phase 1 — Static checks
+
+```bash
+python3 {skill_dir}/scripts/static_checks.py \
+  .agents/tmp/context-audit/targets-{ts}.json --root {project_root} \
+  --output .agents/tmp/context-audit/findings-{ts}.json
+```
+
+- Every rule in the registry runs in one pass. The rules are defined in
+  [references/rule-catalog.md](references/rule-catalog.md); which one fired, how serious it
+  is, and whether its fix may be automated are decided here and **nowhere else in this
+  workflow**.
+- Every finding carries `id`, `severity`, `action`, `where`, `what`, `why`, `how` and
+  `fix_action`, and the credential mask runs over the text of every one of them before they
+  are written out.
+
+### Phase 2 — The classification only a reading can make
+
+CA-C001 extracts pairs of claims pointing opposite ways about one subject. The extraction is
+deliberately generous — it would rather offer a pair that turns out to be fine than miss a
+real conflict — and deciding which a pair is, is this phase.
+
+Classify each candidate as **a real contradiction**, **a deliberate difference**, **already
+settled by one file taking precedence over the other**, or **undecidable**. Record the
+classification. **Change nothing**: this phase produces a reading, not an edit.
+
+- **With no candidates, skip the phase entirely.** There is nothing to read.
+- **What goes into the reading is the finding's own `what` and nothing else** — already
+  masked, already cut down to the two claim lines. The files those lines came from, the
+  content around them, and anything identifying a person, do not travel with it.
+
+### Phase 3 — Aggregate
+
+```bash
+python3 {skill_dir}/scripts/aggregate_report.py \
+  .agents/tmp/context-audit/findings-{ts}.json \
+  --targets .agents/tmp/context-audit/targets-{ts}.json \
+  --baseline .agents/config/context-audit-baseline.json \
+  --markdown \
+  --output .agents/tmp/context-audit/report-{ts}.md
+```
+
+- **`--targets` is not optional.** It is what puts the memory directory that was actually
+  read into the report; without it the report can say only that no location was given to it.
+- Suppression, the counts and the ordering are the script's. It carries each finding's fix
+  action through untouched — recomputing it here would produce a second opinion with no way
+  of saying afterwards which one the report shows.
+- A suppressed finding appears in the count. Never drop one quietly.
+- Drop `--markdown` for the structured form, which carries the same report as JSON.
+
+### Phase 4 — Apply, decide, report
+
+**Automatic fixes.** Show them, then apply them together:
+
+```bash
+python3 {skill_dir}/scripts/apply_fixes.py \
+  .agents/tmp/context-audit/findings-{ts}.json
+python3 {skill_dir}/scripts/apply_fixes.py \
+  .agents/tmp/context-audit/findings-{ts}.json --write
+```
+
+The first form changes nothing and says how many files would change. That count, and the
+difference each fix makes, is what the confirmation is asked over. Only `--write` edits
+anything.
+
+**Decisions.** Group them by rule and by kind of fix, and offer each group as a group
+("apply these path corrections together / go through them one at a time / skip them").
+
+**Cap the decisions at ten per run.** Past that, stop asking and send the remainder to the
+report: a person asked thirty questions in a row stops reading them, and an answer given
+that way is worse than no answer at all. The report states how many were deferred, so the
+number is a fact about the run rather than a silence.
+
+**Resuming.** `--interactive` picks the deferred decisions back up. It reads the findings a
+previous run already wrote in `.agents/tmp/context-audit/` and starts from the first that
+was deferred; it does not re-run Phases 0 through 3. Re-running them would re-derive
+findings against a tree the earlier decisions have since changed, and the answers already
+given would be answers to a different set. When the files that run wrote are gone, say so
+and start a fresh run rather than reconstructing them.
+
+**Reported findings.** Present what, why and how together. For a contradiction, put both
+locations side by side with the classification Phase 2 gave it.
+
+## Critical rules
+
+- **Deleting anything, and rewriting what a body says, are never automated** — by any route,
+  at any severity. An automatic fix is only ever a path correction whose candidate is
+  unique, or a frontmatter line normalised with the body's bytes unchanged. In doubt, fall
+  to a decision, and from there to a report.
+- **A run is bounded to one project's memory.** Widening it is the incident the scope exists
+  to prevent.
+- **A suspected secret is never transcribed and never masked in place.** What travels is the
+  kind and the place. Masking the value inside the file would hide the leak without revoking
+  it.
+- **The mask is a blocklist and therefore incomplete.** A credential shaped unlike anything
+  it knows passes through it. Say so wherever masked text is handed onward, the report
+  included.
+- **The report says what was actually read** — the memory directory by its absolute path,
+  the targets that were skipped, and the number suppressed. A file nobody read cannot be
+  reported as clean.
+- **Where no rule fired, report that no rule fired.** Do not manufacture something to show.
+
+## Completion conditions
+
+- Phases 0 through 3 have run, and Phase 4 has disposed of every finding: applied, decided,
+  deferred to the report with a count, or reported.
+- The report exists, leads with its counts, and names the memory directory that was read.
+- The baseline was written exactly when it was asked for, and not otherwise.
+- The report names the checks that ran, what they found, and what was left unchecked. A
+  completion claim standing on anything but a command run in this session and its output is
+  not a completion claim.
+
+## Handling failures
+
+- **A script fails to run**: report the error and carry on to the next phase with whatever
+  was collected. Partial findings are worth more than none.
+- **A target cannot be read or decoded**: `collect_targets.py` records it among the skipped.
+  Repeat that in the report.
+- **The memory directory does not resolve**: audit the instruction files, and say in the
+  report that no memory was read.
+- **Every phase fails**: emit an error report holding whatever could be collected.
+
+## Tests
+
+The scripts' pure functions are covered by the suites sitting beside them:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 uv run --with pytest pytest {skill_dir}/scripts -q
+```
+
+`test_catalog_sync.py` is the one worth naming: it holds
+[references/rule-catalog.md](references/rule-catalog.md) against the registry in
+`static_checks.py`, so the two statements of what a rule is cannot drift apart unnoticed.
