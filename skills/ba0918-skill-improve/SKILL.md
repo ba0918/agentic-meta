@@ -109,7 +109,7 @@ carries a confidence downgrade rather than a repaired count.
 | "just the numbers" / "give me the raw data" | **report** |
 | "harvest the prompts" / a `ba0918-trigger-eval` run asking for real-data seeds | **capture** |
 
-## report — the measurement alone
+## Workflow: report — the measurement alone
 
 ```bash
 mkdir -p .agents/tmp/skill-improve-{datetime}
@@ -154,7 +154,7 @@ Widen the period with --days, or check the project filter.
 Every friction rate divides by the number of firings, so an analysis of nothing
 produces scores out of nothing. Do not go on.
 
-## analyze — the friction analysis (default)
+## Workflow: analyze — the friction analysis (default)
 
 **Scoring and writing the report belong to the roles, not to this list.**
 friction-detector scores; the integrating role writes the report from the four answers
@@ -196,7 +196,7 @@ Coverage limits: {routes unavailable, counts resting on an inference}
 Report: .agents/tmp/skill-improve-{datetime}/friction-report.md
 ```
 
-## capture — the prompt harvest
+## Workflow: capture — the prompt harvest
 
 The one route by which utterance bodies leave a store, and the only source of real-data
 seeds for `ba0918-trigger-eval`.
