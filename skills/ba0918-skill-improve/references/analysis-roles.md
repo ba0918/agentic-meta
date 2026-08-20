@@ -66,9 +66,16 @@ classifying them.
 
 ## The context each role is given
 
+Each prompt below declares what it is handed, and a role is handed exactly that. A
+prompt naming a file the role was not given would send a sub-executor looking for
+something it may have no way to open.
+
 1. The measurement (`context.json`), whole.
 2. For the roles that need it, the `SKILL.md` of the skill under analysis.
-3. Its own role prompt, from below.
+3. The reference document its own prompt works from: the scoring guide for
+   friction-detector, the friction schema for the integrating role. Handed over as
+   contents, not as a name to go and find.
+4. Its own role prompt, from below.
 
 ## 1. friction-detector
 
@@ -81,13 +88,16 @@ patterns.
 ## Input
 {contents of context.json}
 
+## The scoring guide
+{contents of scoring-guide.md}
+
 ## Analysis instructions
 1. Identify the skills with a high retry_count, and classify what kind of cause the
    runs of consecutive firings point to.
 2. Identify the skills with a high correction_turns, and infer what those correction
    utterances are reacting to.
-3. Compute each skill's friction score by the formula in scoring-guide.md. Do not
-   invent a formula of your own, and do not adjust the weights.
+3. Compute each skill's friction score by the formula in the scoring guide above. Do
+   not invent a formula of your own, and do not adjust the weights.
 4. Assign a confidence by the same guide, applying both downgrades that hold: sample
    size, and `confidence_downgraded` / `stores_without_structural`. Name each one you
    applied. `stores_with_inferred_abandonment` and
@@ -118,7 +128,8 @@ Write the result to {output_path} as the following JSON:
 The score formula lives in [scoring-guide.md](scoring-guide.md) and nowhere else. The
 collector this was ported from carried a second, different formula inline in this
 prompt, which meant the same measurement produced two scores depending on which
-document a reader happened to follow. One home, and this prompt points at it.
+document a reader happened to follow. One home, and this prompt is handed that home's
+contents rather than a formula restated here.
 
 ## 2. pattern-analyzer
 
@@ -250,8 +261,12 @@ Reads the four answers and writes the friction report. The report's schema is in
 [friction-schema.md](friction-schema.md); this role composes, it does not re-judge.
 
 ```
+## The friction schema
+{contents of friction-schema.md}
+
+## Instructions
 Read the four JSON answers in the run's scratch directory and write the friction report
-as friction-report.md, following the schema in friction-schema.md.
+as friction-report.md, following the report schema above.
 
 Rules:
 - Use the scores friction-detector computed. Do not recompute or adjust them.
