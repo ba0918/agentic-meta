@@ -260,9 +260,19 @@ class TestTablesItQueries(unittest.TestCase):
             self.assertTrue(read)
             self.assertTrue(read.issubset(set(store_opencode.TABLES_READ)), read)
 
-    def test_the_declared_tables_are_the_four_that_hold_no_credentials(self):
+    def test_every_table_it_declares_is_one_it_actually_reads(self):
+        with tempfile.TemporaryDirectory() as directory:
+            database = (Database(directory).session()
+                        .message().text_part("p-1", "hello"))
+            database.close()
+            read = set()
+            for statement in self._statements_of_one_reading(database):
+                read.update(re.findall(r"(?:from|join)\s+([a-z_]+)", statement.lower()))
+            self.assertEqual(set(store_opencode.TABLES_READ) - read, set())
+
+    def test_the_declared_tables_are_the_three_that_hold_no_credentials(self):
         self.assertEqual(
-            set(store_opencode.TABLES_READ), {"project", "session", "message", "part"}
+            set(store_opencode.TABLES_READ), {"session", "message", "part"}
         )
 
 

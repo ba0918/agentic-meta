@@ -48,9 +48,11 @@ from store_shared import slash_skill_in
 
 NAME = "opencode"
 
-# The whole set of tables this adapter may read. The credential-holding tables of
-# the same database are outside it, and no statement below names one.
-TABLES_READ = ("project", "session", "message", "part")
+# The whole set of tables this adapter may read, and every one of them is read. The
+# credential-holding tables of the same database are outside it, and no statement
+# below names one. A table declared and never read would widen that claim past what
+# the statements do, which is the direction that makes such a claim worth less.
+TABLES_READ = ("session", "message", "part")
 
 SESSIONS_SQL = "SELECT id, directory, time_updated FROM session ORDER BY time_created"
 MESSAGES_SQL = (
