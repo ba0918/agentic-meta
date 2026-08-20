@@ -255,6 +255,24 @@ class TestTheGateOnWritingBodies(unittest.TestCase):
                 capture.output_is_git_ignored(pathlib.Path(parent) / "prompts.jsonl")
             )
 
+    def test_a_path_is_refused_where_git_itself_cannot_be_run(self):
+        with tempfile.TemporaryDirectory() as parent:
+            allowed = _repository(parent)
+            without_tools = os.path.join(parent, "no-tools")
+            os.makedirs(without_tools)
+            previous = os.environ.get("PATH")
+            os.environ["PATH"] = without_tools
+            try:
+                decided = capture.output_is_git_ignored(
+                    pathlib.Path(allowed) / "prompts.jsonl"
+                )
+            finally:
+                if previous is None:
+                    os.environ.pop("PATH", None)
+                else:
+                    os.environ["PATH"] = previous
+            self.assertFalse(decided)
+
     def test_a_path_no_repository_can_judge_is_refused_with_something_to_act_on(self):
         with tempfile.TemporaryDirectory() as parent:
             complaint = io.StringIO()
