@@ -277,5 +277,5 @@ A harvest is deleted rather than kept, masked or not.
 
 - [references/session-stores.md](references/session-stores.md) — the three stores, what each can be read for, and the measurements behind every refusal to guess
 - [references/friction-schema.md](references/friction-schema.md) — the measurement JSON, the frozen harvest record, and the report's schema and forbidden fields
-- [references/scoring-guide.md](references/scoring-guide.md) — the score, the thresholds, what the report recommends, and the three confidence downgrades
+- [references/scoring-guide.md](references/scoring-guide.md) — the score, the thresholds, what the report recommends, and the two confidence downgrades with the two qualifications that do not move it
 - [references/analysis-roles.md](references/analysis-roles.md) — the four roles, their prompts and schemas, and the sequential degradation
