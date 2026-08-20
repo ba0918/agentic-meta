@@ -122,9 +122,15 @@ in the report which store forced it.
 
 A store with no structural route cannot observe a skill the agent fired on its own;
 only one the operator typed as a slash command is visible there. The firing count from
-such a store is therefore systematically incomplete, and every rate divides by it. An
-incomplete denominator inflates every rate built on it, so the resulting score
-overstates friction rather than understating it.
+such a store is therefore systematically incomplete.
+
+**Which way that moves the score is not known, and a report must not claim it.** An
+undetected firing does not reach every rate — three of the four divide by the firing
+count and `error_rate` divides by turns instead — and where it does reach, it is absent
+from the numerator too: the retries of a firing nobody saw, and the utterances that
+followed it, go missing along with the firing. Saying which effect wins would take a
+measurement nobody has made. What is measured is that the count is incomplete, which is
+enough on its own: this score is not comparable with one drawn where both routes work.
 
 Never repair this by estimating the missing firings. The measurement refuses that
 inference for a reason recorded with its evidence in
