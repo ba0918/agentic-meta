@@ -16,9 +16,9 @@ enumerated below.
   "summary": {
     "collection_timestamp": "ISO 8601 string, zoned",
     "days": "integer — the period asked for",
-    "project_filter": "string (project key) | null when every project was read",
+    "project_filter": "string (project key, the operator's home masked) | null when every project was read",
     "all_projects": "boolean",
-    "projects_scanned": ["string — project key"],
+    "projects_scanned": ["string — project key, the operator's home masked"],
     "stores": {
       "{store_name}": {
         "location": "string — where it was read, the operator's home masked",
@@ -43,7 +43,7 @@ enumerated below.
   "sessions": [
     {
       "store": "string",
-      "project": "string — project key",
+      "project": "string — project key, the operator's home masked",
       "turns": "integer",
       "tool_errors": "integer",
       "abandoned": "boolean",
@@ -151,7 +151,18 @@ credential masking exists to remove. A row that cannot be named is still fully u
 what each session showed is what the rows are for.
 
 The `location` field survives that reasoning because it is masked on the way out,
-through the same masker every harvested body passes through.
+through the same masker every harvested body passes through. Every project key in the
+measurement is masked the same way. A key is a working directory with its separators
+turned into hyphens, so the operator's home directory — whose name is the operator —
+survives inside it, and survives the ordinary masking too, which looks for the
+separators the conversion removed. Masking the locations and leaving the keys would put
+the operator's name back on every session row of a file written to be pasted into a
+report. Only a key beginning at the home root is masked: an unanchored match would
+redact a hyphenated word sitting in the middle of a project's own name.
+
+The harvest is deliberately not masked this way. Its keys are what another skill joins
+its records to the measurement by, and a harvest is treated as sensitive material and
+deleted after the run either way.
 
 ## `capture.py` — the prompt harvest
 
