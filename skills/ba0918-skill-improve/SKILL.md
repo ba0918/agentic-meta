@@ -129,7 +129,8 @@ Read the result and show its summary:
 Project: {project_filter} (all projects: {true/false})
 Projects scanned: {count}
 Period: {days} days
-Stores: {per store — present, text, structural, abandonment recorded or inferred}
+Stores: {per store — present, text, structural, abandonment recorded or inferred,
+        error detection full or partial}
 Sessions: {sessions_found}
 Skill invocations: {total_skill_invocations}
 Unique skills: {unique_skills_used}

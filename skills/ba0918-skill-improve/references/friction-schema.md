@@ -26,6 +26,7 @@ enumerated below.
         "text_route": "boolean — can slash-command firings be read here",
         "structural_route": "boolean — can tool-recorded firings be read here",
         "abandonment": "string — recorded | inferred",
+        "error_detection": "string — full | partial",
         "superset_utterance_sessions": "integer — sessions whose utterances could only be read as a superset"
       }
     },
@@ -86,6 +87,12 @@ The per-skill fields carry the same fact down to where it is used:
 `stores_without_structural` names which store forced the downgrade, and
 `confidence_downgraded` is the flag the scoring guide reads. What each store can be
 read for, and why, is in [session-stores.md](session-stores.md).
+
+`error_detection` is `partial` where a store's failures can be read out of only part of
+its history, so `tool_error_count` from that store is an under-count and `error_rate`
+built on it is a floor. It is declared as a field rather than left to the prose for the
+same reason the two routes are: a limit an analysis has to notice cannot depend on a
+reader having opened this document.
 
 `present: false` and a matching line in `notes` mean the run asked for a store and did
 not find it. That is reported and stepped over, never dropped in silence: an operator
@@ -210,8 +217,8 @@ figures, classifications and scores.
 {one to three lines, quantitative. No original text}
 
 ## Detection coverage
-| Store | Present | text | structural | Abandonment | Notes |
-|---|---|---|---|---|---|
+| Store | Present | text | structural | Abandonment | Error detection | Notes |
+|---|---|---|---|---|---|---|
 
 ## Skill Rankings (by friction score)
 | Rank | Skill | Friction Score | Invocations | Confidence | Top Issue | Recommendation |
