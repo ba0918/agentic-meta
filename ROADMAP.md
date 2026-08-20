@@ -16,7 +16,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started · 🔁 recurring gate
 | G | Gate | Re-evaluate remaining ports with pilot measurements | 🔁 |
 | 3a | Tuning harness | Port `empirical-prompt-tuning` | ✅ |
 | 3b | Regression harness | Port `skill-regression`, redesigned around a root lock and a sized run | ✅ |
-| 4 | Improver | Port `skill-improve` (depends on harnesses; workflow delegation stripped) | ⬜ |
+| 4 | Improver | Port `skill-improve` (depends on harnesses; workflow delegation stripped) | ✅ |
 | 5 | Auditor | Port `context-audit` (observed read-only since wave 1) | ⬜ |
 
 ## Wave detail
@@ -193,11 +193,74 @@ calibration corpus did — it is what proves a judging model can still tell an a
 scenario from an unaffected one, and it measures the model rather than any target, so it
 travels with the instrument.
 
-### Wave 4 — Improver ⬜
+### Wave 4 — Improver ✅
 
-- [ ] Port `skill-improve` as `ba0918-skill-improve` with workflow delegation
+- [x] Port `skill-improve` as `ba0918-skill-improve` with workflow delegation
       removed: measurement and proposals in core, application degrades to
       report-only without workflow
+
+The workflow delegation came off as planned — the source ended by handing small changes to
+one improvement workflow and large ones to another, and the port stops at the report. The
+Small / Large size estimate stays, because sizing a change is measurement information;
+naming who performs it is not.
+
+What the port did not anticipate was the reading side. The source read one store — Claude
+Code's per-project JSONL — through a hardcoded home path, which collides with supporting
+four distribution routes equally. Measuring the three runtimes actually present in this
+environment showed they do not differ in dialect but in storage: **OpenCode keeps its
+history in a SQLite database**, not in text records, and Codex writes rollout JSONL of a
+different shape again. A file-reading function and a database query do not live in the
+same module, so the port separated reading from analysis: an adapter per store yields five
+normalized events (six, once session abandonment was added), and the friction aggregation
+never learns a storage format.
+
+Three refusals to guess came out of measuring those stores, and each is recorded with the
+count behind it:
+
+- **Codex has no structural detection route.** Across 114,117 records not one tool name
+  corresponds to a skill call. The available inference — reading a firing out of a shell
+  command string — is refused: 33% of recorded commands mention a skill directory, which
+  is a command that read or wrote a skill's files rather than one that fired it.
+- **Codex error detection reaches newer logs only.** `exec_command_end` appears 1,074
+  times against roughly 17,000 call-output records; older generations bury a failure in
+  the output body with no exit status beside it.
+- **Codex records each utterance twice.** 1,708 of 1,753 typed-message digests also appear
+  on the message route, which is a superset carrying tool output. Counting both would have
+  doubled every correction turn from that store.
+
+Each adapter therefore declares which routes it can be read along, the declaration travels
+into the report, and a skill seen only through a store without the structural route
+carries a lowered confidence rather than a repaired count. The invariant this rests on is
+now in [docs/spec/repository-design.md](docs/spec/repository-design.md).
+
+Two defects surfaced that the source also had, and both were fixed rather than carried:
+
+- **Turns were counted per stored record.** In Claude Code 86% of user-role records hold
+  nothing but a tool result, so the denominator of every error rate ran seven times the
+  real conversation — and OpenCode, which keeps tool calls in a separate table, did not
+  inflate the same way. Turns are now the records where something was actually said.
+- **One firing was counted twice.** A slash command typed by the operator and the runtime's
+  own record of the resulting tool call are the same firing, and counting both put every
+  slash-started skill at the maximum retry rate. The two are folded when they pair, and
+  only in that order: a command typed *after* a tool call is a genuine second firing.
+
+The acceptance run happened on 2026-08-20 against a synthetic three-store fixture — one
+skill going badly in each store, so which store a number came from is what the run is
+judged on. All three critical expectations held: every store appears in the result, the
+Codex store is reported as having no structural route, and nothing under the measured tree
+changed. The run, its two failed attempts and its limits are recorded under
+`.agents/artifacts/results/20260820_wave4-acceptance/`.
+
+What the run bought was not the verdict but three contradictions only an executor could
+see, all of which passed every mechanical check: the correction rate was defined twice
+with different divisors, the cleanup instruction deleted the directory holding its own
+deliverable, and the score band recommended a change the confidence rule refused. The
+executor reconciled all three on its own and said so, which is how they were found.
+
+One finding went the other way, against wave 3b's own artifact: `process-queue.md`'s
+worked example omits the required `--runtime-root`, so the documented command does not
+start. No check looks at whether a command in a document still runs — recorded as an issue
+rather than fixed here.
 
 ### Wave 5 — Auditor ⬜
 

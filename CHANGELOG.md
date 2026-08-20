@@ -32,6 +32,17 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Every batch is sized before it starts and stops after the first scenario it has no
   measurement for, and a record going stale asks for a recorded judgment rather than a
   rerun.
+- `ba0918-skill-improve` — reads the session logs an agent already left behind and scores
+  each skill by the traces of being used badly: the same skill invoked again moments later,
+  a request restated right after an invocation, a tool call that failed. Reading is split
+  from analysis, so one measurement covers three runtime stores whose storage has nothing in
+  common — Claude Code's per-project JSONL, an OpenCode SQLite database, and Codex CLI
+  rollout logs. Each store declares which detection routes it can be read along, and a route
+  it cannot be read along is reported as undetectable instead of being filled in with an
+  inference: Codex has no record of a skill firing at all, so a skill seen only through it
+  carries a lowered confidence rather than a repaired count. The skill measures and
+  recommends; carrying the improvement out is deliberately not its job. Its masked prompt
+  harvest is the only source of real-data seeds for `ba0918-trigger-eval`.
 - The contracts these skills are bound to, canonical in `contracts/` and expanded into each
   skill that declares one: `fixture-contract` (how an instrument finds skills in a tree it
   did not write, what it may read while doing so, and where it may write its output),
