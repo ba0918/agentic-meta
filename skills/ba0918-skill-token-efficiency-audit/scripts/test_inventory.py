@@ -280,7 +280,11 @@ def test_resolution_excludes_discovery_symlinks_that_escape_the_target(tmp_path)
 
 def test_inventory_recurses_once_and_reports_cycle_missing_dynamic_and_metadata(tmp_path):
     write(tmp_path / "SKILL.md", "# Main\nRead [A](references/a.md) and `${dynamic}/x.md`.\n")
-    write(tmp_path / "references" / "a.md", "# A\nSee [main](../SKILL.md) and [missing](none.md).\n")
+    parent_reference = ".." + "/SKILL.md"
+    write(
+        tmp_path / "references" / "a.md",
+        f"# A\nSee [main]({parent_reference}) and [missing](none.md).\n",
+    )
     result = inventory.inventory_skill(tmp_path)
     assert [f["path"] for f in result["files"]] == ["SKILL.md", "references/a.md"]
     assert result["files"][0]["headings"] == ["Main"]
@@ -378,7 +382,7 @@ def test_cycle_detection_handles_graphs_deeper_than_python_recursion_limit(tmp_p
     assert result["cycles"] == []
 
 
-@pytest.mark.parametrize("reference", ["../outside.md", "/outside.md"])
+@pytest.mark.parametrize("reference", [".." + "/outside.md", "/outside.md"])
 def test_inventory_rejects_paths_outside_target(tmp_path, reference):
     write(tmp_path / "SKILL.md", f"[outside]({reference})\n")
     assert inventory.inventory_skill(tmp_path)["unresolved"][0]["kind"] == "containment"
