@@ -64,7 +64,7 @@ def resolve_skills(target):
     paths = next((layer for layer in layers if layer), [])
     result = []
     for path in paths:
-        if _ignored(path, root):
+        if _ignored(path, root) or not _within(path.resolve(), root):
             continue
         name, description, observation = _frontmatter(path)
         result.append({
@@ -92,16 +92,42 @@ def _within(path: Path, root: Path) -> bool:
         return False
 
 
+def _cycle_edges(edges):
+    adjacency = {}
+    for edge in edges:
+        adjacency.setdefault(edge["from"], []).append(edge["to"])
+    for destinations in adjacency.values():
+        destinations.sort()
+
+    state = {}
+    cycles = []
+
+    def visit(source):
+        state[source] = "active"
+        for destination in adjacency.get(source, []):
+            if state.get(destination) == "active":
+                cycles.append({"from": source, "to": destination})
+            elif destination not in state:
+                visit(destination)
+        state[source] = "complete"
+
+    for source in sorted(set(adjacency).union(destination for values in adjacency.values() for destination in values)):
+        if source not in state:
+            visit(source)
+    return cycles
+
+
 def inventory_skill(skill_dir):
     root = Path(skill_dir).resolve()
     entry = root / "SKILL.md"
+    if not _within(entry.resolve(), root):
+        raise ValueError(f"required target escapes granted directory: {entry}")
     if not entry.is_file():
         raise ValueError(f"required target is missing: {entry}")
     queue = [entry]
     visited = set()
     files = []
     edges = []
-    cycles = []
     unresolved = []
     while queue:
         current = queue.pop(0)
@@ -154,16 +180,14 @@ def inventory_skill(skill_dir):
             else:
                 destination = candidate.relative_to(root).as_posix()
                 edges.append({"from": relative, "to": destination})
-                if candidate in visited or candidate in queue:
-                    cycles.append({"from": relative, "to": destination})
-                else:
+                if candidate not in visited and candidate not in queue:
                     queue.append(candidate)
         queue.sort(key=lambda path: path.relative_to(root).as_posix())
     return {
         "root": ".",
         "files": sorted(files, key=lambda item: item["path"]),
         "edges": sorted(edges, key=lambda item: (item["from"], item["to"])),
-        "cycles": sorted(cycles, key=lambda item: (item["from"], item["to"])),
+        "cycles": sorted(_cycle_edges(edges), key=lambda item: (item["from"], item["to"])),
         "unresolved": sorted(unresolved, key=lambda item: (item["from"], item["reference"], item["kind"])),
     }
 
