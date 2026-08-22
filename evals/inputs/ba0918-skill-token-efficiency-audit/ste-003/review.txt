@@ -1,0 +1,5 @@
+# Review Contract
+
+The release-quality gate must cover correctness, safety, specification conformance, and every
+unresolved finding. A full review is required when a fix changes shared assumptions or has broad
+impact.

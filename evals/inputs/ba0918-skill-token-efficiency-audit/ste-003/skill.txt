@@ -1,0 +1,10 @@
+---
+name: review-workflow
+description: Implement a change and pass a release-quality review gate.
+---
+
+# Review Workflow
+
+Send the full specification and full repository summary to three reviewers. After every local
+fix, repeat all three full reviews. Read [the review contract](references/review.md) before each
+round. Finish only when no blocking finding remains.

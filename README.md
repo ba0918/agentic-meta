@@ -4,8 +4,9 @@ A collection of meta-skills that measure, evaluate and improve other skill sets.
 answer the questions an author cannot answer by reading their own work: does each skill
 fire when it should, does each `SKILL.md` say enough to be executed correctly, do the
 instructions survive contact with an agent, does a skill still behave the way it did
-before the last edit, how did a skill actually go when somebody used it, and has the
-instruction layer the agent works from rotted?
+before the last edit, can its token cost be reduced without hiding quality loss, how did a
+skill actually go when somebody used it, and has the instruction layer the agent works from
+rotted?
 
 ## Skills
 
@@ -17,6 +18,7 @@ instruction layer the agent works from rotted?
 | `ba0918-skill-regression` | Whether a skill still behaves as it did, by re-running only the scenarios a change actually reaches |
 | `ba0918-skill-improve` | Friction in real usage, read from the session logs an agent already left behind |
 | `ba0918-context-audit` | The instruction layer itself — stale references, contradictions, wording that permits destruction, credentials left in a note |
+| `ba0918-skill-token-efficiency-audit` | Where a skill amplifies token use, what quality a cheaper path risks, and what must be validated before adopting it |
 
 Each of them measures something outside itself, and none is limited to this repository:
 a skill directory for most, an agent's own session history for `ba0918-skill-improve`,

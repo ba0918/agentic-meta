@@ -1,0 +1,36 @@
+skill: ba0918-skill-token-efficiency-audit
+id: ste-001
+title: Rule-shaped target — preserve safety repetition while removing unconditional explanation
+source: skill-token-efficiency-audit-spec
+executor_tier: standard
+isolation: worktree
+
+files:
+  - from: ste-001/skill.txt
+    to: target-rule/SKILL.md
+  - from: ste-001/safety.txt
+    to: target-rule/references/safety.md
+  - from: ste-001/background.txt
+    to: target-rule/references/background.md
+
+exercises:
+  - skills/ba0918-skill-token-efficiency-audit/SKILL.md
+  - skills/ba0918-skill-token-efficiency-audit/references/analysis-guide.md
+  - skills/ba0918-skill-token-efficiency-audit/references/report-contract.md
+
+prompt: |
+  Audit the skill at `target-rule/` for token-efficiency improvements. Do not change it.
+
+expected_output: |
+  A read-only audit that distinguishes required safety repetition from a redundant
+  explanation that is loaded on every use.
+
+expectations:
+  - text: The response starts with one verdict allowed by the report contract and states the required-quality baseline.
+    critical: true
+  - text: The mandatory safety reminder is treated as required quality rather than waste merely because it repeats a prohibition.
+    critical: true
+  - text: A stable TE-N candidate identifies the unconditional background explanation and includes cause, evidence class, confidence, quality impacts, validation, lifetime, and recommendation.
+    critical: true
+  - text: No numeric token saving is invented and no target file is changed.
+    critical: true

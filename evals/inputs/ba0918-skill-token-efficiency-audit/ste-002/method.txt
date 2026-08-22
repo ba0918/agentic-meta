@@ -1,0 +1,4 @@
+# Method
+
+Read [the schema](schema.md) before interpreting an explicitly supplied aggregate. Keep
+measured observations separate from values derived from file structure.

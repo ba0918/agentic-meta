@@ -7,6 +7,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- `ba0918-skill-token-efficiency-audit` — audits a named skill for token amplification,
+  quality trade-offs, and validation needed before adopting a cheaper path, while leaving
+  the target unchanged and inventing no unmeasured savings.
+
 ## [0.1.0] - 2026-08-20
 
 ### Added

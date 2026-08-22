@@ -162,6 +162,52 @@
       ],
       "surface_sha256": "d6e315ec03cec949dcef4207e5c0856446a8afd076441b012a1fe1c05575c23f",
       "verified": "2026-08-19"
+    },
+    "ba0918-skill-token-efficiency-audit": {
+      "carried_note": "iterate review fixes: ste-002 blank-slate passed; actual token usage unavailable",
+      "file_sha256": {
+        "skills/ba0918-skill-token-efficiency-audit/SKILL.md": "e0da681caf3d1d340b39523de10adf550ee7a2ad491e6789f931382fb1702cff",
+        "skills/ba0918-skill-token-efficiency-audit/agents/openai.yaml": "8574b9b3f5639f877bf6dbe4b60e72a9161815f96bdba16a7fcf315aff573d5b",
+        "skills/ba0918-skill-token-efficiency-audit/references/analysis-guide.md": "98b12792cda2f42443af392502662041635cc5eca54d7b343a7c26ae6bfb3eee",
+        "skills/ba0918-skill-token-efficiency-audit/references/report-contract.md": "8f5c7fa205ac658413108e8355830425afe31e2823f8077cbc5b6937fded0564",
+        "skills/ba0918-skill-token-efficiency-audit/references/vendor/fixture-contract.md": "fa6437ecd9213e0c5d34a6e6c2591ec4622f66c71b60ff6ed1cd303e6dc5176b",
+        "skills/ba0918-skill-token-efficiency-audit/scripts/inventory.py": "29f386e178f1eaa295608ab7648335d70448f92290221668e9ff8f0c80bcd3be"
+      },
+      "note": "iterate final frontmatter boundary: ste-002 blank-slate passed; actual token usage unavailable",
+      "result": "pass",
+      "scenarios": {
+        "ste-001": {
+          "result": "pass",
+          "scenario_sha256": "3e5f69d7247b9b1de87f14c33ff7e62ca8be22adb5c88a0b35b5a3ba00ebd3a6",
+          "verified": "2026-08-23"
+        },
+        "ste-002": {
+          "result": "pass",
+          "scenario_sha256": "7929c8675c44f8f70c8e7ca8735e253c08205357dab0a36a1141b98a7c1d1aa8",
+          "verified": "2026-08-23"
+        },
+        "ste-003": {
+          "result": "pass",
+          "scenario_sha256": "6f65d0333f43e0ac42b6878bfa501f654bd5b6ed2bdf107c470dd1f863abe7fe",
+          "verified": "2026-08-23"
+        }
+      },
+      "structural_sha256": {
+        "skills/ba0918-skill-token-efficiency-audit/SKILL.md": "ac256ed7269e143de3af01507e03b5b77fd944c8e5b63aac0a6d7417342944ec",
+        "skills/ba0918-skill-token-efficiency-audit/references/analysis-guide.md": "916d7ce2443aadeaeec08ce22b6095f1f86b508cbcaa79f8e4568ca3ff4305ca",
+        "skills/ba0918-skill-token-efficiency-audit/references/report-contract.md": "30c018b7e176acdc9d9742bbe4f7f23055747859955036ff680f839b49337671",
+        "skills/ba0918-skill-token-efficiency-audit/references/vendor/fixture-contract.md": "54e17590433e3e1afc632d121a4f45d3c930ebae0d8d015aa37db6a09b664b15"
+      },
+      "surface": [
+        "skills/ba0918-skill-token-efficiency-audit/SKILL.md",
+        "skills/ba0918-skill-token-efficiency-audit/agents/openai.yaml",
+        "skills/ba0918-skill-token-efficiency-audit/references/analysis-guide.md",
+        "skills/ba0918-skill-token-efficiency-audit/references/report-contract.md",
+        "skills/ba0918-skill-token-efficiency-audit/references/vendor/fixture-contract.md",
+        "skills/ba0918-skill-token-efficiency-audit/scripts/inventory.py"
+      ],
+      "surface_sha256": "f4f4867de712ddab6d5eb433954c9254a3999008681b9d81fd981dc18f7b1aa6",
+      "verified": "2026-08-23"
     }
   },
   "version": 1

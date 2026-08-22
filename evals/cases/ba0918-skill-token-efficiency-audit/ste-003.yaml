@@ -1,0 +1,35 @@
+skill: ba0918-skill-token-efficiency-audit
+id: ste-003
+title: Workflow-shaped target — narrow repeated full review without weakening its gate
+source: skill-token-efficiency-audit-spec
+executor_tier: standard
+isolation: worktree
+
+files:
+  - from: ste-003/skill.txt
+    to: target-workflow/SKILL.md
+  - from: ste-003/review.txt
+    to: target-workflow/references/review.md
+
+exercises:
+  - skills/ba0918-skill-token-efficiency-audit/SKILL.md
+  - skills/ba0918-skill-token-efficiency-audit/references/analysis-guide.md
+  - skills/ba0918-skill-token-efficiency-audit/references/report-contract.md
+
+prompt: |
+  Audit `target-workflow/` for token-efficiency improvements. Keep its release-quality
+  gate intact and make no changes.
+
+expected_output: |
+  An audit explaining review fan-out and repeated full-corpus review, with a conditional
+  scoped-review proposal that restores full review when risk expands.
+
+expectations:
+  - text: A candidate explains that full-corpus input is multiplied by reviewer fan-out and repeated after each local fix.
+    critical: true
+  - text: Scoped re-review is proposed only with a condition restoring full review for changed assumptions, shared contracts, broad impact, or unresolved findings.
+    critical: true
+  - text: The release-quality gate is classified as required quality and is not removed.
+    critical: true
+  - text: Each candidate uses a stable TE-N ID and includes evidence, confidence, quality impacts, validation, lifetime, and recommendation.
+    critical: true
