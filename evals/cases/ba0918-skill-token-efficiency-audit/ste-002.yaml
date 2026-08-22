@@ -1,0 +1,38 @@
+skill: ba0918-skill-token-efficiency-audit
+id: ste-002
+title: Measurement-shaped target — disclose nested and unresolved coverage without history search
+source: skill-token-efficiency-audit-spec
+executor_tier: standard
+isolation: worktree
+
+files:
+  - from: ste-002/skill.txt
+    to: third-party-tool/SKILL.md
+  - from: ste-002/method.txt
+    to: third-party-tool/references/method.md
+  - from: ste-002/schema.txt
+    to: third-party-tool/references/schema.md
+  - from: ste-002/collector.py
+    to: third-party-tool/scripts/collector.py
+
+exercises:
+  - skills/ba0918-skill-token-efficiency-audit/SKILL.md
+  - skills/ba0918-skill-token-efficiency-audit/scripts/inventory.py
+
+prompt: |
+  Audit the skill in `third-party-tool/`. The fixture contains no session history or
+  measured token counts; do not look elsewhere for them and do not execute its script.
+
+expected_output: |
+  A truthful audit of a measurement-shaped skill with explicit coverage limits and no
+  fabricated measurements.
+
+expectations:
+  - text: The response distinguishes DERIVED structural facts from HYPOTHESIZED runtime effects and does not claim MEASURED evidence.
+    critical: true
+  - text: Coverage names full, partial or structural-only reads as applicable and reports the unresolved dynamic history reference.
+    critical: true
+  - text: The collector script is inventoried but not executed, and no session store or home directory is searched.
+    critical: true
+  - text: The response begins with an allowed verdict, states required quality, and invents no token count.
+    critical: true

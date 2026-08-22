@@ -1,0 +1,10 @@
+---
+name: third-party-meter
+description: Collect and interpret an existing measurement export.
+---
+
+# Third-party Meter
+
+Read [the method](references/method.md), inspect [the collector](scripts/collector.py), and
+use `${SESSION_EXPORT}/aggregate.json` only when the user explicitly grants it. Never run the
+collector while auditing its instructions.

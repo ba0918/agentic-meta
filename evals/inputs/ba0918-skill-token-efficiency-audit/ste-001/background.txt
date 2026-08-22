@@ -1,0 +1,4 @@
+# Background
+
+This rule exists because destructive commands can remove data. This explanation is always
+loaded, although the safety contract and the main workflow already carry the actionable rule.

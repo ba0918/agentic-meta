@@ -1,0 +1,3 @@
+# Aggregate Schema
+
+An aggregate may contain input tokens, output tokens, trials, and the measured skill version.

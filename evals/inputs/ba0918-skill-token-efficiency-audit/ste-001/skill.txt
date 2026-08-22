@@ -1,0 +1,10 @@
+---
+name: compact-rule
+description: Apply a compact rule before deleting project files.
+---
+
+# Compact Rule
+
+Always read [the safety contract](references/safety.md) before deleting files.
+Always read [the background explanation](references/background.md) before any task.
+Never delete outside the explicitly named target, and confirm destructive work first.

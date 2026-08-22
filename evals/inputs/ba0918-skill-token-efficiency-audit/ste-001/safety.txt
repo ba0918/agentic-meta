@@ -1,0 +1,3 @@
+# Safety Contract
+
+Never delete outside the explicitly named target. Confirm destructive work first.
