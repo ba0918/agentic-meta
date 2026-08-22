@@ -30,7 +30,7 @@ expected_output: |
 expectations:
   - text: The response distinguishes DERIVED structural facts from HYPOTHESIZED runtime effects and does not claim MEASURED evidence.
     critical: true
-  - text: Coverage names full, partial or structural-only reads as applicable and reports the unresolved dynamic history reference.
+  - text: Coverage explicitly discloses full, partial, structural-only, unread, and unresolved categories, using none where a category has no members, and reports the unresolved dynamic history reference.
     critical: true
   - text: The collector script is inventoried but not executed, and no session store or home directory is searched.
     critical: true

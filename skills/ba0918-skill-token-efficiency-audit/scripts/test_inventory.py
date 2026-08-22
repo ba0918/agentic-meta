@@ -33,6 +33,20 @@ def test_resolution_supports_root_sibling_recursive_and_colliding_names(tmp_path
     assert inventory.resolve_skills(tmp_path)[0]["frontmatter"] == "absent"
 
 
+def test_resolution_reports_invalid_frontmatter_and_uses_directory_name(tmp_path):
+    write(tmp_path / "broken" / "SKILL.md", "---\nnot a mapping\n---\n")
+    resolved = inventory.resolve_skills(tmp_path)
+    assert [(item["name"], item["frontmatter"]) for item in resolved] == [("broken", "invalid")]
+
+
+def test_resolution_excludes_discovery_symlinks_that_escape_the_target(tmp_path):
+    outside = tmp_path.parent / "outside-skill.md"
+    write(outside, "---\nname: outside\n---\n")
+    (tmp_path / "linked").mkdir()
+    (tmp_path / "linked" / "SKILL.md").symlink_to(outside)
+    assert inventory.resolve_skills(tmp_path) == []
+
+
 def test_inventory_recurses_once_and_reports_cycle_missing_dynamic_and_metadata(tmp_path):
     write(tmp_path / "SKILL.md", "# Main\nRead [A](references/a.md) and `${dynamic}/x.md`.\n")
     write(tmp_path / "references" / "a.md", "# A\nSee [main](../SKILL.md) and [missing](none.md).\n")
@@ -44,6 +58,23 @@ def test_inventory_recurses_once_and_reports_cycle_missing_dynamic_and_metadata(
     assert any(x["kind"] == "missing" for x in result["unresolved"])
     assert any(x["kind"] == "dynamic" for x in result["unresolved"])
     assert "content" not in json.dumps(result)
+
+
+def test_inventory_does_not_report_a_diamond_dependency_as_a_cycle(tmp_path):
+    write(tmp_path / "SKILL.md", "[a](a.md) [b](b.md)\n")
+    write(tmp_path / "a.md", "[shared](shared.md)\n")
+    write(tmp_path / "b.md", "[shared](shared.md)\n")
+    write(tmp_path / "shared.md", "shared\n")
+    assert inventory.inventory_skill(tmp_path)["cycles"] == []
+
+
+def test_inventory_reports_a_real_cycle_without_recursing_forever(tmp_path):
+    write(tmp_path / "SKILL.md", "[a](a.md)\n")
+    write(tmp_path / "a.md", "[b](b.md)\n")
+    write(tmp_path / "b.md", "[a](a.md)\n")
+    result = inventory.inventory_skill(tmp_path)
+    assert result["cycles"] == [{"from": "b.md", "to": "a.md"}]
+    assert [item["path"] for item in result["files"]] == ["SKILL.md", "a.md", "b.md"]
 
 
 @pytest.mark.parametrize("reference", ["../outside.md", "/outside.md"])
@@ -63,6 +94,35 @@ def test_inventory_rejects_symlink_escape_and_never_writes(tmp_path):
     after = sorted((p.relative_to(target).as_posix(), p.lstat().st_mode, p.stat().st_size) for p in target.rglob("*"))
     assert result["unresolved"][0]["kind"] == "containment"
     assert before == after
+
+
+def test_inventory_rejects_an_entry_symlink_that_escapes_the_target(tmp_path):
+    target = tmp_path / "target"
+    target.mkdir()
+    outside = tmp_path / "outside.md"
+    write(outside, "outside")
+    (target / "SKILL.md").symlink_to(outside)
+    with pytest.raises(ValueError, match="required target escapes granted directory"):
+        inventory.inventory_skill(target)
+
+
+@pytest.mark.parametrize("reference", ["https://example.invalid/a", "mailto:nobody@example.invalid"])
+def test_inventory_reports_unsupported_external_targets_without_reading_them(tmp_path, reference):
+    write(tmp_path / "SKILL.md", f"[external]({reference})\n")
+    result = inventory.inventory_skill(tmp_path)
+    assert result["files"] == [{
+        "path": "SKILL.md",
+        "bytes": len(f"[external]({reference})\n".encode()),
+        "text": True,
+        "lines": 1,
+        "headings": [],
+        "readable": True,
+    }]
+    assert result["unresolved"] == [{
+        "from": "SKILL.md",
+        "reference": reference,
+        "kind": "unsupported",
+    }]
 
 
 def test_discovery_ignores_hidden_and_dependencies(tmp_path):
@@ -96,8 +156,21 @@ def test_unreadable_reference_is_reported_without_aborting(tmp_path, monkeypatch
     assert private["readable"] is False and private["bytes"] is None
 
 
-def test_output_order_is_stable(tmp_path):
-    write(tmp_path / "SKILL.md", "[z](z.md) [a](a.md)\n")
-    write(tmp_path / "z.md", "z")
-    write(tmp_path / "a.md", "a")
-    assert inventory.inventory_skill(tmp_path) == inventory.inventory_skill(tmp_path)
+def test_failure_paths_leave_the_target_unchanged(tmp_path):
+    target = tmp_path / "target"
+    write(target / "keep.md", "keep")
+    before = [(path.relative_to(target).as_posix(), path.read_bytes()) for path in target.rglob("*")]
+    with pytest.raises(ValueError, match="required target is missing"):
+        inventory.inventory_skill(target)
+    after = [(path.relative_to(target).as_posix(), path.read_bytes()) for path in target.rglob("*")]
+    assert after == before
+
+
+def test_output_order_is_stable_across_equivalent_trees_created_in_different_orders(tmp_path):
+    first = tmp_path / "first"
+    second = tmp_path / "second"
+    for root, order in ((first, ("z.md", "a.md")), (second, ("a.md", "z.md"))):
+        for name in order:
+            write(root / name, name)
+        write(root / "SKILL.md", "[z](z.md) [a](a.md)\n")
+    assert inventory.inventory_skill(first) == inventory.inventory_skill(second)
