@@ -1,7 +1,7 @@
 {
   "name": "ba0918-meta",
   "version": "0.1.0",
-  "description": "Skills that measure and build a skill set: how accurately its descriptions fire, whether each SKILL.md is complete as an API specification, how well the instructions themselves execute, and whether a skill still behaves as it did",
+  "description": "Skills that measure and build a skill set: how accurately descriptions fire, whether each SKILL.md is a complete API, how instructions execute, whether behaviour regresses, and where token cost can fall without hiding quality loss",
   "author": {
     "name": "ba0918"
   },
@@ -14,6 +14,8 @@
     "evaluation",
     "trigger",
     "audit",
-    "descriptions"
+    "descriptions",
+    "token-efficiency",
+    "token-cost"
   ]
 }
