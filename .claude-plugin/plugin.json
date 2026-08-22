@@ -1,6 +1,6 @@
 {
   "name": "ba0918-meta",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Skills that measure and build a skill set: how accurately descriptions fire, whether each SKILL.md is a complete API, how instructions execute, whether behaviour regresses, and where token cost can fall without hiding quality loss",
   "author": {
     "name": "ba0918"
