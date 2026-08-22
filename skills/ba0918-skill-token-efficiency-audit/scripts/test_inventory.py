@@ -77,6 +77,17 @@ def test_inventory_reports_a_real_cycle_without_recursing_forever(tmp_path):
     assert [item["path"] for item in result["files"]] == ["SKILL.md", "a.md", "b.md"]
 
 
+def test_cycle_detection_handles_graphs_deeper_than_python_recursion_limit(tmp_path):
+    node_count = 1_200
+    write(tmp_path / "SKILL.md", "[next](node-0000.md)\n")
+    for index in range(node_count):
+        next_link = f"[next](node-{index + 1:04d}.md)\n" if index + 1 < node_count else "end\n"
+        write(tmp_path / f"node-{index:04d}.md", next_link)
+    result = inventory.inventory_skill(tmp_path)
+    assert len(result["files"]) == node_count + 1
+    assert result["cycles"] == []
+
+
 @pytest.mark.parametrize("reference", ["../outside.md", "/outside.md"])
 def test_inventory_rejects_paths_outside_target(tmp_path, reference):
     write(tmp_path / "SKILL.md", f"[outside]({reference})\n")

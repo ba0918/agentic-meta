@@ -102,18 +102,24 @@ def _cycle_edges(edges):
     state = {}
     cycles = []
 
-    def visit(source):
-        state[source] = "active"
-        for destination in adjacency.get(source, []):
-            if state.get(destination) == "active":
-                cycles.append({"from": source, "to": destination})
-            elif destination not in state:
-                visit(destination)
-        state[source] = "complete"
-
     for source in sorted(set(adjacency).union(destination for values in adjacency.values() for destination in values)):
-        if source not in state:
-            visit(source)
+        if source in state:
+            continue
+        state[source] = "active"
+        stack = [(source, iter(adjacency.get(source, [])))]
+        while stack:
+            current, destinations = stack[-1]
+            try:
+                destination = next(destinations)
+            except StopIteration:
+                state[current] = "complete"
+                stack.pop()
+                continue
+            if state.get(destination) == "active":
+                cycles.append({"from": current, "to": destination})
+            elif destination not in state:
+                state[destination] = "active"
+                stack.append((destination, iter(adjacency.get(destination, []))))
     return cycles
 
 
