@@ -1,4 +1,0 @@
-interface:
-  display_name: "Skill Token Efficiency Audit"
-  short_description: "Audit skill token costs and quality trade-offs"
-  default_prompt: "Audit the named skill for supported token-efficiency improvements without changing it."
