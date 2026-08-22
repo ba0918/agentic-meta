@@ -17,6 +17,8 @@ files:
 
 exercises:
   - skills/ba0918-skill-token-efficiency-audit/SKILL.md
+  - skills/ba0918-skill-token-efficiency-audit/references/analysis-guide.md
+  - skills/ba0918-skill-token-efficiency-audit/references/report-contract.md
   - skills/ba0918-skill-token-efficiency-audit/scripts/inventory.py
 
 prompt: |

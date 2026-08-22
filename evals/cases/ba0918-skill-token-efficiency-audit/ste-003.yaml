@@ -14,6 +14,7 @@ files:
 exercises:
   - skills/ba0918-skill-token-efficiency-audit/SKILL.md
   - skills/ba0918-skill-token-efficiency-audit/references/analysis-guide.md
+  - skills/ba0918-skill-token-efficiency-audit/references/report-contract.md
 
 prompt: |
   Audit `target-workflow/` for token-efficiency improvements. Keep its release-quality

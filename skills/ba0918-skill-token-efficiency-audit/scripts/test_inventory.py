@@ -1,10 +1,20 @@
+import importlib.util
 import json
 import os
 from pathlib import Path
+import subprocess
+import sys
 
 import pytest
 
-from . import inventory
+
+INVENTORY_PATH = Path(__file__).with_name("inventory.py")
+SPEC = importlib.util.spec_from_file_location(
+    "ba0918_skill_token_efficiency_inventory", INVENTORY_PATH
+)
+assert SPEC is not None and SPEC.loader is not None
+inventory = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(inventory)
 
 
 def write(path: Path, text: str) -> None:
@@ -16,6 +26,79 @@ def test_resolution_uses_first_nonempty_layer(tmp_path):
     write(tmp_path / "skills" / "chosen" / "SKILL.md", "---\nname: chosen\n---\n")
     write(tmp_path / "SKILL.md", "---\nname: root\n---\n")
     assert [item["name"] for item in inventory.resolve_skills(tmp_path)] == ["chosen"]
+
+
+def test_resolution_falls_through_a_hidden_only_conventional_layer(tmp_path):
+    write(tmp_path / "skills" / ".hidden" / "SKILL.md", "---\nname: hidden\n---\n")
+    write(tmp_path / "SKILL.md", "---\nname: root\n---\n")
+
+    assert [item["name"] for item in inventory.resolve_skills(tmp_path)] == ["root"]
+
+
+def test_resolution_falls_through_an_escaping_only_conventional_layer(tmp_path):
+    outside = tmp_path.parent / "outside-skill.md"
+    write(outside, "---\nname: outside\n---\n")
+    (tmp_path / "skills" / "linked").mkdir(parents=True)
+    (tmp_path / "skills" / "linked" / "SKILL.md").symlink_to(outside)
+    write(tmp_path / "SKILL.md", "---\nname: root\n---\n")
+
+    assert [item["name"] for item in inventory.resolve_skills(tmp_path)] == ["root"]
+
+
+def test_resolution_falls_through_a_conventional_candidate_that_becomes_a_symlink_loop(
+    tmp_path, monkeypatch
+):
+    linked_skill = tmp_path / "skills" / "linked" / "SKILL.md"
+    write(linked_skill, "must not be read\n")
+    root_skill = tmp_path / "SKILL.md"
+    write(root_skill, "---\nname: root\n---\n")
+    reads = []
+    original_read = Path.read_text
+    original_glob = Path.glob
+
+    def record_read(path, *args, **kwargs):
+        reads.append(path)
+        return original_read(path, *args, **kwargs)
+
+    def introduce_loop_after_discovery(path, pattern):
+        candidates = list(original_glob(path, pattern))
+        if path == tmp_path / "skills" and pattern == "*/SKILL.md":
+            linked_skill.unlink()
+            linked_skill.symlink_to("SKILL.md")
+        return iter(candidates)
+
+    monkeypatch.setattr(Path, "read_text", record_read)
+    monkeypatch.setattr(Path, "glob", introduce_loop_after_discovery)
+
+    assert [item["name"] for item in inventory.resolve_skills(tmp_path)] == ["root"]
+    assert reads == [root_skill]
+
+
+def test_resolution_falls_through_a_candidate_with_a_file_status_error(
+    tmp_path, monkeypatch
+):
+    linked_skill = tmp_path / "skills" / "linked" / "SKILL.md"
+    write(linked_skill, "must not be read\n")
+    root_skill = tmp_path / "SKILL.md"
+    write(root_skill, "---\nname: root\n---\n")
+    reads = []
+    original_read = Path.read_text
+    original_resolve = Path.resolve
+
+    def record_read(path, *args, **kwargs):
+        reads.append(path)
+        return original_read(path, *args, **kwargs)
+
+    def fail_link_resolution(path, *args, **kwargs):
+        if path == linked_skill:
+            raise OSError("bad link")
+        return original_resolve(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", record_read)
+    monkeypatch.setattr(Path, "resolve", fail_link_resolution)
+
+    assert [item["name"] for item in inventory.resolve_skills(tmp_path)] == ["root"]
+    assert reads == [root_skill]
 
 
 def test_resolution_supports_root_sibling_recursive_and_colliding_names(tmp_path):
@@ -39,6 +122,154 @@ def test_resolution_reports_invalid_frontmatter_and_uses_directory_name(tmp_path
     assert [(item["name"], item["frontmatter"]) for item in resolved] == [("broken", "invalid")]
 
 
+def test_frontmatter_reads_plain_comments_and_quoted_scalar_characters(tmp_path):
+    write(
+        tmp_path / "plain" / "SKILL.md",
+        "---\n# metadata comment\nname: actual # display comment\ndescription: plain value # comment\n---\n",
+    )
+    resolved = inventory.resolve_skills(tmp_path)
+    assert resolved[0]["name"] == "actual"
+    assert resolved[0]["description"] == "plain value"
+
+    os.unlink(tmp_path / "plain" / "SKILL.md")
+    write(
+        tmp_path / "quoted" / "SKILL.md",
+        "---\nname: 'quoted: # name'\ndescription: \"literal: # description\"\n---\n",
+    )
+    resolved = inventory.resolve_skills(tmp_path)
+    assert resolved[0]["name"] == "quoted: # name"
+    assert resolved[0]["description"] == "literal: # description"
+
+
+def test_frontmatter_reads_folded_and_literal_block_scalars(tmp_path):
+    write(
+        tmp_path / "folded" / "SKILL.md",
+        "---\nname: folded\ndescription: > # prose\n  first line\n  second line\n\n  third line\n---\n",
+    )
+    resolved = inventory.resolve_skills(tmp_path)
+    assert resolved[0]["description"] == "first line second line\nthird line\n"
+
+    os.unlink(tmp_path / "folded" / "SKILL.md")
+    write(
+        tmp_path / "literal" / "SKILL.md",
+        "---\nname: literal\ndescription: |\n  first line\n  second line\n---\n",
+    )
+    resolved = inventory.resolve_skills(tmp_path)
+    assert resolved[0]["description"] == "first line\nsecond line\n"
+
+
+def test_frontmatter_ignores_unrelated_nested_metadata(tmp_path):
+    write(
+        tmp_path / "nested" / "SKILL.md",
+        "---\nname: top-level\nmetadata:\n  name: nested\n  tags: [one, two]\ndescription: usable\n---\n",
+    )
+
+    resolved = inventory.resolve_skills(tmp_path)
+    assert (resolved[0]["name"], resolved[0]["description"], resolved[0]["frontmatter"]) == (
+        "top-level",
+        "usable",
+        "parsed",
+    )
+
+
+@pytest.mark.parametrize(
+    ("frontmatter", "observation"),
+    [
+        ('name: "unterminated', "invalid"),
+        ("name: |\nnot-indented", "invalid"),
+        ("name: [oops", "invalid"),
+        ("name: [oops]]", "invalid"),
+        ("name: actual: invalid", "invalid"),
+        ("name: |0", "invalid"),
+        ("name: > foo", "invalid"),
+        ("name: ,reserved", "invalid"),
+        ("name: ]reserved", "invalid"),
+        ("name: %reserved", "invalid"),
+        ("name: [one, two]", "unsupported"),
+        ("name: |2\n  value", "unsupported"),
+        ("name: null", "unsupported"),
+        ("name: true", "unsupported"),
+        ("name: 123", "unsupported"),
+        ("name: 1.25", "unsupported"),
+        ("name: 2026-08-23", "unsupported"),
+    ],
+)
+def test_frontmatter_does_not_report_malformed_or_unsupported_values_as_parsed(
+    tmp_path, frontmatter, observation
+):
+    write(tmp_path / "fallback" / "SKILL.md", f"---\n{frontmatter}\n---\n")
+
+    resolved = inventory.resolve_skills(tmp_path)
+    assert (resolved[0]["name"], resolved[0]["frontmatter"]) == ("fallback", observation)
+
+
+@pytest.mark.parametrize(
+    "frontmatter",
+    [
+        "name: first\n  second",
+        "name:\n  nested: value",
+        "name:\n  - value",
+        'name: "first\n  second"',
+    ],
+)
+def test_frontmatter_reports_target_field_continuations_as_unsupported(
+    tmp_path, frontmatter
+):
+    write(tmp_path / "fallback" / "SKILL.md", f"---\n{frontmatter}\n---\n")
+
+    resolved = inventory.resolve_skills(tmp_path)
+    assert (resolved[0]["name"], resolved[0]["frontmatter"]) == (
+        "fallback",
+        "unsupported",
+    )
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "0123",
+        "00",
+        "1.",
+        "1:20.5",
+        "2001-12-15 2:59:43.1",
+        "+12",
+        "-0.5",
+        ".5",
+        "+.5",
+        "-.inf",
+    ],
+)
+def test_frontmatter_does_not_parse_unquoted_numeric_or_datetime_shapes_as_names(
+    tmp_path, value
+):
+    write(tmp_path / "fallback" / "SKILL.md", f"---\nname: {value}\n---\n")
+
+    resolved = inventory.resolve_skills(tmp_path)
+    assert (resolved[0]["name"], resolved[0]["frontmatter"]) == (
+        "fallback",
+        "unsupported",
+    )
+
+
+@pytest.mark.parametrize(
+    ("source", "expected"),
+    [
+        ("normal-skill", "normal-skill"),
+        ("skill_123", "skill_123"),
+        ("-normal", "-normal"),
+        ("'0123'", "0123"),
+        ('"2001-12-15 2:59:43.1"', "2001-12-15 2:59:43.1"),
+    ],
+)
+def test_frontmatter_parses_proven_plain_strings_and_quoted_numeric_looking_names(
+    tmp_path, source, expected
+):
+    write(tmp_path / "candidate" / "SKILL.md", f"---\nname: {source}\n---\n")
+
+    resolved = inventory.resolve_skills(tmp_path)
+    assert (resolved[0]["name"], resolved[0]["frontmatter"]) == (expected, "parsed")
+
+
 def test_resolution_excludes_discovery_symlinks_that_escape_the_target(tmp_path):
     outside = tmp_path.parent / "outside-skill.md"
     write(outside, "---\nname: outside\n---\n")
@@ -58,6 +289,65 @@ def test_inventory_recurses_once_and_reports_cycle_missing_dynamic_and_metadata(
     assert any(x["kind"] == "missing" for x in result["unresolved"])
     assert any(x["kind"] == "dynamic" for x in result["unresolved"])
     assert "content" not in json.dumps(result)
+
+
+def test_inventory_resolves_nested_bare_paths_from_the_skill_root(tmp_path):
+    write(tmp_path / "SKILL.md", "Read [details](references/details.md).\n")
+    write(tmp_path / "references" / "details.md", "Run `scripts/tool.py`.\n")
+    write(tmp_path / "scripts" / "tool.py", "print('safe')\n")
+
+    result = inventory.inventory_skill(tmp_path)
+    assert {item["path"] for item in result["files"]} == {
+        "SKILL.md",
+        "references/details.md",
+        "scripts/tool.py",
+    }
+    assert not result["unresolved"]
+
+
+def test_inventory_resolves_nested_bare_paths_from_the_source_directory(tmp_path):
+    write(tmp_path / "SKILL.md", "Read [details](references/details.md).\n")
+    write(tmp_path / "references" / "details.md", "Run `scripts/local.py`.\n")
+    write(tmp_path / "references" / "scripts" / "local.py", "print('safe')\n")
+
+    result = inventory.inventory_skill(tmp_path)
+    assert any(
+        edge == {"from": "references/details.md", "to": "references/scripts/local.py"}
+        for edge in result["edges"]
+    )
+
+
+def test_inventory_reports_distinct_existing_bare_path_candidates_as_ambiguous(tmp_path):
+    write(tmp_path / "SKILL.md", "Read [details](references/details.md).\n")
+    write(tmp_path / "references" / "details.md", "Run `scripts/tool.py`.\n")
+    write(tmp_path / "scripts" / "tool.py", "root\n")
+    write(tmp_path / "references" / "scripts" / "tool.py", "local\n")
+
+    result = inventory.inventory_skill(tmp_path)
+    assert result["unresolved"] == [{
+        "from": "references/details.md",
+        "reference": "scripts/tool.py",
+        "kind": "ambiguous",
+        "candidates": ["references/scripts/tool.py", "scripts/tool.py"],
+    }]
+    assert {item["path"] for item in result["files"]} == {"SKILL.md", "references/details.md"}
+
+
+def test_inventory_reports_mixed_missing_and_outside_bare_candidates_as_missing(tmp_path):
+    outside = tmp_path.parent / "outside-tool.py"
+    write(outside, "outside body must not be read\n")
+    write(tmp_path / "SKILL.md", "Read [details](references/details.md).\n")
+    write(tmp_path / "references" / "details.md", "Run `scripts/tool.py`.\n")
+    (tmp_path / "references" / "scripts").mkdir()
+    (tmp_path / "references" / "scripts" / "tool.py").symlink_to(outside)
+
+    result = inventory.inventory_skill(tmp_path)
+    assert result["unresolved"] == [{
+        "from": "references/details.md",
+        "reference": "scripts/tool.py",
+        "kind": "missing",
+    }]
+    assert "outside body" not in json.dumps(result)
 
 
 def test_inventory_does_not_report_a_diamond_dependency_as_a_cycle(tmp_path):
@@ -165,6 +455,31 @@ def test_unreadable_reference_is_reported_without_aborting(tmp_path, monkeypatch
     result = inventory.inventory_skill(tmp_path)
     private = next(f for f in result["files"] if f["path"] == "private.md")
     assert private["readable"] is False and private["bytes"] is None
+    assert private["reason"] == "permission-denied"
+    assert "not granted" not in json.dumps(private)
+
+
+@pytest.mark.parametrize(
+    ("error", "reason"),
+    [(FileNotFoundError("gone"), "not-found"), (OSError("device details"), "io-error")],
+)
+def test_unreadable_reference_reports_a_safe_stable_reason(tmp_path, monkeypatch, error, reason):
+    write(tmp_path / "SKILL.md", "[unstable](unstable.md)\n")
+    write(tmp_path / "unstable.md", "unstable")
+    original = Path.read_bytes
+
+    def fail_unstable(path):
+        if path.name == "unstable.md":
+            raise error
+        return original(path)
+
+    monkeypatch.setattr(Path, "read_bytes", fail_unstable)
+    record = next(
+        item for item in inventory.inventory_skill(tmp_path)["files"]
+        if item["path"] == "unstable.md"
+    )
+    assert record["reason"] == reason
+    assert str(error) not in json.dumps(record)
 
 
 def test_failure_paths_leave_the_target_unchanged(tmp_path):
@@ -185,3 +500,23 @@ def test_output_order_is_stable_across_equivalent_trees_created_in_different_ord
             write(root / name, name)
         write(root / "SKILL.md", "[z](z.md) [a](a.md)\n")
     assert inventory.inventory_skill(first) == inventory.inventory_skill(second)
+
+
+def test_cli_ambiguity_lists_every_matching_name_and_root_relative_path(tmp_path):
+    write(tmp_path / "a" / "SKILL.md", "---\nname: same\n---\n")
+    write(tmp_path / "b" / "SKILL.md", "---\nname: same\n---\n")
+
+    completed = subprocess.run(
+        [sys.executable, str(INVENTORY_PATH), str(tmp_path), "--name", "same"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert completed.returncode != 0
+    error = json.loads(completed.stderr)
+    assert error == {
+        "error": "ambiguous-target",
+        "candidates": [{"name": "same", "path": "a"}, {"name": "same", "path": "b"}],
+    }
+    assert str(tmp_path) not in completed.stderr
