@@ -164,6 +164,7 @@
       "verified": "2026-08-19"
     },
     "ba0918-skill-token-efficiency-audit": {
+      "carried_note": "collaboration-agent route 3 scenarios passed token usage unavailable wall time and output bytes observed externally",
       "file_sha256": {
         "skills/ba0918-skill-token-efficiency-audit/SKILL.md": "e0da681caf3d1d340b39523de10adf550ee7a2ad491e6789f931382fb1702cff",
         "skills/ba0918-skill-token-efficiency-audit/agents/openai.yaml": "8574b9b3f5639f877bf6dbe4b60e72a9161815f96bdba16a7fcf315aff573d5b",
@@ -171,9 +172,9 @@
         "skills/ba0918-skill-token-efficiency-audit/references/report-contract.md": "8f5c7fa205ac658413108e8355830425afe31e2823f8077cbc5b6937fded0564",
         "skills/ba0918-skill-token-efficiency-audit/references/vendor/fixture-contract.md": "fa6437ecd9213e0c5d34a6e6c2591ec4622f66c71b60ff6ed1cd303e6dc5176b",
         "skills/ba0918-skill-token-efficiency-audit/scripts/__init__.py": "8ddcc39934238ad41a4203347cb4d4801a17faa2c5948e842792c7d29b60776f",
-        "skills/ba0918-skill-token-efficiency-audit/scripts/inventory.py": "84f66016c5f12bb87a6b49cf3cd9431ee684b53da6b2e944bd8a587ff20c4228"
+        "skills/ba0918-skill-token-efficiency-audit/scripts/inventory.py": "f655e5c8c24447b41d683c561fdfd1cae9dc767c35cd3546d038038683c3b606"
       },
-      "note": "collaboration-agent route 3 scenarios passed token usage unavailable wall time and output bytes observed externally",
+      "note": "inventory boundary fixes rerun via blank-slate collaboration-agent; actual token usage unavailable",
       "result": "pass",
       "scenarios": {
         "ste-001": {
@@ -183,7 +184,7 @@
         },
         "ste-002": {
           "result": "pass",
-          "scenario_sha256": "2cc1ce3091fa53ee027dcfdd2241b1dcd777f9d8a258328fcdb591139206f330",
+          "scenario_sha256": "7929c8675c44f8f70c8e7ca8735e253c08205357dab0a36a1141b98a7c1d1aa8",
           "verified": "2026-08-22"
         },
         "ste-003": {
@@ -207,7 +208,7 @@
         "skills/ba0918-skill-token-efficiency-audit/scripts/__init__.py",
         "skills/ba0918-skill-token-efficiency-audit/scripts/inventory.py"
       ],
-      "surface_sha256": "33b608700fbff3344a81a8108f0abe3c2e9e47801ad7b45154533792259761b9",
+      "surface_sha256": "5b1db62163978fc3a6757f56c4da8f19684deadb73d8fb05c68075f28b221499",
       "verified": "2026-08-22"
     }
   },
