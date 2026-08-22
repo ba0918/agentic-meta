@@ -19,6 +19,9 @@
     "ba0918-skill-regression": [
       "fixture-contract"
     ],
+    "ba0918-skill-token-efficiency-audit": [
+      "fixture-contract"
+    ],
     "ba0918-trigger-eval": [
       "fixture-contract"
     ]
