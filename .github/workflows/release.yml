@@ -1,0 +1,46 @@
+name: Release
+
+# A pushed v* tag publishes a GitHub Release whose notes are the tag's own
+# CHANGELOG section. The tag is the release (a verified state, cut only after
+# the checks pass); this workflow only gives it the Releases-page object that a
+# bare tag never gets — without it the page keeps naming an old version as
+# Latest. It runs from the workflow file at the tag's ref, so it covers tags
+# cut after this file landed on main; earlier tags were backfilled by hand.
+on:
+  push:
+    tags: ["v*"]
+
+# Unlike ci.yml, this job writes to the repository: creating a Release needs
+# contents write. The grant is scoped to this workflow, and it never pushes
+# commits or moves tags.
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The notes are the CHANGELOG section whose heading matches the tag's
+      # version. An empty extraction fails the job: a tag cut without promoting
+      # the unreleased section is a half-issued release, and publishing it with
+      # blank notes would hide exactly that.
+      - name: Extract the tag's changelog section
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          escaped=$(printf '%s' "$version" | sed 's/\./\\./g')
+          awk "/^## \[$escaped\]/{f=1;next} /^## \[/{f=0} f" CHANGELOG.md > notes.md
+          if ! grep -q '[^[:space:]]' notes.md; then
+            echo "CHANGELOG.md has no section for $version" >&2
+            exit 1
+          fi
+
+      # --verify-tag refuses to invent a tag that does not exist, so this can
+      # only ever decorate a tag that was actually pushed.
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" --verify-tag \
+            --title "$GITHUB_REF_NAME" --notes-file notes.md

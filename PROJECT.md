@@ -34,6 +34,7 @@ for the routes that read them; both are followers, never a second source of the 
 | `docs/spec/` | Design decisions (Japanese) |
 | `package.json`, `bun.lock` | The vendoring tool's version pin, the OpenCode route's entry declaration (`main`, `files`), and one of the two version followers |
 | `.github/workflows/ci.yml` | CI: frozen install, the tool's self-test, then `verify` + `lint-selfcontain` over the repository root, the version-declaration check, the Agent Skills specification validation, and the skills' script suites |
+| `.github/workflows/release.yml` | A pushed `v*` tag gets its GitHub Release, with the tag's CHANGELOG section as the notes; an empty section fails the run instead of publishing blank notes |
 | `lefthook.yml` | Local pre-push gates mirroring CI (activated per clone with `lefthook install`) |
 
 ## Commands
