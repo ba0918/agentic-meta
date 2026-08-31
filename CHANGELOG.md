@@ -7,6 +7,15 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- `ba0918-skill-regression` — a skill that reads another skill by name, not by path, can
+  be declared on the evaluation side (`evals/dependencies.yml`), and the declared skill's
+  files then join the reader's behaviour surface. Editing a skill that others read by name
+  no longer leaves their locks green. The declaration lives outside the skill because it
+  exists for the measurement; a name on either side matching no skill, or a declaration
+  file that cannot be read, stops the computation.
+
 ## [0.2.0] - 2026-08-23
 
 ### Added

@@ -17,6 +17,27 @@ not on the current surface discredits the whole of it — a typo or a moved refe
 would otherwise buy a carry-over the scenario has not earned. A scenario with no
 declaration, or with a discredited one, is reached by every change.
 
+A skill the body reads by name rather than by path is on the surface only once
+`evals/dependencies.yml` says so:
+
+```yaml
+acme-config:
+  - acme-review
+```
+
+Then `skills/acme-review/SKILL.md`, its references and the contracts they cite may be
+named under `exercises` like any other surface file, and a change to them reaches the
+scenarios that name them plus every scenario making no claim. Without the entry, the
+named skill is invisible to the harness and its changes reach nothing. A name on either
+side that matches no skill stops every computation; a file with no entries declares
+nothing, and a key whose skill reads nothing any more is removed rather than left empty.
+
+A scenario that already carries a complete `exercises` claim is not reached by the
+declared skill's files until they are added to that claim — the claim says nothing
+outside it matters, and the declaration does not rewrite claims. Declaring a dependency
+is therefore two steps where such scenarios exist: the entry above, then the declared
+skill's files under each `exercises` that should be reached by them.
+
 Adding a declaration costs no rerun. It is impact metadata and does not change what the
 scenario measures, so it is left out of the scenario's content hash; otherwise putting
 one on an existing scenario would cost a full run and nobody would.

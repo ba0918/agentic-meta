@@ -26,7 +26,7 @@ for the routes that read them; both are followers, never a second source of the 
 |---|---|
 | `skills/` | The skills themselves, one directory each. A skill is self-contained: the contracts it declares are expanded under its own `references/vendor/`, and its Python scripts sit beside their tests in `scripts/` |
 | `contracts/` | The output-contract conventions (`contracts/README.md`) and the canonical text of each contract: `fixture-contract`, `severity-and-verdicts`, `fix-action-taxonomy` |
-| `evals/` | Measurement assets for the skills here: `cases/<skill>/` holds one scenario per file and `inputs/<skill>/` the files a scenario stages. Outside `skills/`, so they are committed but never shipped to anyone installing a skill |
+| `evals/` | Measurement assets for the skills here: `cases/<skill>/` holds one scenario per file, `inputs/<skill>/` the files a scenario stages, and `dependencies.yml` which skills a skill reads by name. Outside `skills/`, so they are committed but never shipped to anyone installing a skill |
 | `regression-lock.json` | What `ba0918-skill-regression` last verified, and against which content. A lock file at the root, like `vendor-lock.json` beside it |
 | `vendor-lock.json` | Which contract text each skill has currently adopted. Derived — the tool's `gen` rewrites it from the canonical text; it is never edited by hand |
 | `.claude-plugin/` | Distribution metadata: `plugin.json`, which declares the canonical version, and `marketplace.json`, which follows it |

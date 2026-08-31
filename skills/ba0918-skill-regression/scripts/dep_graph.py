@@ -7,6 +7,9 @@ behaviour:
   - what that skill's own .md reaches in **one hop** through a relative link or
     a bare path in its procedural text, shared contracts included
   - what that skill's own .py imports from `skills/shared/scripts/`, again one hop
+  - the own surface of every skill it is declared to read **by name** in
+    `evals/dependencies.yml`, one hop: what those skills declare in turn is not
+    followed
 
 Editing one shared contract can change the behaviour of every skill citing it.
 This reverse lookup — changed file to affected skill — is what a regression run
@@ -20,12 +23,26 @@ the far one marked the near one stale. Not traversing out of files that lie
 outside the skill's own directory keeps the surface aligned with the
 one-level-deep reference principle skill authoring already follows.
 
+**Why a declaration for skills read by name.** A skill body may tell the agent
+to read another skill and follow it, naming the skill rather than a path — a
+convention some repositories require. No path ever matches, so without a
+declaration the named skill's text can change and the reader's lock stays
+green. The declaration is not scanned out of the body: skill bodies name their
+siblings freely as related reading, and treating every mention as a dependency
+would fuse the surfaces the one-hop rule exists to keep apart. It lives on the
+evaluation side rather than in the skill's frontmatter because it exists for
+the measurement, and nothing that measures a skill is written inside it. A
+name on either side of a declaration that matches no skill refuses the whole
+computation: a misspelt name that bought nothing and said nothing would reopen
+the gap the declaration closes.
+
 **What is deliberately outside the surface.** Verification and evaluation assets
 live outside the skill directories — the lock at the repository root, scenarios
 under `evals/`. Were they on the surface, recording a verification would change
 the surface it was recorded against, and editing a scenario would mark its own
 skill stale. Their placement is what prevents that, so no exclusion list is kept
-here for them.
+here for them. The dependency declaration is such an asset too: on the
+surface, declaring a dependency would itself mark the declaring skill stale.
 
 CLI:
   python3 dep_graph.py [root]                   # every skill's surface, as JSON
@@ -39,8 +56,63 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import md_links  # noqa: E402
+import yaml_subset  # noqa: E402
 
 _EXCLUDED_DIR_NAMES = {"__pycache__"}
+
+DEPENDENCIES_FILE = "evals/dependencies.yml"
+
+
+class DependencyError(Exception):
+    """The dependency declaration cannot be used as written."""
+
+
+def _skill_names(root):
+    """Every skill directory holding a SKILL.md, `shared` excluded."""
+    base = os.path.join(root, "skills")
+    return {name for name in os.listdir(base)
+            if name != "shared" and os.path.isfile(os.path.join(base, name, "SKILL.md"))}
+
+
+def _declares_nothing(text):
+    return all(not line.strip() or line.lstrip().startswith("#")
+               for line in text.splitlines())
+
+
+def load_declared_dependencies(root):
+    """{declaring skill: [skill names it reads by name]} from the evaluation side.
+
+    Only an absent file means no declarations; a file that cannot be read is
+    refused rather than read as empty, which would drop every declaration
+    without a word. Names on either side that match no skill are refused too.
+    """
+    path = os.path.join(root, DEPENDENCIES_FILE.replace("/", os.sep))
+    try:
+        with open(path, encoding="utf-8") as f:
+            text = f.read()
+    except FileNotFoundError:
+        return {}
+    except (OSError, UnicodeDecodeError) as exc:
+        raise DependencyError(f"{DEPENDENCIES_FILE}: cannot be read ({exc})") from exc
+    if _declares_nothing(text):
+        return {}
+    try:
+        declared = yaml_subset.load(text)
+    except yaml_subset.YamlSubsetError as exc:
+        raise DependencyError(f"{DEPENDENCIES_FILE}: {exc}") from exc
+    skills = _skill_names(root)
+    for skill, names in declared.items():
+        if skill not in skills:
+            raise DependencyError(
+                f"{DEPENDENCIES_FILE}: {skill} declares dependencies but has no SKILL.md")
+        if not isinstance(names, list) or not all(isinstance(n, str) for n in names):
+            raise DependencyError(
+                f"{DEPENDENCIES_FILE}: {skill} must declare a list of skill names")
+        for name in names:
+            if name not in skills:
+                raise DependencyError(
+                    f"{DEPENDENCIES_FILE}: {skill} declares {name}, which has no SKILL.md")
+    return declared
 
 
 def _skill_dir_files(root, skill):
@@ -143,8 +215,8 @@ def _bare_path_refs(root, rel):
     return found
 
 
-def behavior_surface(root, skill):
-    """One skill's behaviour surface, sorted. Empty when it has no SKILL.md.
+def _own_surface(root, skill):
+    """What one skill reaches by itself, as a set. Empty when it has no SKILL.md.
 
     The starts are every .md and .py inside the skill directory. From .md the
     traversal takes markdown links and bare paths one hop; from .py it takes
@@ -153,7 +225,7 @@ def behavior_surface(root, skill):
     """
     skill_md = os.path.join(root, "skills", skill, "SKILL.md")
     if not os.path.isfile(skill_md):
-        return []
+        return set()
     own = _skill_dir_files(root, skill)
     own_md = [rel for rel in own if rel.endswith(".md")]
     surface = set(own)
@@ -161,20 +233,31 @@ def behavior_surface(root, skill):
     for rel in own_md:
         surface.update(_bare_path_refs(root, rel))
     surface.update(_python_import_edges(root, skill))
+    return surface
+
+
+def behavior_surface(root, skill, declared=None):
+    """One skill's behaviour surface, sorted. Empty when it has no SKILL.md.
+
+    `declared` is the dependency declaration; it is read from the evaluation
+    side when not supplied. A declared skill's own surface joins this one — its
+    own, not its behaviour surface, so what it declares in turn is not followed.
+    """
+    surface = _own_surface(root, skill)
+    if not surface:
+        return []
+    if declared is None:
+        declared = load_declared_dependencies(root)
+    for name in declared.get(skill, []):
+        surface.update(_own_surface(root, name))
     return sorted(surface)
 
 
 def build_graph(root):
     """{skill name: behaviour surface} for every skill except `shared`."""
-    base = os.path.join(root, "skills")
-    graph = {}
-    for name in sorted(os.listdir(base)):
-        if name == "shared" or not os.path.isdir(os.path.join(base, name)):
-            continue
-        surface = behavior_surface(root, name)
-        if surface:
-            graph[name] = surface
-    return graph
+    declared = load_declared_dependencies(root)
+    return {name: behavior_surface(root, name, declared)
+            for name in sorted(_skill_names(root))}
 
 
 def normalize_path(path, root=None):
@@ -222,7 +305,11 @@ def main(argv):
             rest = rest[:-1]
         changed = rest
     root = args[0] if args else os.getcwd()
-    graph = build_graph(root)
+    try:
+        graph = build_graph(root)
+    except DependencyError as exc:
+        print(exc, file=sys.stderr)
+        return 1
     if changed is None:
         print(json.dumps(graph, ensure_ascii=False, indent=2))
     else:
