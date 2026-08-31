@@ -761,22 +761,24 @@ def main(argv):
     root = args[0] if args else os.getcwd()
     state = load(root)
 
-    if mode == "--check":
-        return 1 if _report_check(root, state, lambda line: print(line)) else 0
-    if mode == "--coverage":
-        report = coverage(root, state)
-        print(json.dumps(report, ensure_ascii=False, indent=2))
-        return 1 if strict and report["uncovered"] else 0
-    if mode == "--impact-scenarios":
-        unresolved = _impact_scenarios(root, state, changed, lambda line: print(line))
-        for path in unresolved:
-            print(f"warning: unresolvable path: {path}", file=sys.stderr)
-        return 2 if unresolved else 0
-
+    # Every mode computes surfaces, so a dependency declaration that cannot be
+    # used stops any of them the same way a broken scenario does.
     try:
+        if mode == "--check":
+            return 1 if _report_check(root, state, lambda line: print(line)) else 0
+        if mode == "--coverage":
+            report = coverage(root, state)
+            print(json.dumps(report, ensure_ascii=False, indent=2))
+            return 1 if strict and report["uncovered"] else 0
+        if mode == "--impact-scenarios":
+            unresolved = _impact_scenarios(root, state, changed,
+                                           lambda line: print(line))
+            for path in unresolved:
+                print(f"warning: unresolvable path: {path}", file=sys.stderr)
+            return 2 if unresolved else 0
         return _run_update(root, state, skill, today, note, accept, partial,
                            scenario_ids, semantic_path, calibration_path)
-    except LockError as exc:
+    except (LockError, dep_graph.DependencyError) as exc:
         print(exc, file=sys.stderr)
         return 1
 
@@ -818,6 +820,6 @@ def _run_update(root, state, skill, today, note, accept, partial, scenario_ids,
 if __name__ == "__main__":
     try:
         sys.exit(main(sys.argv[1:]))
-    except LockError as exc:
+    except (LockError, dep_graph.DependencyError) as exc:
         print(exc, file=sys.stderr)
         sys.exit(1)

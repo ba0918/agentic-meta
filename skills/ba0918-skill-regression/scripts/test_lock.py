@@ -6,6 +6,8 @@ surface held a particular content. What the tests protect is the direction of
 every judgment: whenever the material for a decision is missing, the answer must
 fall to the heavy side — a rerun is demanded — rather than to the light one.
 """
+import contextlib
+import io
 import json
 import os
 import sys
@@ -646,6 +648,49 @@ class TestPartialUpdateWithJudgment(unittest.TestCase):
                     semantic=self._judgment(recorded, current, ["ac-002"]),
                     gate_reason="the judge was not calibrated")
             self.assertEqual(json.dumps(state, sort_keys=True), before)
+
+
+class TestDeclaredDependencies(unittest.TestCase):
+    """A skill read by name is on the surface once the evaluation side says so."""
+
+    def _repo_with_dependency(self, root):
+        _repo(root)
+        _write(root, "skills/other/SKILL.md", "the skill acme reads by name")
+        _write(root, "evals/dependencies.yml", "acme:\n  - other\n")
+
+    def test_editing_the_declared_skill_makes_the_declaring_skill_stale(self):
+        with tempfile.TemporaryDirectory() as root:
+            self._repo_with_dependency(root)
+            state = lock.load(root)
+            lock.update(root, state, "acme", "2026-08-01")
+            lock.save(root, state)
+            self.assertEqual(lock.main(["--check", root]), 0)
+            _write(root, "skills/other/SKILL.md", "reworked")
+            self.assertNotEqual(lock.main(["--check", root]), 0)
+
+    def test_a_scenario_may_declare_the_dependency_file_it_exercises(self):
+        with tempfile.TemporaryDirectory() as root:
+            self._repo_with_dependency(root)
+            _write(root, "evals/cases/acme/ac-001.yaml",
+                   _scenario_yaml("acme", "ac-001",
+                                  exercises=["skills/other/SKILL.md"]))
+            surface = set(lock.skill_surface(root, "acme"))
+            scenario = lock.load_scenarios(root, "acme")[0]
+            self.assertEqual(lock.declared_dependencies(scenario, surface),
+                             {"skills/other/SKILL.md"})
+
+    def test_an_unusable_declaration_stops_the_check_with_a_message(self):
+        with tempfile.TemporaryDirectory() as root:
+            _repo(root)
+            state = lock.load(root)
+            lock.update(root, state, "acme", "2026-08-01")
+            lock.save(root, state)
+            _write(root, "evals/dependencies.yml", "acme:\n  - nope\n")
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                code = lock.main(["--check", root])
+            self.assertEqual(code, 1)
+            self.assertIn("nope", err.getvalue())
 
 
 class TestCommandLine(unittest.TestCase):

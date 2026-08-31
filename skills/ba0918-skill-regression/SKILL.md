@@ -26,7 +26,7 @@ a lock.
 
 | Term | Meaning |
 |---|---|
-| behaviour surface | The files that can affect a skill's run-time behaviour: everything under `skills/<name>/` plus what its own markdown reaches in one hop, shared contracts included. Computed by `dep_graph.py`, which also states why the hop is not followed further |
+| behaviour surface | The files that can affect a skill's run-time behaviour: everything under `skills/<name>/`, what its own markdown reaches in one hop, shared contracts included, and the own files of every skill `evals/dependencies.yml` declares it reads by name. Computed by `dep_graph.py`, which also states why the hop is not followed further |
 | scenario | One file under `evals/cases/<skill>/`: a situation to hand the skill, plus the expectations its result must satisfy. Schema: [references/fixture-schema.md](references/fixture-schema.md) |
 | expectation | One checkable statement about the result. An expectation marked `critical: true` is one whose failure collapses the skill's reason to exist |
 | lock | `regression-lock.json` at the repository root: what was verified, against which content. It is committed |
@@ -39,6 +39,7 @@ homes, and the placement is what keeps a measurement from polluting its own targ
 ```
 evals/cases/<skill>/<scenario>.yaml   scenarios — committed, not distributed
 evals/inputs/<skill>/                 the files a scenario stages — committed
+evals/dependencies.yml                which skills a skill reads by name — committed
 regression-lock.json                  the verification record — committed, at the root
 <the executing environment's own area>  cost history, judge calibration — never committed
 ```

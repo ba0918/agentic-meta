@@ -17,6 +17,19 @@ not on the current surface discredits the whole of it — a typo or a moved refe
 would otherwise buy a carry-over the scenario has not earned. A scenario with no
 declaration, or with a discredited one, is reached by every change.
 
+A skill the body reads by name rather than by path is on the surface only once
+`evals/dependencies.yml` says so:
+
+```yaml
+acme-config:
+  - acme-review
+```
+
+Then `skills/acme-review/SKILL.md` and its references may be named under `exercises`
+like any other surface file, and a change to them reaches the scenarios that name them
+plus every scenario making no claim. Without the entry, the named skill is invisible to
+the harness and its changes reach nothing.
+
 Adding a declaration costs no rerun. It is impact metadata and does not change what the
 scenario measures, so it is left out of the scenario's content hash; otherwise putting
 one on an existing scenario would cost a full run and nobody would.

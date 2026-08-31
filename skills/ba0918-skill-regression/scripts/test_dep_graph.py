@@ -4,6 +4,8 @@
 Covers the behaviour surface of one skill (its own files plus what its markdown
 reaches in one hop) and the reverse lookup from changed files to affected skills.
 """
+import contextlib
+import io
 import os
 import sys
 import tempfile
@@ -358,6 +360,112 @@ class TestPathNormalization(unittest.TestCase):
             for v in variants:
                 skills, _ = dep_graph.impacted_skills(graph, [v], root)
                 self.assertEqual(skills, ["a"], f"failed for variant: {v}")
+
+
+def _declare(root, dependencies):
+    """Write the declaration from {skill: [names]}, or verbatim from a string."""
+    if isinstance(dependencies, str):
+        text = dependencies
+    else:
+        text = "".join(f"{skill}:\n" + "".join(f"  - {n}\n" for n in names)
+                       for skill, names in dependencies.items())
+    _write(root, dep_graph.DEPENDENCIES_FILE, text)
+
+
+class TestDeclaredSkillDependencies(unittest.TestCase):
+    """A skill that reads another skill by name, not by path.
+
+    The name never matches a path, so the dependency is declared on the
+    evaluation side — outside the skill, where nothing that measures a skill is
+    written — and the declared skill's surface joins the declaring skill's.
+    """
+
+    def test_declared_skill_surface_joins_the_declaring_skill(self):
+        with tempfile.TemporaryDirectory() as root:
+            _repo(root)
+            _write(root, "skills/a/SKILL.md", "Read the `b` skill and follow it.")
+            _declare(root, {"a": ["b"]})
+            surface = dep_graph.behavior_surface(root, "a")
+            self.assertIn("skills/b/SKILL.md", surface)
+            self.assertIn("skills/shared/references/gate.md", surface)
+
+    def test_declared_dependency_is_one_hop(self):
+        # What b in turn declares is b's business: a is not marked stale by a
+        # skill it never reads itself.
+        with tempfile.TemporaryDirectory() as root:
+            _write(root, "skills/a/SKILL.md", "Read the `b` skill.")
+            _write(root, "skills/b/SKILL.md", "Read the `c` skill.")
+            _write(root, "skills/c/SKILL.md", "leaf")
+            _declare(root, {"a": ["b"], "b": ["c"]})
+            surface = dep_graph.behavior_surface(root, "a")
+            self.assertIn("skills/b/SKILL.md", surface)
+            self.assertNotIn("skills/c/SKILL.md", surface)
+
+    def test_mutual_declarations_terminate(self):
+        with tempfile.TemporaryDirectory() as root:
+            _write(root, "skills/a/SKILL.md", "Read the `b` skill.")
+            _write(root, "skills/b/SKILL.md", "Read the `a` skill.")
+            _declare(root, {"a": ["b"], "b": ["a"]})
+            self.assertEqual(dep_graph.behavior_surface(root, "a"),
+                             ["skills/a/SKILL.md", "skills/b/SKILL.md"])
+
+    def test_declaration_file_is_not_on_the_surface(self):
+        # It is an evaluation asset like a scenario: on the surface, declaring a
+        # dependency would itself make the declaring skill stale.
+        with tempfile.TemporaryDirectory() as root:
+            _write(root, "skills/a/SKILL.md", "body")
+            _write(root, "skills/b/SKILL.md", "body")
+            _declare(root, {"a": ["b"]})
+            self.assertNotIn(dep_graph.DEPENDENCIES_FILE,
+                             dep_graph.behavior_surface(root, "a"))
+
+    def test_declaring_an_unknown_skill_is_refused(self):
+        # A misspelt name would otherwise buy nothing and say nothing, which is
+        # the silent gap the declaration exists to close.
+        with tempfile.TemporaryDirectory() as root:
+            _write(root, "skills/a/SKILL.md", "body")
+            _declare(root, {"a": ["bee"]})
+            with self.assertRaises(dep_graph.DependencyError) as ctx:
+                dep_graph.behavior_surface(root, "a")
+            self.assertIn("bee", str(ctx.exception))
+
+    def test_a_declaration_that_is_not_a_list_is_refused(self):
+        # `a: b` reads as the string "b", whose characters happen to be names.
+        with tempfile.TemporaryDirectory() as root:
+            _write(root, "skills/a/SKILL.md", "body")
+            _write(root, "skills/b/SKILL.md", "body")
+            _declare(root, "a: b\n")
+            with self.assertRaises(dep_graph.DependencyError):
+                dep_graph.behavior_surface(root, "a")
+
+    def test_a_declaration_outside_the_yaml_subset_is_refused(self):
+        with tempfile.TemporaryDirectory() as root:
+            _write(root, "skills/a/SKILL.md", "body")
+            _write(root, "skills/b/SKILL.md", "body")
+            _declare(root, "a: [b]\n")
+            with self.assertRaises(dep_graph.DependencyError) as ctx:
+                dep_graph.behavior_surface(root, "a")
+            self.assertIn(dep_graph.DEPENDENCIES_FILE, str(ctx.exception))
+
+    def test_a_change_to_the_declared_skill_impacts_the_declaring_skill(self):
+        with tempfile.TemporaryDirectory() as root:
+            _write(root, "skills/a/SKILL.md", "Read the `b` skill.")
+            _write(root, "skills/b/SKILL.md", "body")
+            _write(root, "skills/c/SKILL.md", "unrelated")
+            _declare(root, {"a": ["b"]})
+            graph = dep_graph.build_graph(root)
+            skills, _ = dep_graph.impacted_skills(graph, ["skills/b/SKILL.md"], root)
+            self.assertEqual(skills, ["a", "b"])
+
+    def test_the_command_line_reports_an_unusable_declaration(self):
+        with tempfile.TemporaryDirectory() as root:
+            _write(root, "skills/a/SKILL.md", "body")
+            _declare(root, {"a": ["nope"]})
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                code = dep_graph.main([root])
+            self.assertEqual(code, 1)
+            self.assertIn("nope", err.getvalue())
 
 
 if __name__ == "__main__":
