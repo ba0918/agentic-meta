@@ -7,6 +7,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-31
+
 ### Added
 
 - `ba0918-skill-regression` — a skill that reads another skill by name, not by path, can
@@ -94,6 +96,7 @@ Where a skill needs something this repository does not carry yet — a sibling s
 unported, or a verification entry point a target repository may not have — it says what is
 missing and continues in a reduced form instead of failing.
 
-[Unreleased]: https://github.com/ba0918/agentic-meta/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/ba0918/agentic-meta/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/ba0918/agentic-meta/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/ba0918/agentic-meta/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/ba0918/agentic-meta/releases/tag/v0.1.0
