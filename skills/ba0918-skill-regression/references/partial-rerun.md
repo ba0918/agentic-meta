@@ -32,6 +32,12 @@ named skill is invisible to the harness and its changes reach nothing. A name on
 side that matches no skill stops every computation; a file with no entries declares
 nothing, and a key whose skill reads nothing any more is removed rather than left empty.
 
+A scenario that already carries a complete `exercises` claim is not reached by the
+declared skill's files until they are added to that claim — the claim says nothing
+outside it matters, and the declaration does not rewrite claims. Declaring a dependency
+is therefore two steps where such scenarios exist: the entry above, then the declared
+skill's files under each `exercises` that should be reached by them.
+
 Adding a declaration costs no rerun. It is impact metadata and does not change what the
 scenario measures, so it is left out of the scenario's content hash; otherwise putting
 one on an existing scenario would cost a full run and nobody would.
