@@ -26,7 +26,7 @@ a lock.
 
 | Term | Meaning |
 |---|---|
-| behaviour surface | The files that can affect a skill's run-time behaviour: everything under `skills/<name>/`, what its own markdown reaches in one hop, shared contracts included, and the own files of every skill `evals/dependencies.yml` declares it reads by name. Computed by `dep_graph.py`, which also states why the hop is not followed further |
+| behaviour surface | The files that can affect a skill's run-time behaviour: everything under `skills/<name>/`, what its own markdown reaches in one hop, shared contracts included, and the own surface — its files and the contracts they cite — of every skill `evals/dependencies.yml` declares it reads by name. Computed by `dep_graph.py`, which also states why the hop is not followed further |
 | scenario | One file under `evals/cases/<skill>/`: a situation to hand the skill, plus the expectations its result must satisfy. Schema: [references/fixture-schema.md](references/fixture-schema.md) |
 | expectation | One checkable statement about the result. An expectation marked `critical: true` is one whose failure collapses the skill's reason to exist |
 | lock | `regression-lock.json` at the repository root: what was verified, against which content. It is committed |

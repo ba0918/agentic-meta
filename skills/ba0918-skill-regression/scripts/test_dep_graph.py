@@ -457,6 +457,34 @@ class TestDeclaredSkillDependencies(unittest.TestCase):
             skills, _ = dep_graph.impacted_skills(graph, ["skills/b/SKILL.md"], root)
             self.assertEqual(skills, ["a", "b"])
 
+    def test_a_declaring_name_that_matches_no_skill_is_refused(self):
+        # A misspelt key would declare nothing for anyone, silently — the same
+        # gap as a misspelt value, so it is refused the same way.
+        with tempfile.TemporaryDirectory() as root:
+            _write(root, "skills/a/SKILL.md", "body")
+            _write(root, "skills/b/SKILL.md", "body")
+            _declare(root, {"bee": ["b"]})
+            with self.assertRaises(dep_graph.DependencyError) as ctx:
+                dep_graph.behavior_surface(root, "a")
+            self.assertIn("bee", str(ctx.exception))
+
+    def test_a_declaration_file_with_no_entries_declares_nothing(self):
+        # Removing the last declaration leaves a file, not a missing file.
+        with tempfile.TemporaryDirectory() as root:
+            _write(root, "skills/a/SKILL.md", "body")
+            _declare(root, "# no skill reads another by name yet\n")
+            self.assertEqual(dep_graph.behavior_surface(root, "a"),
+                             ["skills/a/SKILL.md"])
+
+    def test_an_unreadable_declaration_file_is_refused(self):
+        # Only absence means "no declarations"; anything else that cannot be
+        # read would otherwise erase every declaration without a word.
+        with tempfile.TemporaryDirectory() as root:
+            _write(root, "skills/a/SKILL.md", "body")
+            os.makedirs(os.path.join(root, dep_graph.DEPENDENCIES_FILE))
+            with self.assertRaises(dep_graph.DependencyError):
+                dep_graph.behavior_surface(root, "a")
+
     def test_the_command_line_reports_an_unusable_declaration(self):
         with tempfile.TemporaryDirectory() as root:
             _write(root, "skills/a/SKILL.md", "body")

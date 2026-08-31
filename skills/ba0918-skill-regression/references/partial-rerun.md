@@ -25,10 +25,12 @@ acme-config:
   - acme-review
 ```
 
-Then `skills/acme-review/SKILL.md` and its references may be named under `exercises`
-like any other surface file, and a change to them reaches the scenarios that name them
-plus every scenario making no claim. Without the entry, the named skill is invisible to
-the harness and its changes reach nothing.
+Then `skills/acme-review/SKILL.md`, its references and the contracts they cite may be
+named under `exercises` like any other surface file, and a change to them reaches the
+scenarios that name them plus every scenario making no claim. Without the entry, the
+named skill is invisible to the harness and its changes reach nothing. A name on either
+side that matches no skill stops every computation; a file with no entries declares
+nothing, and a key whose skill reads nothing any more is removed rather than left empty.
 
 Adding a declaration costs no rerun. It is impact metadata and does not change what the
 scenario measures, so it is left out of the scenario's content hash; otherwise putting

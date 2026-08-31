@@ -32,9 +32,9 @@ siblings freely as related reading, and treating every mention as a dependency
 would fuse the surfaces the one-hop rule exists to keep apart. It lives on the
 evaluation side rather than in the skill's frontmatter because it exists for
 the measurement, and nothing that measures a skill is written inside it. A
-declared name that matches no skill refuses the whole computation: a misspelt
-name that bought nothing and said nothing would reopen the gap the declaration
-closes.
+name on either side of a declaration that matches no skill refuses the whole
+computation: a misspelt name that bought nothing and said nothing would reopen
+the gap the declaration closes.
 
 **What is deliberately outside the surface.** Verification and evaluation assets
 live outside the skill directories — the lock at the repository root, scenarios
@@ -67,24 +67,51 @@ class DependencyError(Exception):
     """The dependency declaration cannot be used as written."""
 
 
+def _skill_names(root):
+    """Every skill directory holding a SKILL.md, `shared` excluded."""
+    base = os.path.join(root, "skills")
+    return {name for name in os.listdir(base)
+            if name != "shared" and os.path.isfile(os.path.join(base, name, "SKILL.md"))}
+
+
+def _declares_nothing(text):
+    return all(not line.strip() or line.lstrip().startswith("#")
+               for line in text.splitlines())
+
+
 def load_declared_dependencies(root):
-    """{declaring skill: [skill names it reads by name]} from the evaluation side."""
+    """{declaring skill: [skill names it reads by name]} from the evaluation side.
+
+    Only an absent file means no declarations; a file that cannot be read is
+    refused rather than read as empty, which would drop every declaration
+    without a word. Names on either side that match no skill are refused too.
+    """
     path = os.path.join(root, DEPENDENCIES_FILE.replace("/", os.sep))
     try:
         with open(path, encoding="utf-8") as f:
             text = f.read()
-    except OSError:
+    except FileNotFoundError:
+        return {}
+    except (OSError, UnicodeDecodeError) as exc:
+        raise DependencyError(f"{DEPENDENCIES_FILE}: cannot be read ({exc})") from exc
+    if _declares_nothing(text):
         return {}
     try:
         declared = yaml_subset.load(text)
     except yaml_subset.YamlSubsetError as exc:
         raise DependencyError(f"{DEPENDENCIES_FILE}: {exc}") from exc
-    if not isinstance(declared, dict):
-        raise DependencyError(f"{DEPENDENCIES_FILE}: expected a mapping of skill names")
+    skills = _skill_names(root)
     for skill, names in declared.items():
+        if skill not in skills:
+            raise DependencyError(
+                f"{DEPENDENCIES_FILE}: {skill} declares dependencies but has no SKILL.md")
         if not isinstance(names, list) or not all(isinstance(n, str) for n in names):
             raise DependencyError(
                 f"{DEPENDENCIES_FILE}: {skill} must declare a list of skill names")
+        for name in names:
+            if name not in skills:
+                raise DependencyError(
+                    f"{DEPENDENCIES_FILE}: {skill} declares {name}, which has no SKILL.md")
     return declared
 
 
@@ -221,27 +248,16 @@ def behavior_surface(root, skill, declared=None):
         return []
     if declared is None:
         declared = load_declared_dependencies(root)
-    for name in declared.get(skill) or []:
-        joined = _own_surface(root, name)
-        if not joined:
-            raise DependencyError(
-                f"{DEPENDENCIES_FILE}: {skill} declares {name}, which has no SKILL.md")
-        surface.update(joined)
+    for name in declared.get(skill, []):
+        surface.update(_own_surface(root, name))
     return sorted(surface)
 
 
 def build_graph(root):
     """{skill name: behaviour surface} for every skill except `shared`."""
-    base = os.path.join(root, "skills")
     declared = load_declared_dependencies(root)
-    graph = {}
-    for name in sorted(os.listdir(base)):
-        if name == "shared" or not os.path.isdir(os.path.join(base, name)):
-            continue
-        surface = behavior_surface(root, name, declared)
-        if surface:
-            graph[name] = surface
-    return graph
+    return {name: behavior_surface(root, name, declared)
+            for name in sorted(_skill_names(root))}
 
 
 def normalize_path(path, root=None):

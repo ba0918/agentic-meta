@@ -117,9 +117,17 @@ def structural_hashes(root, files):
     return out
 
 
-def skill_surface(root, skill):
-    """The behaviour surface of one skill."""
-    return dep_graph.behavior_surface(root, skill)
+def _from_dep_graph(compute, *args):
+    """Run a surface computation, reporting a refused declaration as a lock error."""
+    try:
+        return compute(*args)
+    except dep_graph.DependencyError as exc:
+        raise LockError(str(exc)) from exc
+
+
+def skill_surface(root, skill, declared=None):
+    """The behaviour surface of one skill; `declared` is the dependency declaration."""
+    return _from_dep_graph(dep_graph.behavior_surface, root, skill, declared)
 
 
 def stale_severity(recorded, current, recorded_struct=None, current_struct=None,
@@ -420,9 +428,10 @@ def check(root, state):
         issues.append(("unverified", skill, "has scenarios but no verification record"))
     for skill in sorted(set(entries) - tracked):
         issues.append(("orphan", skill, "recorded but declares no scenarios any more"))
+    declared = _from_dep_graph(dep_graph.load_declared_dependencies, root)
     for skill in sorted(set(entries) & tracked):
         entry = entries[skill]
-        surface = skill_surface(root, skill)
+        surface = skill_surface(root, skill, declared)
         severity, changed = stale_severity(
             entry.get("file_sha256") or {}, file_hashes(root, surface),
             entry.get("structural_sha256") or {}, structural_hashes(root, surface),
@@ -687,7 +696,7 @@ def _report_check(root, state, out):
 
 
 def _impact_scenarios(root, state, changed_paths, out):
-    graph = dep_graph.build_graph(root)
+    graph = _from_dep_graph(dep_graph.build_graph, root)
     skills, unresolved = dep_graph.impacted_skills(graph, changed_paths, root)
     case_owners = {name for name in _skills_with_scenarios(root)
                    if any(p.startswith(f"{CASES_DIR}/{name}/") for p in changed_paths)}
@@ -698,7 +707,7 @@ def _impact_scenarios(root, state, changed_paths, out):
             continue
         recorded = (entries.get(skill) or {}).get("scenarios")
         for scenario_id in impacted_scenarios(
-                skill, skill_surface(root, skill), scenarios,
+                skill, graph.get(skill, []), scenarios,
                 [p for p in changed_paths], recorded):
             out(f"{skill}\t{scenario_id}")
     return unresolved
@@ -761,8 +770,6 @@ def main(argv):
     root = args[0] if args else os.getcwd()
     state = load(root)
 
-    # Every mode computes surfaces, so a dependency declaration that cannot be
-    # used stops any of them the same way a broken scenario does.
     try:
         if mode == "--check":
             return 1 if _report_check(root, state, lambda line: print(line)) else 0
@@ -778,7 +785,7 @@ def main(argv):
             return 2 if unresolved else 0
         return _run_update(root, state, skill, today, note, accept, partial,
                            scenario_ids, semantic_path, calibration_path)
-    except (LockError, dep_graph.DependencyError) as exc:
+    except LockError as exc:
         print(exc, file=sys.stderr)
         return 1
 
@@ -820,6 +827,6 @@ def _run_update(root, state, skill, today, note, accept, partial, scenario_ids,
 if __name__ == "__main__":
     try:
         sys.exit(main(sys.argv[1:]))
-    except (LockError, dep_graph.DependencyError) as exc:
+    except LockError as exc:
         print(exc, file=sys.stderr)
         sys.exit(1)
